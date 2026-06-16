@@ -6,7 +6,8 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Users, ShoppingCart, Package,
   Truck, Receipt, Factory, Recycle, BarChart3,
-  Settings, LogOut, Box
+  Settings, LogOut, Box,
+  ShieldCheck
 } from 'lucide-react'
 import { useLogout } from '@/lib/hooks/use-auth'
 import { useAuthStore } from '@/lib/stores/auth.store'
@@ -23,6 +24,9 @@ const navItems = [
   { href: '/production',    label: 'Production',       icon: Factory,         group: 'production' },
   { href: '/recyclage',     label: 'Recyclage',        icon: Recycle,         group: 'production' },
   { href: '/catalogue', label: 'Catalogue', icon: Package, group: 'main' },
+  { href: '/fournisseurs', label: 'Fournisseurs', icon: Truck, group: 'commercial' },
+{ href: '/contrats', label: 'Contrats', icon: ShieldCheck, group: 'commercial' },
+{ href: '/demandes-achat', label: 'Demandes achat', icon: Package, group: 'stock' },
   { href: '/rh', label: 'RH', icon: Users, group: 'main' },
 ]
 
