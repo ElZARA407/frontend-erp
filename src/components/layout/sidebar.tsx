@@ -17,10 +17,13 @@ const navItems = [
   { href: '/commandes',     label: 'Commandes',        icon: ShoppingCart,    group: 'commercial' },
   { href: '/livraisons',    label: 'Livraisons',       icon: Truck,           group: 'commercial' },
   { href: '/factures',      label: 'Factures',         icon: Receipt,         group: 'finance' },
+  { href: '/organisation', label: 'Organisation', icon: Settings, group: 'main' },
   { href: '/stocks',        label: 'Stocks',           icon: Box,             group: 'stock' },
   { href: '/achats',        label: 'Achats / BR',      icon: Package,         group: 'stock' },
   { href: '/production',    label: 'Production',       icon: Factory,         group: 'production' },
   { href: '/recyclage',     label: 'Recyclage',        icon: Recycle,         group: 'production' },
+  { href: '/catalogue', label: 'Catalogue', icon: Package, group: 'main' },
+  { href: '/rh', label: 'RH', icon: Users, group: 'main' },
 ]
 
 const groups = [
