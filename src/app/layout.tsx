@@ -1,25 +1,26 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "@/styles/globals.css";
+// src/app/layout.tsx
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import '@/styles/globals.css'
+import { Providers } from './providers'
 
 const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
-  title: "CMP ERP",
-  description: "Frontend ERP pour le projet CMP BDD.",
-};
+  title: { default: 'CMP ERP', template: '%s — CMP ERP' },
+  description: 'Système ERP — Compagnie Malagasy de Plastique',
+}
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={inter.variable}>
-      <body>{children}</body>
+    <html lang="fr" suppressHydrationWarning>
+      <body className={inter.variable}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
-  );
+  )
 }

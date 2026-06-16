@@ -1,17 +1,32 @@
-import { cn } from "@/lib/utils";
-import type { HTMLAttributes, ReactNode } from "react";
+// src/components/ui/card.tsx
+import { cn } from '@/lib/utils'
 
-type Props = HTMLAttributes<HTMLDivElement> & {
-  children: ReactNode;
-};
-
-export function Card({ className, children, ...props }: Props) {
+export function Card({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("rounded-2xl border border-slate-200 bg-white shadow-sm", className)}
       {...props}
+      className={cn(
+        'rounded-lg border border-surface-border bg-white shadow-card',
+        className
+      )}
     >
       {children}
     </div>
-  );
+  )
+}
+
+export function CardHeader({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div {...props} className={cn('flex items-center justify-between border-b border-surface-border px-5 py-3.5', className)}>
+      {children}
+    </div>
+  )
+}
+
+export function CardBody({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div {...props} className={cn('p-5', className)}>
+      {children}
+    </div>
+  )
 }
