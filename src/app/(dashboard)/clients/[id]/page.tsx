@@ -1,21 +1,17 @@
-import { PageHeader } from "@/components/layout/page-header";
+// src/app/(dashboard)/clients/[id]/page.tsx
+import type { Metadata } from 'next'
+import { ClientDetailView } from '@/components/features/clients/client-detail-view'
+
+export const metadata: Metadata = {
+  title: 'Client détail',
+}
 
 export default async function ClientDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>
 }) {
-  const { id } = await params;
+  const { id } = await params
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title={`Client #${id}`}
-        // description="Fiche détail prête pour brancher l'API."
-      />
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        Détails client à implémenter.
-      </div>
-    </div>
-  );
+  return <ClientDetailView clientId={Number(id)} />
 }

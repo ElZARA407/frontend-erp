@@ -1,21 +1,17 @@
-import { PageHeader } from "@/components/layout/page-header";
+// src/app/(dashboard)/commandes/[id]/page.tsx
+import type { Metadata } from 'next'
+import { CommandeDetailView } from '@/components/features/commandes/commande-detail-view'
+
+export const metadata: Metadata = {
+  title: 'Commande détail',
+}
 
 export default async function CommandeDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>
 }) {
-  const { id } = await params;
+  const { id } = await params
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title={`Commande #${id}`}
-        // description="Suivi détaillé de la commande."
-      />
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        Détails commande à implémenter.
-      </div>
-    </div>
-  );
+  return <CommandeDetailView commandeId={Number(id)} />
 }
