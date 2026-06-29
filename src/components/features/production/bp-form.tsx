@@ -58,7 +58,7 @@ export function BpForm({ onSuccess }: BpFormProps) {
       location_id: locations[0]?.id ?? 0,
       produit_id: products[0]?.id ?? 0,
       machine_production: '',
-      quantite_cible: 0,
+      quantite_cible: 1,
     })
   }, [locations, products, reset])
 

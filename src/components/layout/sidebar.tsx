@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { useLogout } from '@/lib/hooks/use-auth'
 import { useAuthStore } from '@/lib/stores/auth.store'
+import { canAccessRoute } from '@/lib/permissions'
 
 const navItems = [
   { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard, group: 'main' },
@@ -52,6 +53,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const { mutate: logout, isPending } = useLogout()
   const utilisateur = useAuthStore((s) => s.utilisateur)
+  const role = utilisateur?.role?.nom ?? null
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 flex w-60 flex-col border-r border-surface-border bg-steel-950">
@@ -67,7 +69,9 @@ export function Sidebar() {
 
       <nav className="flex-1 overflow-y-auto px-3 py-3">
         {groups.map((group) => {
-          const items = navItems.filter((n) => n.group === group.key)
+          const items = navItems.filter(
+            (n) => n.group === group.key && canAccessRoute(role, n.href)
+          )
           if (!items.length) return null
 
           return (
