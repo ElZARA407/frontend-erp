@@ -76,6 +76,7 @@ export function useValiderSession() {
     mutationFn: (sessionId: number) => productionApi.validerSession(sessionId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
+      qc.invalidateQueries({ queryKey: ['stocks'] })
       toast.success('Session validée. Stocks mis à jour.')
     },
     onError: () => toast.error('Erreur lors de la validation.'),
@@ -90,7 +91,7 @@ export function useAddProductionMatiere() {
       productionApi.addMatiere(sessionId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
-      toast.success('Matière ajoutée à la session.')
+      toast.success('Matière ajoutée.')
     },
     onError: () => toast.error('Erreur lors de l’ajout de la matière.'),
   })
@@ -118,7 +119,7 @@ export function useAddProductionEmploye() {
       productionApi.addEmploye(sessionId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
-      toast.success('Employé ajouté à la session.')
+      toast.success('Employé ajouté.')
     },
     onError: () => toast.error('Erreur lors de l’ajout de l’employé.'),
   })
@@ -132,7 +133,7 @@ export function useAddProductionEvenement() {
       productionApi.addEvenement(sessionId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
-      toast.success('Événement ajouté à la session.')
+      toast.success('Événement ajouté.')
     },
     onError: () => toast.error('Erreur lors de l’ajout de l’événement.'),
   })

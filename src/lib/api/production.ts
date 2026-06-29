@@ -47,7 +47,9 @@ export const productionApi = {
   },
 
   get: async (id: number) => {
-    const { data } = await apiClient.get<ApiResponse<BonProduction>>(`/production/bons-production/${id}`)
+    const { data } = await apiClient.get<ApiResponse<BonProduction>>(
+      `/production/bons-production/${id}`
+    )
     return data.data
   },
 
@@ -58,17 +60,24 @@ export const productionApi = {
     machine_production: string
     quantite_cible: number
   }) => {
-    const { data } = await apiClient.post<ApiResponse<BonProduction>>('/production/bons-production', payload)
+    const { data } = await apiClient.post<ApiResponse<BonProduction>>(
+      '/production/bons-production',
+      payload
+    )
     return data.data
   },
 
   cloture: async (id: number) => {
-    const { data } = await apiClient.post<ApiResponse<BonProduction>>(`/production/bons-production/${id}/cloture`)
+    const { data } = await apiClient.post<ApiResponse<BonProduction>>(
+      `/production/bons-production/${id}/cloture`
+    )
     return data.data
   },
 
   annuler: async (id: number) => {
-    const { data } = await apiClient.post<ApiResponse<null>>(`/production/bons-production/${id}/annuler`)
+    const { data } = await apiClient.post<ApiResponse<null>>(
+      `/production/bons-production/${id}/annuler`
+    )
     return data
   },
 

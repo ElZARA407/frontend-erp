@@ -13,7 +13,7 @@ export function BpForm({ onSuccess }: BpFormProps) {
   const { mutate: create, isPending } = useCreateBonProduction()
 
   const { register, handleSubmit, formState: { errors } } = useForm<BonProductionSchema>({
-    resolver: zodResolver(bonProductionSchema),
+    resolver: zodResolver(bonProductionSchema) as any,
     defaultValues: { date: new Date().toISOString().split('T')[0] },
   })
 
