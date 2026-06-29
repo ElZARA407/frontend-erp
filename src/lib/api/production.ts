@@ -14,6 +14,30 @@ export interface BpFilters {
   [key: string]: unknown
 }
 
+export interface BpMatierePayload {
+  matiere_id: number
+  quantite_utilisee: number
+  quantite_restituee?: number
+}
+
+export interface BpObtenuPayload {
+  classement_id: number
+  quantite_produite: number
+  destination_location_id: number
+}
+
+export interface BpEmployePayload {
+  employe_id: number
+  heures_brutes: number
+}
+
+export interface BpEvenementPayload {
+  type_evenement: 'production' | 'pause' | 'panne' | 'autre'
+  heure_debut: string
+  heure_fin?: string
+  description?: string
+}
+
 export const productionApi = {
   list: async (filters: BpFilters = {}) => {
     const { data } = await apiClient.get<PaginatedResponse<BonProduction>>(
@@ -48,11 +72,14 @@ export const productionApi = {
     return data
   },
 
-  createSession: async (bpId: number, payload: {
-    date_session: string
-    machine_production: string
-    cout_electricite?: number
-  }) => {
+  createSession: async (
+    bpId: number,
+    payload: {
+      date_session: string
+      machine_production: string
+      cout_electricite?: number
+    }
+  ) => {
     const { data } = await apiClient.post<ApiResponse<BpSession>>(
       `/production/bons-production/${bpId}/sessions`,
       payload
@@ -63,6 +90,38 @@ export const productionApi = {
   validerSession: async (sessionId: number) => {
     const { data } = await apiClient.post<ApiResponse<BpSession>>(
       `/production/sessions/${sessionId}/valider`
+    )
+    return data.data
+  },
+
+  addMatiere: async (sessionId: number, payload: BpMatierePayload) => {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `/production/sessions/${sessionId}/matieres`,
+      payload
+    )
+    return data.data
+  },
+
+  addObtenu: async (sessionId: number, payload: BpObtenuPayload) => {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `/production/sessions/${sessionId}/obtenus`,
+      payload
+    )
+    return data.data
+  },
+
+  addEmploye: async (sessionId: number, payload: BpEmployePayload) => {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `/production/sessions/${sessionId}/employes`,
+      payload
+    )
+    return data.data
+  },
+
+  addEvenement: async (sessionId: number, payload: BpEvenementPayload) => {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `/production/sessions/${sessionId}/evenements`,
+      payload
     )
     return data.data
   },
