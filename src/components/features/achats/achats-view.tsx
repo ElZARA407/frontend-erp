@@ -1,6 +1,9 @@
 // src/components/features/achats/achats-view.tsx
 'use client'
+
+import Link from 'next/link'
 import { useState } from 'react'
+import { CheckCircle, Eye, Package, Plus } from 'lucide-react'
 import { useAchats, useValiderAchat } from '@/lib/hooks/use-achats'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
@@ -8,37 +11,52 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Pagination } from '@/components/ui/pagination'
 import { TableSkeleton } from '@/components/ui/skeleton'
+import { Dialog } from '@/components/ui/dialog'
+import { AchatForm } from './achat-form'
 import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
-import { Package, CheckCircle, Eye } from 'lucide-react'
-import Link from 'next/link'
 import type { JournalAchat } from '@/lib/types'
 
 export function AchatsView() {
-  const [page, setPage]     = useState(1)
+  const [page, setPage] = useState(1)
   const [statut, setStatut] = useState<string>('')
+  const [showCreate, setShowCreate] = useState(false)
 
-  const { data, isLoading }       = useAchats({ statut: statut || undefined, page, per_page: 20 })
+  const { data, isLoading } = useAchats({
+    statut: statut || undefined,
+    page,
+    per_page: 20,
+  })
   const { mutate: valider, isPending } = useValiderAchat()
 
-  const brs      = data?.data.data ?? []
   const paginate = data?.data
+  const brs = Array.isArray(paginate?.data) ? paginate.data : []
+
+  const statutOptions = [
+    { value: '', label: 'Tous' },
+    { value: 'brouillon', label: 'Brouillons' },
+    { value: 'valide', label: 'Validés' },
+  ]
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Bons de Réception"
-        subtitle="Achats de matières premières"
+        title="Bons de réception"
+        subtitle={`${paginate?.total ?? 0} BR achat${(paginate?.total ?? 0) > 1 ? 's' : ''}`}
+        actions={
+          <Button onClick={() => setShowCreate(true)} icon={<Plus className="h-3.5 w-3.5" />}>
+            Nouveau BR
+          </Button>
+        }
       />
 
-      <div className="flex rounded-md border border-surface-border overflow-hidden text-xs w-fit">
-        {[
-          { value: '',         label: 'Tous'       },
-          { value: 'brouillon',label: 'Brouillons' },
-          { value: 'valide',   label: 'Validés'    },
-        ].map(({ value, label }) => (
+      <div className="flex w-fit overflow-hidden rounded-md border border-surface-border text-xs">
+        {statutOptions.map(({ value, label }) => (
           <button
             key={value}
-            onClick={() => { setStatut(value); setPage(1) }}
+            onClick={() => {
+              setStatut(value)
+              setPage(1)
+            }}
             className={
               statut === value
                 ? 'bg-steel-700 px-3 py-1.5 font-medium text-white'
@@ -52,7 +70,7 @@ export function AchatsView() {
 
       <Card>
         {isLoading ? (
-          <TableSkeleton rows={10} cols={6} />
+          <TableSkeleton rows={10} cols={7} />
         ) : brs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-steel-400">
             <Package className="mb-2 h-8 w-8" />
@@ -63,18 +81,33 @@ export function AchatsView() {
             <thead>
               <tr className="border-b border-surface-border">
                 {['Numéro', 'Fournisseur', 'Site', 'Date', 'Total', 'Statut', ''].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400">{h}</th>
+                  <th
+                    key={h}
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border">
               {brs.map((br: JournalAchat) => (
-                <tr key={br.id} className="hover:bg-surface-muted/60 transition-colors">
-                  <td className="px-4 py-3"><span className="ref-code">{br.numero}</span></td>
-                  <td className="px-4 py-3 font-medium text-steel-800">{br.fournisseur?.nom ?? '—'}</td>
-                  <td className="px-4 py-3 text-steel-600">{br.location?.nom ?? '—'}</td>
-                  <td className="px-4 py-3 text-steel-600">{formatDate(br.date)}</td>
-                  <td className="px-4 py-3"><span className="amount">{formatMGA(br.total)}</span></td>
+                <tr key={br.id} className="transition-colors hover:bg-surface-muted/60">
+                  <td className="px-4 py-3">
+                    <span className="ref-code">{br.numero}</span>
+                  </td>
+                  <td className="px-4 py-3 font-medium text-steel-800">
+                    {br.fournisseur?.nom ?? '—'}
+                  </td>
+                  <td className="px-4 py-3 text-steel-600">
+                    {br.location?.nom ?? '—'}
+                  </td>
+                  <td className="px-4 py-3 text-steel-600">
+                    {formatDate(br.date)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="amount">{formatMGA(br.total)}</span>
+                  </td>
                   <td className="px-4 py-3">
                     <Badge variant={getStatutColor(br.statut)} dot>
                       {br.statut === 'valide' ? 'Validé' : 'Brouillon'}
@@ -93,6 +126,12 @@ export function AchatsView() {
                           Valider
                         </Button>
                       )}
+
+                      <Link href={`/achats/${br.id}`}>
+                        <Button variant="ghost" size="sm" icon={<Eye className="h-3.5 w-3.5" />}>
+                          Voir
+                        </Button>
+                      </Link>
                     </div>
                   </td>
                 </tr>
@@ -100,9 +139,10 @@ export function AchatsView() {
             </tbody>
           </table>
         )}
+
         {paginate && (
           <Pagination
-            currentPage={paginate.current_page}
+            currentPage={paginate.current_page ?? page}
             lastPage={paginate.last_page}
             total={paginate.total}
             from={paginate.from ?? 0}
@@ -111,6 +151,15 @@ export function AchatsView() {
           />
         )}
       </Card>
+
+      <Dialog
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        title="Nouveau bon de réception"
+        size="xl"
+      >
+        <AchatForm onSuccess={() => setShowCreate(false)} />
+      </Dialog>
     </div>
   )
 }
