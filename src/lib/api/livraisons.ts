@@ -1,4 +1,3 @@
-// src/lib/api/livraisons.ts
 import apiClient from './client'
 import type { ApiResponse, PaginatedResponse, Livraison } from '../types'
 import { buildQueryString } from '../utils'
@@ -8,6 +7,7 @@ export const livraisonsApi = {
     client_id?: number
     statut?: string
     source_type?: string
+    est_facturee?: boolean
     per_page?: number
     page?: number
   } = {}) => {

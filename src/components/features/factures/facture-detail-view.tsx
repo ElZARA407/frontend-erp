@@ -1,82 +1,51 @@
+// src/components/features/factures/facture-detail-view.tsx
 'use client'
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowLeft, CheckCircle2, Receipt, XCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, FileText, Receipt, Truck, XCircle } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { z } from 'zod'
-import { Select } from '@/components/ui/select'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { StatCard } from '@/components/ui/stat-card'
-import { formatDate, formatDateTime, formatMGA,formatQty, getStatutColor } from '@/lib/utils'
-import { MODES_PAIEMENT } from '@/lib/constants'
+import { formatDate, formatDateTime, formatMGA, formatQty, getStatutColor } from '@/lib/utils'
 import { useAnnulerFacture, useFacture, usePayerFacture } from '@/lib/hooks/use-factures'
+import { MODES_PAIEMENT } from '@/lib/constants'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Select } from '@/components/ui/select'
+import { payerFactureSchema, type PayerFactureSchema } from '@/lib/schemas/facture.schema'
+import type { Facture } from '@/lib/factures.types'
 
 interface FactureDetailViewProps {
   factureId: number
 }
 
-type FactureDetail = {
-  id: number
-  numero: string
-  date: string
-  total: number
-  statut: {
-    valeur: 'en_attente' | 'emise' | 'partiellement_payee' | 'payee' | 'annulee'
-    libelle: string
-    couleur: string
-  }
-  echeance_paiement: string | null
-  date_paiement: string | null
-  mode_paiement: string | null
-  en_retard: boolean
-  jours_retard: number
-  notes: string | null
-  client?: { id: number; nom: string } | null
-  lignes?: Array<{
-    id: number
-    quantite: number
-    prix_unitaire: number
-    total_ligne: number
-    classement?: { id: number; designation: string } | null
-  }>
-  created_at?: string
-}
-
 export function FactureDetailView({ factureId }: FactureDetailViewProps) {
   const [showPayDialog, setShowPayDialog] = useState(false)
 
-  const { data: factureData, isLoading } = useFacture(factureId)
+  const { data: facture, isLoading } = useFacture(factureId)
   const payerFacture = usePayerFacture()
   const annulerFacture = useAnnulerFacture()
 
-  const facture = factureData as FactureDetail | undefined
   const lignes = Array.isArray(facture?.lignes) ? facture.lignes : []
 
- const {
+  const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<{ mode_paiement: string }>({
-    resolver: zodResolver(
-      z.object({
-        mode_paiement: z.string().min(1, 'Le mode de paiement est requis'),
-      })
-    ),
+  } = useForm<PayerFactureSchema>({
+    resolver: zodResolver(payerFactureSchema),
     defaultValues: {
-      mode_paiement: '',
+      mode_paiement: undefined,
     },
   })
 
-  const onPay = (values: { mode_paiement: string }) => {
+  const onPay = (values: PayerFactureSchema) => {
     if (!facture) return
     payerFacture.mutate(
       { id: facture.id, mode_paiement: values.mode_paiement },
@@ -170,13 +139,13 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
             <StatCard
               label="Retard"
               value={facture?.jours_retard ?? 0}
-              icon={<Receipt className="h-5 w-5" />}
+              icon={<FileText className="h-5 w-5" />}
               accent={facture?.en_retard ? 'danger' : 'success'}
             />
             <StatCard
               label="Échéance"
               value={facture?.echeance_paiement ? formatDate(facture.echeance_paiement) : '—'}
-              icon={<Receipt className="h-5 w-5" />}
+              icon={<Truck className="h-5 w-5" />}
               accent="warning"
             />
             <StatCard
@@ -224,16 +193,34 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
                   )}
                 </p>
               </div>
+
+              <div className="rounded-lg border border-surface-border p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Livraison source</p>
+                <p className="mt-1 font-semibold text-steel-900">
+                  {facture.livraison ? (
+                    <Link className="hover:underline" href={`/livraisons/${facture.livraison.id}`}>
+                      {facture.livraison.numero}
+                    </Link>
+                  ) : (
+                    '—'
+                  )}
+                </p>
+              </div>
+
               <div className="rounded-lg border border-surface-border p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Date</p>
                 <p className="mt-1 font-semibold text-steel-900">{formatDate(facture.date)}</p>
               </div>
+
               <div className="rounded-lg border border-surface-border p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Échéance paiement</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">
+                  Échéance paiement
+                </p>
                 <p className="mt-1 font-semibold text-steel-900">
                   {facture.echeance_paiement ? formatDate(facture.echeance_paiement) : '—'}
                 </p>
               </div>
+
               <div className="rounded-lg border border-surface-border p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Paiement</p>
                 <p className="mt-1 font-semibold text-steel-900">
@@ -241,14 +228,12 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
                   {facture.mode_paiement ? ` • ${facture.mode_paiement}` : ''}
                 </p>
               </div>
+
               <div className="rounded-lg border border-surface-border p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Créée le</p>
                 <p className="mt-1 font-semibold text-steel-900">{formatDateTime(facture.created_at)}</p>
               </div>
-              <div className="rounded-lg border border-surface-border p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Référence</p>
-                <p className="mt-1 font-semibold text-steel-900">{facture.numero}</p>
-              </div>
+
               <div className="rounded-lg border border-surface-border p-4 md:col-span-2">
                 <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Notes</p>
                 <p className="mt-1 font-semibold text-steel-900">{facture.notes ?? '—'}</p>
@@ -262,9 +247,7 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
         <CardHeader>
           <div>
             <h2 className="text-sm font-semibold text-steel-900">Lignes de facture</h2>
-            <p className="text-xs text-steel-500">
-              Détail des produits facturés.
-            </p>
+            <p className="text-xs text-steel-500">Détail des produits facturés.</p>
           </div>
           <Badge variant="info" dot>
             {lignes.length} ligne(s)
@@ -293,13 +276,19 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
                 </thead>
                 <tbody className="divide-y divide-surface-border">
                   {lignes.map((ligne) => (
-                    <tr key={ligne.id} className="hover:bg-surface-muted/60 transition-colors">
+                    <tr key={ligne.id} className="transition-colors hover:bg-surface-muted/60">
                       <td className="px-4 py-3 font-medium text-steel-900">
                         {ligne.classement?.designation ?? '—'}
                       </td>
-                      <td className="px-4 py-3 text-steel-600">{formatQty(ligne.quantite)}</td>
-                      <td className="px-4 py-3 text-steel-600">{formatMGA(ligne.prix_unitaire)}</td>
-                      <td className="px-4 py-3 text-steel-600">{formatMGA(ligne.total_ligne)}</td>
+                      <td className="px-4 py-3 text-steel-600">
+                        {formatQty(ligne.quantite)}
+                      </td>
+                      <td className="px-4 py-3 text-steel-600">
+                        {formatMGA(ligne.prix_unitaire)}
+                      </td>
+                      <td className="px-4 py-3 text-steel-600">
+                        {formatMGA(ligne.total_ligne)}
+                      </td>
                       <td className="px-4 py-3 text-xs text-steel-500">#{ligne.id}</td>
                     </tr>
                   ))}

@@ -1,6 +1,7 @@
 // src/lib/api/factures.ts
 import apiClient from './client'
-import type { ApiResponse, PaginatedResponse, Facture } from '../types'
+import type { ApiResponse, PaginatedResponse } from '../types'
+import type { Facture } from '../factures.types'
 import { buildQueryString } from '../utils'
 
 export const facturesApi = {

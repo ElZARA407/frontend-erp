@@ -248,21 +248,21 @@ export interface StatutFacture {
   couleur: string
 }
 
-export interface Facture {
-  id: number
-  numero: string
-  date: string
-  total: number
-  statut: StatutFacture
-  echeance_paiement: string | null
-  date_paiement: string | null
-  mode_paiement: string | null
-  en_retard: boolean
-  jours_retard: number
-  notes: string | null
-  client?: { id: number; nom: string }
-  created_at: string
-}
+// export interface Facture {
+//   id: number
+//   numero: string
+//   date: string
+//   total: number
+//   statut: StatutFacture
+//   echeance_paiement: string | null
+//   date_paiement: string | null
+//   mode_paiement: string | null
+//   en_retard: boolean
+//   jours_retard: number
+//   notes: string | null
+//   client?: { id: number; nom: string }
+//   created_at: string
+// }
 
 // ── Dashboard ───────────────────────────────────────────
 export interface DashboardKpi {
