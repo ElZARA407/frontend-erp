@@ -1,5 +1,4 @@
-// src/lib/hooks/use-production.ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   productionApi,
@@ -11,13 +10,14 @@ import {
 } from '../api/production'
 import type { BonProductionSchema, SessionSchema } from '../schemas/production.schema'
 
-export const PRODUCTION_KEY = ['production']
+export const PRODUCTION_KEY = ['production'] as const
+export const DASHBOARD_KEY = ['dashboard'] as const
 
 export function useBonsProduction(filters: BpFilters = {}) {
   return useQuery({
     queryKey: [...PRODUCTION_KEY, filters],
     queryFn: () => productionApi.list(filters),
-    staleTime: 30 * 1000,
+    staleTime: 30_000,
   })
 }
 
@@ -25,7 +25,7 @@ export function useBonProduction(id: number) {
   return useQuery({
     queryKey: [...PRODUCTION_KEY, id],
     queryFn: () => productionApi.get(id),
-    enabled: !!id,
+    enabled: id > 0,
   })
 }
 
@@ -36,6 +36,7 @@ export function useCreateBonProduction() {
     mutationFn: (payload: BonProductionSchema) => productionApi.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
+      qc.invalidateQueries({ queryKey: DASHBOARD_KEY })
       toast.success('Bon de production créé.')
     },
     onError: () => toast.error('Erreur lors de la création.'),
@@ -49,9 +50,24 @@ export function useClotureBP() {
     mutationFn: (id: number) => productionApi.cloture(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
+      qc.invalidateQueries({ queryKey: DASHBOARD_KEY })
       toast.success('BP clôturé.')
     },
     onError: () => toast.error('Erreur lors de la clôture.'),
+  })
+}
+
+export function useAnnulerBP() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: number) => productionApi.annuler(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
+      qc.invalidateQueries({ queryKey: DASHBOARD_KEY })
+      toast.success('BP annulé.')
+    },
+    onError: () => toast.error('Erreur lors de l’annulation.'),
   })
 }
 
@@ -76,6 +92,7 @@ export function useValiderSession() {
     mutationFn: (sessionId: number) => productionApi.validerSession(sessionId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
+      qc.invalidateQueries({ queryKey: DASHBOARD_KEY })
       qc.invalidateQueries({ queryKey: ['stocks'] })
       toast.success('Session validée. Stocks mis à jour.')
     },

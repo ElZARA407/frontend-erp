@@ -4,13 +4,13 @@
 import { useMemo } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { demandeAchatSchema, type DemandeAchatSchema } from '@/lib/schemas/lot3.schema'
 import { useCreateDemandeAchat } from '@/lib/hooks/use-lot3'
 import type { CatalogueMatiere, CatalogueProduct } from '@/lib/catalogue.types'
-import { Plus, Trash2 } from 'lucide-react'
+import { demandeAchatSchema, type DemandeAchatSchema } from '@/lib/schemas/lot3.schema'
 
 interface DemandeAchatFormProps {
   matieres: CatalogueMatiere[]
@@ -20,20 +20,33 @@ interface DemandeAchatFormProps {
 
 export function DemandeAchatForm({ matieres, produits, onSuccess }: DemandeAchatFormProps) {
   const createDemande = useCreateDemandeAchat()
-
   const dateToday = new Date().toISOString().split('T')[0]
 
   const matiereOptions = useMemo(
-    () => matieres.map((matiere) => ({ value: matiere.id, label: `${matiere.reference} - ${matiere.nom}` })),
+    () =>
+      matieres.map((matiere) => ({
+        value: matiere.id,
+        label: `${matiere.reference} - ${matiere.nom}`,
+      })),
     [matieres]
   )
 
   const produitOptions = useMemo(
-    () => produits.map((produit) => ({ value: produit.id, label: `${produit.nomencla} - ${produit.designation}` })),
+    () =>
+      produits.map((produit) => ({
+        value: produit.id,
+        label: `${produit.nomencla} - ${produit.designation}`,
+      })),
     [produits]
   )
 
-  const { register, control, handleSubmit, watch, formState: { errors } } = useForm<DemandeAchatSchema>({
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<DemandeAchatSchema>({
     resolver: zodResolver(demandeAchatSchema) as any,
     defaultValues: {
       date_demande: dateToday,
@@ -54,7 +67,7 @@ export function DemandeAchatForm({ matieres, produits, onSuccess }: DemandeAchat
     name: 'lignes',
   })
 
-  const lignes = watch('lignes')
+  const lignes = watch('lignes') ?? []
 
   return (
     <form
@@ -73,7 +86,7 @@ export function DemandeAchatForm({ matieres, produits, onSuccess }: DemandeAchat
         <textarea
           rows={3}
           className="min-h-20 w-full rounded-md border border-surface-border bg-white px-3 py-2 text-sm placeholder:text-steel-400 focus:border-steel-500 focus:outline-none focus:ring-1 focus:ring-steel-500/30"
-          placeholder="Observation générale"
+          placeholder="Observation generale"
           {...register('observations')}
         />
       </div>
@@ -107,11 +120,14 @@ export function DemandeAchatForm({ matieres, produits, onSuccess }: DemandeAchat
             const options = entiteType === 'produit' ? produitOptions : matiereOptions
 
             return (
-              <div key={field.id} className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 md:grid-cols-4">
+              <div
+                key={field.id}
+                className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 md:grid-cols-4"
+              >
                 <Select
                   label="Type *"
                   options={[
-                    { value: 'matiere', label: 'Matière' },
+                    { value: 'matiere', label: 'Matiere' },
                     { value: 'produit', label: 'Produit' },
                   ]}
                   {...register(`lignes.${index}.entite_type`)}
@@ -126,7 +142,7 @@ export function DemandeAchatForm({ matieres, produits, onSuccess }: DemandeAchat
                 />
 
                 <Input
-                  label="Quantité *"
+                  label="Quantite *"
                   type="number"
                   step="0.001"
                   error={errors.lignes?.[index]?.quantite?.message}
@@ -155,9 +171,7 @@ export function DemandeAchatForm({ matieres, produits, onSuccess }: DemandeAchat
         </div>
 
         {errors.lignes && (
-          <p className="px-4 pb-4 text-xs text-red-600">
-            {errors.lignes.message}
-          </p>
+          <p className="px-4 pb-4 text-xs text-red-600">{errors.lignes.message}</p>
         )}
       </div>
 

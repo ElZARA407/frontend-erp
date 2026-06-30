@@ -7,6 +7,7 @@ import type {
   ContratPayload,
   DemandeAchatFilters,
   DemandeAchatPayload,
+  DemandeAchatUpdatePayload,
   FournisseurFilters,
   FournisseurPayload,
 } from '@/lib/lot3.types'
@@ -38,6 +39,14 @@ export function useDemandesAchat(filters: DemandeAchatFilters = {}) {
     queryKey: [...LOT3_KEYS.demandes, filters],
     queryFn: () => lot3Api.demandesAchat.list(filters),
     staleTime: 30_000,
+  })
+}
+
+export function useDemandeAchat(id: number) {
+  return useQuery({
+    queryKey: [...LOT3_KEYS.demandes, id],
+    queryFn: () => lot3Api.demandesAchat.get(id),
+    enabled: !!id,
   })
 }
 
@@ -109,7 +118,7 @@ export function useDeleteContrat() {
     mutationFn: (id: number) => lot3Api.contrats.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: LOT3_KEYS.contrats })
-      toast.success('Contrat désactivé.')
+      toast.success('Contrat desactive.')
     },
     onError: () => toast.error('Impossible de supprimer ce contrat.'),
   })
@@ -124,6 +133,19 @@ export function useCreateDemandeAchat() {
       toast.success('Demande d’achat créée.')
     },
     onError: () => toast.error('Erreur lors de la création de la demande.'),
+  })
+}
+
+export function useUpdateDemandeAchat() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: DemandeAchatUpdatePayload }) =>
+      lot3Api.demandesAchat.update(id, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: LOT3_KEYS.demandes })
+      toast.success('Demande d’achat mise à jour.')
+    },
+    onError: () => toast.error('Erreur lors de la mise à jour de la demande.'),
   })
 }
 

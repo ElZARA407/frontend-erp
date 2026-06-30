@@ -104,6 +104,11 @@ export interface DemandeAchatPayload {
   }>
 }
 
+export interface DemandeAchatUpdatePayload {
+  date_demande: string
+  observations?: string
+}
+
 export interface FournisseurFilters {
   search?: string
   actif?: boolean

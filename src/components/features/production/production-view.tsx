@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { CheckCircle, Eye, Factory, Plus } from 'lucide-react'
-import { useBonsProduction, useClotureBP } from '@/lib/hooks/use-production'
+import { CheckCircle, Eye, Factory, Plus, XCircle } from 'lucide-react'
+import { useAnnulerBP, useBonsProduction, useClotureBP } from '@/lib/hooks/use-production'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -25,7 +25,8 @@ export function ProductionView() {
     page,
     per_page: 20,
   })
-  const { mutate: cloture, isPending: closing } = useClotureBP()
+  const { mutate: clotureBP, isPending: closing } = useClotureBP()
+  const { mutate: annulerBP, isPending: cancelling } = useAnnulerBP()
 
   const pagination = data?.data
   const bps = Array.isArray(pagination?.data) ? pagination.data : []
@@ -72,7 +73,7 @@ export function ProductionView() {
 
       <Card>
         {isLoading ? (
-          <TableSkeleton rows={10} cols={9} />
+          <TableSkeleton rows={10} cols={10} />
         ) : bps.length === 0 ? (
           <CardBody>
             <div className="flex flex-col items-center justify-center py-16 text-steel-400">
@@ -101,7 +102,10 @@ export function ProductionView() {
                     <td className="px-4 py-3">
                       <span className="ref-code">{bp.numero}</span>
                     </td>
-                    <td className="px-4 py-3 max-w-[180px] truncate font-medium text-steel-800" title={bp.produit?.designation}>
+                    <td
+                      className="max-w-[180px] truncate px-4 py-3 font-medium text-steel-800"
+                      title={bp.produit?.designation}
+                    >
                       {bp.produit?.designation ?? '—'}
                     </td>
                     <td className="px-4 py-3 text-steel-600">{bp.location?.nom ?? '—'}</td>
@@ -131,13 +135,24 @@ export function ProductionView() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {bp.statut.valeur === 'ouvert' && (
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            loading={cancelling}
+                            icon={<XCircle className="h-3.5 w-3.5" />}
+                            onClick={() => annulerBP(bp.id)}
+                          >
+                            Annuler
+                          </Button>
+                        )}
                         {bp.statut.valeur === 'en_cours' && (
                           <Button
                             variant="ghost"
                             size="sm"
                             loading={closing}
                             icon={<CheckCircle className="h-3.5 w-3.5 text-emerald-600" />}
-                            onClick={() => cloture(bp.id)}
+                            onClick={() => clotureBP(bp.id)}
                           >
                             Clôturer
                           </Button>

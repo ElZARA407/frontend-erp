@@ -1,7 +1,17 @@
 // src/components/features/demandes-achat/demandes-achat-view.tsx
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import {
+  CheckCircle,
+  Eye,
+  Package,
+  Plus,
+  Send,
+  Trash2,
+  XCircle,
+} from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,8 +21,7 @@ import { Input } from '@/components/ui/input'
 import { Pagination } from '@/components/ui/pagination'
 import { Select } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatDateTime, getStatutColor } from '@/lib/utils'
-import { useMatieres, useProducts } from '@/lib/hooks/use-catalogue'
+import { formatDate, formatDateTime, getStatutColor } from '@/lib/utils'
 import {
   useApproveDemandeAchat,
   useDeleteDemandeAchat,
@@ -20,11 +29,19 @@ import {
   useRejectDemandeAchat,
   useSubmitDemandeAchat,
 } from '@/lib/hooks/use-lot3'
+import { useMatieres, useProducts } from '@/lib/hooks/use-catalogue'
 import type { DemandeAchat } from '@/lib/lot3.types'
 import { DemandeAchatForm } from './demande-achat-form'
-import { CheckCircle, Plus, Send, SquarePen, Trash2, XCircle } from 'lucide-react'
+
+const STATUT_LABELS: Record<DemandeAchat['statut'], string> = {
+  brouillon: 'Brouillon',
+  soumise: 'Soumise',
+  approuvee: 'Approuvee',
+  rejetee: 'Rejetee',
+}
 
 export function DemandesAchatView() {
+  const router = useRouter()
   const [page, setPage] = useState(1)
   const [statut, setStatut] = useState('')
   const [dateDebut, setDateDebut] = useState('')
@@ -46,8 +63,8 @@ export function DemandesAchatView() {
   const approveDemande = useApproveDemandeAchat()
   const rejectDemande = useRejectDemandeAchat()
 
-  const matieres = matieresPage?.data?.data ?? []
-  const produits = produitsPage?.data?.data ?? []
+  const matieres = Array.isArray(matieresPage?.data?.data) ? matieresPage.data.data : []
+  const produits = Array.isArray(produitsPage?.data?.data) ? produitsPage.data.data : []
   const demandes = Array.isArray(demandesPage?.data?.data) ? demandesPage.data.data : []
   const pagination = demandesPage?.data
 
@@ -55,7 +72,7 @@ export function DemandesAchatView() {
     <div className="space-y-5">
       <PageHeader
         title="Demandes d’achat"
-        subtitle="Suivi des demandes d’achat"
+        subtitle={`${pagination?.total ?? 0} demande${(pagination?.total ?? 0) > 1 ? 's' : ''}`}
         actions={
           <Button
             icon={<Plus className="h-3.5 w-3.5" />}
@@ -74,8 +91,8 @@ export function DemandesAchatView() {
           options={[
             { value: 'brouillon', label: 'Brouillon' },
             { value: 'soumise', label: 'Soumise' },
-            { value: 'approuvee', label: 'Approuvée' },
-            { value: 'rejetee', label: 'Rejetée' },
+            { value: 'approuvee', label: 'Approuvee' },
+            { value: 'rejetee', label: 'Rejetee' },
           ]}
           value={statut}
           onChange={(e) => {
@@ -133,11 +150,13 @@ export function DemandesAchatView() {
                     <tr key={demande.id} className="hover:bg-surface-subtle/70">
                       <td className="px-4 py-3 font-medium text-steel-900">{demande.numero}</td>
                       <td className="px-4 py-3 text-steel-600">{demande.demandeur?.nom ?? '—'}</td>
-                      <td className="px-4 py-3 text-steel-600">{formatDateTime(demande.date_demande)}</td>
+                      <td className="px-4 py-3 text-steel-600">
+                        {formatDate(demande.date_demande)}
+                      </td>
                       <td className="px-4 py-3 text-steel-600">{demande.lignes?.length ?? 0}</td>
                       <td className="px-4 py-3">
                         <Badge variant={getStatutColor(demande.statut)} dot>
-                          {demande.statut}
+                          {STATUT_LABELS[demande.statut]}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-steel-600">
@@ -145,20 +164,37 @@ export function DemandesAchatView() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
+                          {(demande.statut === 'brouillon' || demande.statut === 'soumise' || demande.statut === 'approuvee' || demande.statut === 'rejetee') && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={<Eye className="h-3.5 w-3.5" />}
+                              onClick={() => router.push(`/demandes-achat/${demande.id}`)}
+                            >
+                              Ouvrir
+                            </Button>
+                          )}
+
                           {demande.statut === 'brouillon' && (
                             <>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 icon={<Send className="h-3.5 w-3.5" />}
+                                loading={submitDemande.isPending}
                                 onClick={() => submitDemande.mutate(demande.id)}
-                              />
+                              >
+                                Soumettre
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 icon={<Trash2 className="h-3.5 w-3.5" />}
+                                loading={deleteDemande.isPending}
                                 onClick={() => deleteDemande.mutate(demande.id)}
-                              />
+                              >
+                                Supprimer
+                              </Button>
                             </>
                           )}
 
@@ -168,23 +204,21 @@ export function DemandesAchatView() {
                                 variant="ghost"
                                 size="sm"
                                 icon={<CheckCircle className="h-3.5 w-3.5" />}
+                                loading={approveDemande.isPending}
                                 onClick={() => approveDemande.mutate(demande.id)}
-                              />
+                              >
+                                Approuver
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 icon={<XCircle className="h-3.5 w-3.5" />}
+                                loading={rejectDemande.isPending}
                                 onClick={() => rejectDemande.mutate(demande.id)}
-                              />
+                              >
+                                Rejeter
+                              </Button>
                             </>
-                          )}
-
-                          {(demande.statut === 'brouillon' || demande.statut === 'soumise') && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              icon={<SquarePen className="h-3.5 w-3.5" />}
-                            />
                           )}
                         </div>
                       </td>

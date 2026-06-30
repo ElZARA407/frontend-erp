@@ -1,28 +1,29 @@
-// src/components/features/production/bp-form.tsx
 'use client'
 
 import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { bonProductionSchema, type BonProductionSchema } from '@/lib/schemas/production.schema'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { useCreateBonProduction } from '@/lib/hooks/use-production'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import { useProducts } from '@/lib/hooks/use-catalogue'
-import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
+import { bonProductionSchema, type BonProductionSchema } from '@/lib/schemas/production.schema'
 
 interface BpFormProps {
   onSuccess?: () => void
 }
 
 export function BpForm({ onSuccess }: BpFormProps) {
-  const { mutate: create, isPending } = useCreateBonProduction()
+  const { mutate: createBonProduction, isPending } = useCreateBonProduction()
   const { data: locationsData } = useLocations()
-  const { data: productsPage } = useProducts({ actif: true, per_page: 200 })
+  const { data: productsPage } = useProducts({ actif: true, per_page: 100 })
 
   const locations = Array.isArray(locationsData) ? locationsData : []
   const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.data : []
+
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
   const locationOptions = useMemo(
     () => locations.map((location) => ({ value: location.id, label: location.nom })),
@@ -46,7 +47,11 @@ export function BpForm({ onSuccess }: BpFormProps) {
   } = useForm<BonProductionSchema>({
     resolver: zodResolver(bonProductionSchema) as any,
     defaultValues: {
-      date: new Date().toISOString().split('T')[0],
+      date: today,
+      location_id: 0,
+      produit_id: 0,
+      machine_production: '',
+      quantite_cible: 1,
     },
   })
 
@@ -54,16 +59,31 @@ export function BpForm({ onSuccess }: BpFormProps) {
     if (!locations.length || !products.length) return
 
     reset({
-      date: new Date().toISOString().split('T')[0],
+      date: today,
       location_id: locations[0]?.id ?? 0,
       produit_id: products[0]?.id ?? 0,
       machine_production: '',
       quantite_cible: 1,
     })
-  }, [locations, products, reset])
+  }, [locations, products, reset, today])
+
+  const onSubmit = (values: BonProductionSchema) => {
+    createBonProduction(values, {
+      onSuccess: () => {
+        reset({
+          date: today,
+          location_id: locations[0]?.id ?? 0,
+          produit_id: products[0]?.id ?? 0,
+          machine_production: '',
+          quantite_cible: 1,
+        })
+        onSuccess?.()
+      },
+    })
+  }
 
   return (
-    <form onSubmit={handleSubmit((data) => create(data, { onSuccess }))} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Input
           label="Date *"
