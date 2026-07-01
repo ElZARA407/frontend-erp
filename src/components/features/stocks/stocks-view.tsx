@@ -124,8 +124,10 @@ export function StocksView() {
                     <tr key={s.id} className="bg-red-50/30">
                       <td className="px-4 py-3 text-steel-600">{s.location?.nom ?? '—'}</td>
                       <td className="px-4 py-3 text-steel-500 text-xs">{s.entite_type}</td>
-                      <td className="px-4 py-3 font-medium">{s.entite_id}</td>
-                      <td className="px-4 py-3 text-steel-800">{s.classement?.designation ?? '—'}</td>
+                      <td className="px-4 py-3 font-medium">{s.entite?.nomencla}</td>
+                      <td className="px-4 py-3 text-steel-800">
+                        {s.entite?.designation ?? '—'} - {s.classement?.libelle ?? ''}
+                      </td>
                       <td className="px-4 py-3">
                         <span className="amount text-red-600">{formatQty(s.stock_total)}</span>
                       </td>
@@ -336,9 +338,9 @@ export function StocksView() {
                             {s.entite_type === 'produit' ? 'Produit' : 'Matière'}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 text-steel-500 text-xs">#{s.entite_id}</td>
+                        <td className="px-4 py-3 text-steel-500 text-xs">{s.entite?.nomencla}</td>
                         <td className="px-4 py-3 font-medium text-steel-800">
-                          {s.classement?.designation ?? '—'}
+                          {s.entite?.designation ?? '—'} - {s.classement?.libelle ?? ''}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`amount ${s.en_rupture ? 'text-red-600' : ''}`}>

@@ -1,5 +1,5 @@
 // src/lib/catalogue.types.ts
-import type { PaginatedResponse } from '@/lib/types'
+import type { PaginatedResponse, Stock } from '@/lib/types'
 
 export type CatalogueCategoryName = 'INJ' | 'HDPE' | 'PET' | 'MCH'
 export type CatalogueMatiereType = 'preformes' | 'broyee' | 'brute' | 'vierge' | 'colorant' | 'autre'
@@ -40,7 +40,12 @@ export interface CatalogueProduct {
     id: number
     nom: CatalogueCategoryName
   }
-  classements?: CatalogueProductClassment[]
+  stocks_par_qualite?: Array<{
+    classement_id: number
+    qualite: string
+    libelle: string
+    stock_total: number
+  }>
   created_at?: string
 }
 

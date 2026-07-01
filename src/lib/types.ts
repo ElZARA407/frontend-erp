@@ -153,7 +153,8 @@ export interface Stock {
   stock_total: number
   en_rupture: boolean
   location?: Location
-  classement?: { id: number; qualite: string; designation: string }
+  classement?: { id: number; qualite: string; libelle:string }
+  entite?:{id:number;designation:string, nomencla:string}
   updated_at: string
 }
 

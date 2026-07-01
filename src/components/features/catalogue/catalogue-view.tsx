@@ -249,7 +249,7 @@ export function CatalogueView() {
                             <Badge variant="info">{product.categorie?.nom ?? '—'}</Badge>
                           </td>
                           <td className="px-4 py-3 text-steel-600">
-                            {product.classements?.length ?? 0}
+                            {product.stocks_par_qualite?.[0]?.libelle ?? 'Aucune qualité'}
                           </td>
                           <td className="px-4 py-3">
                             <Badge variant={product.actif ? 'success' : 'muted'} dot>
