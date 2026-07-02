@@ -33,9 +33,9 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
   const classementOptions = useMemo(
     () =>
       products.flatMap((product) =>
-        (product.classements ?? []).map((classement) => ({
-          value: classement.id,
-          label: `${product.nomencla} - ${classement.qualite_libelle}`,
+        (product.stocks_par_qualite ?? []).map((classement) => ({
+          value: classement.classement_id,
+          label: `${product.nomencla} - ${classement.libelle}`,
         }))
       ),
     [products]

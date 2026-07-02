@@ -26,9 +26,9 @@ export function ContratForm({ clients, produits, onSuccess }: ContratFormProps) 
   const classementOptions = useMemo(
     () =>
       produits.flatMap((produit) =>
-        (produit.classements ?? []).map((classement) => ({
-          value: classement.id,
-          label: `${produit.nomencla} - ${classement.qualite_libelle}`,
+        (produit.stocks_par_qualite ?? []).map((classement) => ({
+          value: classement.classement_id,
+          label: `${produit.nomencla} - ${classement.libelle}`,
         }))
       ),
     [produits]

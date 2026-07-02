@@ -173,6 +173,8 @@ export interface MouvementStock {
   classement?: { id: number; designation: string }
 }
 
+
+
 // ── Achats ──────────────────────────────────────────────
 export interface JournalAchat {
   id: number

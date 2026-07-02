@@ -1,9 +1,13 @@
-// src/app/(dashboard)/stocks/page.tsx
-import type { Metadata } from 'next'
-import { StocksView } from '@/components/features/stocks/stocks-view'
-
-export const metadata: Metadata = { title: 'Stocks' }
+import { StocksView } from '@/components/features/stocks/stocks-view';
+import { PageHeader } from '@/components/layout/page-header';
 
 export default function StocksPage() {
-  return <StocksView />
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Gestion des stocks"
+      />
+      <StocksView />
+    </div>
+  );
 }
