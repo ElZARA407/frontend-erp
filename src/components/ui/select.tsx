@@ -1,14 +1,17 @@
-// src/components/ui/select.tsx
+import { forwardRef, type SelectHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string
   error?: string
   options: Array<{ value: string | number; label: string }>
   placeholder?: string
 }
 
-export function Select({ label, error, options, placeholder, className, id, ...props }: SelectProps) {
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
+  { label, error, options, placeholder, className, id, ...props },
+  ref,
+) {
   const selectId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
 
   return (
@@ -19,6 +22,7 @@ export function Select({ label, error, options, placeholder, className, id, ...p
         </label>
       )}
       <select
+        ref={ref}
         {...props}
         id={selectId}
         className={cn(
@@ -39,4 +43,4 @@ export function Select({ label, error, options, placeholder, className, id, ...p
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   )
-}
+})

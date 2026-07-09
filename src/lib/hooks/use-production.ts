@@ -7,8 +7,10 @@ import {
   type BpFilters,
   type BpMatierePayload,
   type BpObtenuPayload,
+  type BpSessionCreatePayload,
+  type MachinePayload,
 } from '../api/production'
-import type { BonProductionSchema, SessionSchema } from '../schemas/production.schema'
+import type { BonProductionSchema } from '../schemas/production.schema'
 
 export const PRODUCTION_KEY = ['production'] as const
 export const DASHBOARD_KEY = ['dashboard'] as const
@@ -26,6 +28,28 @@ export function useBonProduction(id: number) {
     queryKey: [...PRODUCTION_KEY, id],
     queryFn: () => productionApi.get(id),
     enabled: id > 0,
+  })
+}
+
+export function useMachines(filters: { actif?: boolean; search?: string } = {}) {
+  return useQuery({
+    queryKey: [...PRODUCTION_KEY, 'machines', filters],
+    queryFn: () => productionApi.listMachines(filters),
+    staleTime: 60_000,
+  })
+}
+
+export function useCreateMachine() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: MachinePayload) => productionApi.createMachine(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...PRODUCTION_KEY, 'machines'] })
+      qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
+      toast.success('Machine créée.')
+    },
+    onError: () => toast.error('Erreur lors de la création de la machine.'),
   })
 }
 
@@ -75,7 +99,7 @@ export function useCreateSession() {
   const qc = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ bpId, payload }: { bpId: number; payload: SessionSchema }) =>
+    mutationFn: ({ bpId, payload }: { bpId: number; payload: BpSessionCreatePayload }) =>
       productionApi.createSession(bpId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PRODUCTION_KEY })

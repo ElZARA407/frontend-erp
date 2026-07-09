@@ -1,4 +1,3 @@
-// src/lib/schemas/catalogue.schema.ts
 import { z } from 'zod'
 
 const optionalText = z.preprocess((value) => {
@@ -18,7 +17,6 @@ export const catalogueCategorySchema = z.object({
 })
 
 export const catalogueProductCreateSchema = z.object({
-  nomencla: z.string().min(1, 'La nomenclature est requise').max(30, '30 caractères maximum'),
   designation: z.string().min(2, 'La désignation est requise').max(150, '150 caractères maximum'),
   categorie_id: z.coerce.number().int().positive('La catégorie est requise'),
   contenance: optionalText,
@@ -26,10 +24,8 @@ export const catalogueProductCreateSchema = z.object({
   unite: z.string().min(1, 'L’unité est requise').max(10, '10 caractères maximum'),
   colisage: z.coerce.number().min(1, 'Le colisage doit être supérieur ou égal à 1'),
   poids: z.string().min(1, 'Le poids est requis').max(10, '10 caractères maximum'),
+  seuil: z.coerce.number().min(0, 'Le seuil doit être supérieur ou égal à 0.'),
   actif: z.coerce.boolean(),
-  prix_1er: optionalNumber,
-  prix_2e: optionalNumber,
-  prix_casse: optionalNumber,
 })
 
 export const catalogueProductUpdateSchema = z.object({
@@ -38,6 +34,7 @@ export const catalogueProductUpdateSchema = z.object({
   format: optionalText,
   colisage: z.coerce.number().min(1, 'Le colisage doit être supérieur ou égal à 1'),
   poids: z.string().min(1, 'Le poids est requis').max(10, '10 caractères maximum'),
+  seuil: z.coerce.number().min(0, 'Le seuil doit être supérieur ou égal à 0.'),
   actif: z.coerce.boolean(),
 })
 

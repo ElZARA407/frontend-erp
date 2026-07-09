@@ -1,7 +1,6 @@
-// src/components/features/catalogue/catalogue-view.tsx
 'use client'
-
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { FlaskConical, Layers3, Package, PencilLine, Plus, Trash2, Upload } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,12 +10,16 @@ import { Input } from '@/components/ui/input'
 import { Pagination } from '@/components/ui/pagination'
 import { Select } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ExcelImportDialog } from '@/components/ui/excel-import-dialog'
 import { formatDateTime, formatMGA, formatQty } from '@/lib/utils'
 import {
   useCategories,
+  useCreateCategory,
   useDeleteCategory,
   useDeleteMatiere,
   useDeleteProduct,
+  useImportMatieres,
+  useImportProducts,
   useMatieres,
   useProducts,
 } from '@/lib/hooks/use-catalogue'
@@ -28,19 +31,15 @@ import type {
 import { CategorieForm } from './categorie-form'
 import { MatiereForm } from './matiere-form'
 import { ProduitForm } from './produit-form'
-import {
-  Layers3,
-  Package,
-  FlaskConical,
-  Plus,
-  PencilLine,
-  Trash2,
-} from 'lucide-react'
 
 type CatalogueTab = 'categories' | 'produits' | 'matieres'
 
+const PAGE_SIZE = 10
+
 export function CatalogueView() {
   const [tab, setTab] = useState<CatalogueTab>('categories')
+
+  const [categoryPage, setCategoryPage] = useState(1)
 
   const [productPage, setProductPage] = useState(1)
   const [productSearch, setProductSearch] = useState('')
@@ -55,6 +54,8 @@ export function CatalogueView() {
   const [showCategoryDialog, setShowCategoryDialog] = useState(false)
   const [showProductDialog, setShowProductDialog] = useState(false)
   const [showMatiereDialog, setShowMatiereDialog] = useState(false)
+  const [showProductImportDialog, setShowProductImportDialog] = useState(false)
+  const [showMatiereImportDialog, setShowMatiereImportDialog] = useState(false)
 
   const [selectedProduct, setSelectedProduct] = useState<CatalogueProduct | null>(null)
   const [selectedMatiere, setSelectedMatiere] = useState<CatalogueMatiere | null>(null)
@@ -65,29 +66,155 @@ export function CatalogueView() {
     categorie_id: productCategoryId ? Number(productCategoryId) : undefined,
     actif: productActive === '' ? undefined : productActive === 'true',
     page: productPage,
-    per_page: 20,
+    per_page: PAGE_SIZE,
   })
   const { data: matieresPage, isLoading: matieresLoading } = useMatieres({
     search: matiereSearch || undefined,
     type: matiereType || undefined,
     actif: matiereActive === '' ? undefined : matiereActive === 'true',
     page: matierePage,
-    per_page: 20,
+    per_page: PAGE_SIZE,
   })
 
+  const productsPageData = productsPage?.data
+  const matieresPageData = matieresPage?.data
+
+  const createCategory = useCreateCategory()
   const deleteCategory = useDeleteCategory()
   const deleteProduct = useDeleteProduct()
   const deleteMatiere = useDeleteMatiere()
+  const importProducts = useImportProducts()
+  const importMatieres = useImportMatieres()
 
   const categoriesList = useMemo(() => categories ?? [], [categories])
-  const products = productsPage?.data ?? []
-  const matieres = matieresPage?.data ?? []
+  const products = Array.isArray(productsPageData?.data) ? productsPageData.data : []
+  const matieres = Array.isArray(matieresPageData?.data) ? matieresPageData.data : []
+
+  const categoriesPageData = useMemo(() => {
+    const total = categoriesList.length
+    const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE))
+    const currentPage = Math.min(Math.max(categoryPage, 1), lastPage)
+    const start = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE
+    const end = total === 0 ? 0 : Math.min(start + PAGE_SIZE, total)
+
+    return {
+      data: categoriesList.slice(start, end),
+      current_page: currentPage,
+      last_page: lastPage,
+      total,
+      from: total === 0 ? 0 : start + 1,
+      to: end,
+    }
+  }, [categoriesList, categoryPage])
+
+  useEffect(() => {
+    setProductPage(1)
+  }, [productSearch, productCategoryId, productActive])
+
+  useEffect(() => {
+    setMatierePage(1)
+  }, [matiereSearch, matiereType, matiereActive])
+
+  const headerActions =
+    tab === 'categories' ? (
+      <Button
+        icon={<Plus className="h-3.5 w-3.5" />}
+        onClick={() => setShowCategoryDialog(true)}
+      >
+        Nouvelle catégorie
+      </Button>
+    ) : tab === 'produits' ? (
+      <>
+        <Button
+          variant="outline"
+          icon={<Upload className="h-3.5 w-3.5" />}
+          loading={importProducts.isPending}
+          onClick={() => setShowProductImportDialog(true)}
+        >
+          Importer Excel
+        </Button>
+        <Button
+          icon={<Plus className="h-3.5 w-3.5" />}
+          onClick={() => {
+            setSelectedProduct(null)
+            setShowProductDialog(true)
+          }}
+        >
+          Nouveau produit
+        </Button>
+      </>
+    ) : (
+      <>
+        <Button
+          variant="outline"
+          icon={<Upload className="h-3.5 w-3.5" />}
+          loading={importMatieres.isPending}
+          onClick={() => setShowMatiereImportDialog(true)}
+        >
+          Importer Excel
+        </Button>
+        <Button
+          icon={<Plus className="h-3.5 w-3.5" />}
+          onClick={() => {
+            setSelectedMatiere(null)
+            setShowMatiereDialog(true)
+          }}
+        >
+          Nouvelle matière
+        </Button>
+      </>
+    )
+
+  const handleImportProducts = async ({
+    file,
+    sheetNames,
+  }: {
+    file: File
+    sheetNames: string[]
+  }) => {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      sheetNames.forEach((sheetName) => {
+        formData.append('sheet_names[]', sheetName)
+      })
+
+      await importProducts.mutateAsync(formData)
+      setShowProductImportDialog(false)
+    } catch {
+      // toast géré par le hook
+    }
+  }
+
+  const handleImportMatieres = async ({
+    file,
+    sheetNames,
+  }: {
+    file: File
+    sheetNames: string[]
+  }) => {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      sheetNames.forEach((sheetName) => {
+        formData.append('sheet_names[]', sheetName)
+      })
+
+      await importMatieres.mutateAsync(formData)
+      setShowMatiereImportDialog(false)
+    } catch {
+      // toast géré par le hook
+    }
+  }
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Catalogue"
         subtitle="Catégories, produits et matières premières"
+        actions={headerActions}
       />
 
       <div className="flex flex-wrap gap-2">
@@ -110,12 +237,6 @@ export function CatalogueView() {
 
       {tab === 'categories' && (
         <div className="space-y-5">
-          <div className="flex justify-end">
-            <Button icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowCategoryDialog(true)}>
-              Nouvelle catégorie
-            </Button>
-          </div>
-
           <Card>
             {categoriesLoading ? (
               <div className="space-y-3 p-5">
@@ -124,41 +245,52 @@ export function CatalogueView() {
                 <Skeleton className="h-8 w-full" />
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-surface-border text-left text-xs uppercase tracking-wide text-steel-400">
-                      <th className="px-4 py-3">Nom</th>
-                      <th className="px-4 py-3">Produits</th>
-                      <th className="px-4 py-3">Créée le</th>
-                      <th className="px-4 py-3" />
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-surface-border">
-                    {categoriesList.map((category) => (
-                      <tr key={category.id} className="hover:bg-surface-subtle/70">
-                        <td className="px-4 py-3 font-medium text-steel-900">{category.nom}</td>
-                        <td className="px-4 py-3">
-                          <Badge variant="info">{category.produits_count ?? 0}</Badge>
-                        </td>
-                        <td className="px-4 py-3 text-steel-500">
-                          {formatDateTime(category.created_at)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              icon={<Trash2 className="h-3.5 w-3.5" />}
-                              onClick={() => deleteCategory.mutate(category.id)}
-                            />
-                          </div>
-                        </td>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-surface-border text-left text-xs uppercase tracking-wide text-steel-400">
+                        <th className="px-4 py-3">Nom</th>
+                        <th className="px-4 py-3">Produits</th>
+                        <th className="px-4 py-3">Créée le</th>
+                        <th className="px-4 py-3" />
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-surface-border">
+                      {categoriesPageData.data.map((category) => (
+                        <tr key={category.id} className="hover:bg-surface-subtle/70">
+                          <td className="px-4 py-3 font-medium text-steel-900">{category.nom}</td>
+                          <td className="px-4 py-3">
+                            <Badge variant="info">{category.produits_count ?? 0}</Badge>
+                          </td>
+                          <td className="px-4 py-3 text-steel-500">
+                            {formatDateTime(category.created_at)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                icon={<Trash2 className="h-3.5 w-3.5" />}
+                                onClick={() => deleteCategory.mutate(category.id)}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <Pagination
+                  currentPage={categoriesPageData.current_page}
+                  lastPage={categoriesPageData.last_page}
+                  total={categoriesPageData.total}
+                  from={categoriesPageData.from}
+                  to={categoriesPageData.to}
+                  onPageChange={setCategoryPage}
+                />
+              </>
             )}
           </Card>
         </div>
@@ -205,16 +337,6 @@ export function CatalogueView() {
                 setProductPage(1)
               }}
             />
-            <Button
-              className="ml-auto"
-              icon={<Plus className="h-3.5 w-3.5" />}
-              onClick={() => {
-                setSelectedProduct(null)
-                setShowProductDialog(true)
-              }}
-            >
-              Nouveau produit
-            </Button>
           </div>
 
           <Card>
@@ -241,7 +363,7 @@ export function CatalogueView() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-surface-border">
-                      {(Array.isArray(products) ? products : (products as any)?.data || []).map((product: CatalogueProduct) => (
+                      {products.map((product: CatalogueProduct) => (
                         <tr key={product.id} className="hover:bg-surface-subtle/70">
                           <td className="px-4 py-3 font-medium text-steel-900">{product.nomencla}</td>
                           <td className="px-4 py-3 text-steel-600">{product.designation}</td>
@@ -283,17 +405,17 @@ export function CatalogueView() {
                     </tbody>
                   </table>
                 </div>
-                {productsPage && (
-                <Pagination
-                    currentPage={productPage} // Uses your local state tracking variable
-                    lastPage={(productsPage as any).last_page || 1}
-                    total={(productsPage as any).total || 0}
-                    from={(productsPage as any).from ?? 0}
-                    to={(productsPage as any).to ?? 0}
-                    onPageChange={setProductPage}
-                />
-                )}
 
+                {productsPageData && (
+                  <Pagination
+                    currentPage={productsPageData.current_page ?? productPage}
+                    lastPage={productsPageData.last_page ?? 1}
+                    total={productsPageData.total ?? 0}
+                    from={productsPageData.from ?? 0}
+                    to={productsPageData.to ?? 0}
+                    onPageChange={setProductPage}
+                  />
+                )}
               </>
             )}
           </Card>
@@ -345,16 +467,6 @@ export function CatalogueView() {
                 setMatierePage(1)
               }}
             />
-            <Button
-              className="ml-auto"
-              icon={<Plus className="h-3.5 w-3.5" />}
-              onClick={() => {
-                setSelectedMatiere(null)
-                setShowMatiereDialog(true)
-              }}
-            >
-              Nouvelle matière
-            </Button>
           </div>
 
           <Card>
@@ -382,7 +494,7 @@ export function CatalogueView() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-surface-border">
-                        {(Array.isArray(matieres) ? matieres : (matieres as any)?.data || []).map((matiere: CatalogueMatiere) => (
+                      {matieres.map((matiere: CatalogueMatiere) => (
                         <tr key={matiere.id} className="hover:bg-surface-subtle/70">
                           <td className="px-4 py-3 font-medium text-steel-900">{matiere.reference}</td>
                           <td className="px-4 py-3 text-steel-600">{matiere.nom}</td>
@@ -431,15 +543,16 @@ export function CatalogueView() {
                     </tbody>
                   </table>
                 </div>
-                {matieresPage && (
-                <Pagination
-                    currentPage={matierePage} // Uses your local state tracking variable for matieres
-                    lastPage={(matieresPage as any).last_page || 1}
-                    total={(matieresPage as any).total || 0}
-                    from={(matieresPage as any).from ?? 0}
-                    to={(matieresPage as any).to ?? 0}
+
+                {matieresPageData && (
+                  <Pagination
+                    currentPage={matieresPageData.current_page ?? matierePage}
+                    lastPage={matieresPageData.last_page ?? 1}
+                    total={matieresPageData.total ?? 0}
+                    from={matieresPageData.from ?? 0}
+                    to={matieresPageData.to ?? 0}
                     onPageChange={setMatierePage}
-                />
+                  />
                 )}
               </>
             )}
@@ -480,6 +593,26 @@ export function CatalogueView() {
           onSuccess={() => setShowMatiereDialog(false)}
         />
       </Dialog>
+
+      <ExcelImportDialog
+        open={showProductImportDialog}
+        onOpenChange={setShowProductImportDialog}
+        title="Importer des produits"
+        description="Importe les produits depuis le fichier modèle du catalogue."
+        loading={importProducts.isPending}
+        defaultSheetNames={['Produits_classifies']}
+        onImport={handleImportProducts}
+      />
+
+      <ExcelImportDialog
+        open={showMatiereImportDialog}
+        onOpenChange={setShowMatiereImportDialog}
+        title="Importer des matières"
+        description="Importe les matières premières depuis le fichier modèle du catalogue."
+        loading={importMatieres.isPending}
+        defaultSheetNames={['Sheet1']}
+        onImport={handleImportMatieres}
+      />
     </div>
   )
 }

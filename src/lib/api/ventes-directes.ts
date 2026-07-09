@@ -45,4 +45,11 @@ export const ventesDirectesApi = {
     )
     return data.data
   },
+
+  annuler: async (id: number) => {
+    const { data } = await apiClient.post<ApiResponse<VenteDirecte>>(
+      `/commercial/ventes-directes/${id}/annuler`
+    )
+    return data.data
+  },
 }

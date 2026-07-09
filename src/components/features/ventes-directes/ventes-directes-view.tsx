@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Eye, Plus, ShoppingCart, CheckCircle2 } from 'lucide-react'
+import { Eye, Plus, RotateCcw, ShoppingCart, CheckCircle2 } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,7 +14,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
 import { useClients } from '@/lib/hooks/use-clients'
-import { useValiderVenteDirecte, useVentesDirectes } from '@/lib/hooks/use-ventes-directes'
+import { useAnnulerVenteDirecte, useValiderVenteDirecte, useVentesDirectes } from '@/lib/hooks/use-ventes-directes'
 import type { VenteDirecte } from '@/lib/ventes-directes.types'
 import { VenteDirecteForm } from './vente-directe-form'
 
@@ -28,6 +28,7 @@ export function VentesDirectesView() {
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { mutate: validerVente, isPending: validating } = useValiderVenteDirecte()
+  const { mutate: annulerVente, isPending: cancelling } = useAnnulerVenteDirecte()
 
   const { data, isLoading } = useVentesDirectes({
     statut: statut || undefined,
@@ -45,8 +46,17 @@ export function VentesDirectesView() {
   const statutOptions = [
     { value: '', label: 'Toutes' },
     { value: 'brouillon', label: 'Brouillons' },
-    { value: 'validee', label: 'Validées' },
+    { value: 'validee', label: 'Validees' },
+    { value: 'annulee', label: 'Annulees' },
   ]
+
+  const getLabel = (statutVente: VenteDirecte['statut']) => {
+    if (statutVente === 'brouillon') return 'Brouillon'
+    if (statutVente === 'validee') return 'Validee'
+    if (statutVente === 'annulee') return 'Annulee'
+    if (statutVente === 'livree') return 'Livree'
+    return statutVente
+  }
 
   return (
     <div className="space-y-5">
@@ -124,7 +134,7 @@ export function VentesDirectesView() {
           <CardBody>
             <div className="flex flex-col items-center justify-center py-16 text-steel-400">
               <ShoppingCart className="mb-2 h-8 w-8" />
-              <p className="text-sm font-medium">Aucune vente directe trouvée</p>
+              <p className="text-sm font-medium">Aucune vente directe trouvee</p>
             </div>
           </CardBody>
         ) : (
@@ -132,7 +142,7 @@ export function VentesDirectesView() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-border">
-                  {['Numéro', 'Client', 'Location', 'Date', 'Total', 'Statut', ''].map((h) => (
+                  {['Numero', 'Client', 'Location', 'Date', 'Total', 'Statut', ''].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
@@ -160,7 +170,7 @@ export function VentesDirectesView() {
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={getStatutColor(vente.statut)} dot>
-                        {vente.statut === 'brouillon' ? 'Brouillon' : 'Validée'}
+                        {getLabel(vente.statut)}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -174,6 +184,17 @@ export function VentesDirectesView() {
                             onClick={() => validerVente(vente.id)}
                           >
                             Valider
+                          </Button>
+                        )}
+                        {vente.statut === 'validee' && (
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            icon={<RotateCcw className="h-3.5 w-3.5" />}
+                            loading={cancelling}
+                            onClick={() => annulerVente(vente.id)}
+                          >
+                            Annuler
                           </Button>
                         )}
                         <Link href={`/ventes-directes/${vente.id}`}>

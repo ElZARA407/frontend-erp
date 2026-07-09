@@ -1,9 +1,8 @@
-// src/components/features/livraisons/livraison-detail-view.tsx
 'use client'
 
 import Link from 'next/link'
 import { useLivraisonDetail } from '@/lib/hooks/use-commercial-details'
-import { useConfirmerLivraison } from '@/lib/hooks/use-livraisons'
+import { useAnnulerLivraison, useConfirmerLivraison } from '@/lib/hooks/use-livraisons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,7 +10,7 @@ import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { StatCard } from '@/components/ui/stat-card'
 import { formatDate, formatDateTime, formatQty, getStatutColor } from '@/lib/utils'
-import { ArrowLeft, FileText, Package, Truck, UserRound } from 'lucide-react'
+import { ArrowLeft, FileText, Package, RotateCcw, Truck, UserRound } from 'lucide-react'
 import type { Livraison } from '@/lib/types'
 
 type LivraisonDetail = Livraison & {
@@ -38,9 +37,16 @@ interface LivraisonDetailViewProps {
 export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
   const { data, isLoading } = useLivraisonDetail(livraisonId)
   const confirmerLivraison = useConfirmerLivraison()
+  const annulerLivraison = useAnnulerLivraison()
 
   const livraison = data as LivraisonDetail | undefined
   const lignes = Array.isArray(livraison?.lignes) ? livraison.lignes : []
+
+  const canConfirmer = livraison?.statut === 'prepare'
+  const canAnnuler =
+    livraison?.statut === 'livre' &&
+    livraison.source_type === 'commande' &&
+    !livraison.est_facturee
 
   if (!isLoading && !livraison) {
     return (
@@ -140,12 +146,22 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
                 {livraison.statut}
               </Badge>
             )}
-            {livraison?.statut === 'prepare' && (
+            {canConfirmer && (
               <Button
                 loading={confirmerLivraison.isPending}
                 onClick={() => confirmerLivraison.mutate(livraison.id)}
               >
                 Confirmer
+              </Button>
+            )}
+            {canAnnuler && (
+              <Button
+                variant="danger"
+                loading={annulerLivraison.isPending}
+                icon={<RotateCcw className="h-4 w-4" />}
+                onClick={() => annulerLivraison.mutate(livraison.id)}
+              >
+                Annuler
               </Button>
             )}
           </div>
@@ -238,7 +254,7 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
               </thead>
               <tbody className="divide-y divide-surface-border">
                 {lignes.map((ligne) => (
-                  <tr key={ligne.id} className="hover:bg-surface-muted/60 transition-colors">
+                  <tr key={ligne.id} className="transition-colors hover:bg-surface-muted/60">
                     <td className="px-4 py-3 font-medium text-steel-900">
                       {ligne.classement?.designation ?? '—'}
                     </td>

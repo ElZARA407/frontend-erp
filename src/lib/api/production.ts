@@ -1,6 +1,5 @@
-// src/lib/api/production.ts
 import apiClient from './client'
-import type { ApiResponse, PaginatedResponse, BonProduction, BpSession } from '../types'
+import type { ApiResponse, PaginatedResponse, BonProduction, BpSession, Machine } from '../types'
 import { buildQueryString } from '../utils'
 
 export interface BpFilters {
@@ -21,6 +20,7 @@ export interface BpMatierePayload {
 }
 
 export interface BpObtenuPayload {
+  produit_id: number
   classement_id: number
   quantite_produite: number
   destination_location_id: number
@@ -32,10 +32,25 @@ export interface BpEmployePayload {
 }
 
 export interface BpEvenementPayload {
-  type_evenement: 'production' | 'pause' | 'panne' | 'autre'
+  type_evenement: 'debut' | 'fin' | 'panne' | 'autre'
   heure_debut: string
   heure_fin?: string
   description?: string
+}
+
+export interface BpSessionCreatePayload {
+  date_session: string
+  machine_id: number
+  cout_electricite?: number
+  matieres?: BpMatierePayload[]
+  obtenus?: BpObtenuPayload[]
+  employes?: BpEmployePayload[]
+  evenements?: BpEvenementPayload[]
+}
+
+export interface MachinePayload {
+  nom: string
+  description?: string | null
 }
 
 export const productionApi = {
@@ -53,11 +68,26 @@ export const productionApi = {
     return data.data
   },
 
+  listMachines: async (filters: { actif?: boolean; search?: string } = {}) => {
+    const { data } = await apiClient.get<ApiResponse<Machine[]>>(
+      `/production/machines${buildQueryString(filters)}`
+    )
+    return Array.isArray(data.data) ? data.data : []
+  },
+
+  createMachine: async (payload: MachinePayload) => {
+    const { data } = await apiClient.post<ApiResponse<Machine>>(
+      '/production/machines',
+      payload
+    )
+    return data.data
+  },
+
   create: async (payload: {
     date: string
     location_id: number
     produit_id: number
-    machine_production: string
+    machine_id: number
     quantite_cible: number
   }) => {
     const { data } = await apiClient.post<ApiResponse<BonProduction>>(
@@ -81,14 +111,7 @@ export const productionApi = {
     return data
   },
 
-  createSession: async (
-    bpId: number,
-    payload: {
-      date_session: string
-      machine_production: string
-      cout_electricite?: number
-    }
-  ) => {
+  createSession: async (bpId: number, payload: BpSessionCreatePayload) => {
     const { data } = await apiClient.post<ApiResponse<BpSession>>(
       `/production/bons-production/${bpId}/sessions`,
       payload

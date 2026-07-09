@@ -43,6 +43,7 @@ export function useBtSessions(btId: number) {
 
 export function useCreateBonTransformation() {
   const qc = useQueryClient()
+
   return useMutation({
     mutationFn: (payload: BonTransformationPayload) => recyclageApi.create(payload),
     onSuccess: () => {
@@ -55,6 +56,7 @@ export function useCreateBonTransformation() {
 
 export function useUpdateBonTransformation() {
   const qc = useQueryClient()
+
   return useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: Partial<BonTransformationPayload> }) =>
       recyclageApi.update(id, payload),
@@ -68,6 +70,7 @@ export function useUpdateBonTransformation() {
 
 export function useClotureBonTransformation() {
   const qc = useQueryClient()
+
   return useMutation({
     mutationFn: (id: number) => recyclageApi.cloture(id),
     onSuccess: () => {
@@ -81,6 +84,7 @@ export function useClotureBonTransformation() {
 
 export function useCreateBtSession() {
   const qc = useQueryClient()
+
   return useMutation({
     mutationFn: ({ btId, payload }: { btId: number; payload: BtSessionPayload }) =>
       recyclageApi.sessions.create(btId, payload),
@@ -95,11 +99,14 @@ export function useCreateBtSession() {
 
 export function useValidateBtSession() {
   const qc = useQueryClient()
+
   return useMutation({
     mutationFn: (sessionId: number) => recyclageApi.sessions.validate(sessionId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.sessions })
       qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.bons })
+      qc.invalidateQueries({ queryKey: ['stocks'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Session validée. Stocks mis à jour.')
     },
     onError: () => toast.error('Erreur lors de la validation de la session.'),
@@ -108,6 +115,7 @@ export function useValidateBtSession() {
 
 export function useAddBtMatiere() {
   const qc = useQueryClient()
+
   return useMutation({
     mutationFn: ({ sessionId, payload }: { sessionId: number; payload: BtMatierePayload }) =>
       recyclageApi.sessions.addMatiere(sessionId, payload),
@@ -122,6 +130,7 @@ export function useAddBtMatiere() {
 
 export function useAddBtEmploye() {
   const qc = useQueryClient()
+
   return useMutation({
     mutationFn: ({ sessionId, payload }: { sessionId: number; payload: BtEmployePayload }) =>
       recyclageApi.sessions.addEmploye(sessionId, payload),
@@ -136,6 +145,7 @@ export function useAddBtEmploye() {
 
 export function useAddBtEvenement() {
   const qc = useQueryClient()
+
   return useMutation({
     mutationFn: ({ sessionId, payload }: { sessionId: number; payload: BtEvenementPayload }) =>
       recyclageApi.sessions.addEvenement(sessionId, payload),

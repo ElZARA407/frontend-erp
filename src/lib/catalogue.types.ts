@@ -1,4 +1,3 @@
-// src/lib/catalogue.types.ts
 import type { PaginatedResponse } from '@/lib/types'
 
 export type CatalogueCategoryName = 'INJ' | 'HDPE' | 'PET' | 'MCH'
@@ -35,6 +34,7 @@ export interface CatalogueProduct {
   unite: string
   colisage: number
   poids: string
+  seuil: number | null
   actif: boolean
   categorie?: {
     id: number
@@ -68,7 +68,6 @@ export interface CatalogueCategoryPayload {
 }
 
 export interface CatalogueProductCreatePayload {
-  nomencla: string
   designation: string
   categorie_id: number
   contenance?: string | null
@@ -76,11 +75,8 @@ export interface CatalogueProductCreatePayload {
   unite: string
   colisage: number
   poids: string
+  seuil: number
   actif: boolean
-  classements: Array<{
-    qualite: CatalogueProductQuality
-    prix_specifique?: number | null
-  }>
 }
 
 export interface CatalogueProductUpdatePayload {
@@ -89,6 +85,7 @@ export interface CatalogueProductUpdatePayload {
   format?: string | null
   colisage: number
   poids: string
+  seuil?: number
   actif: boolean
 }
 

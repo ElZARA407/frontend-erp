@@ -1,6 +1,6 @@
 import type { PaginatedResponse } from '@/lib/types'
 
-export type VenteDirecteStatut = 'brouillon' | 'validee'
+export type VenteDirecteStatut = 'brouillon' | 'validee' | 'annulee' | 'livree'
 
 export interface VenteDirecteClientRef {
   id: number
@@ -25,6 +25,17 @@ export interface VenteDirecteLine {
   classement?: VenteDirecteClassementRef | null
 }
 
+export interface VenteDirecteLivraisonRef {
+  id: number
+  numero: string
+  source_type: 'commande' | 'vente_directe'
+  source_id: number
+  date_livraison: string | null
+  statut: 'prepare' | 'livre' | 'retourne'
+  est_facturee: boolean
+  created_at?: string
+}
+
 export interface VenteDirecte {
   id: number
   numero: string
@@ -34,6 +45,7 @@ export interface VenteDirecte {
   client?: VenteDirecteClientRef | null
   location?: VenteDirecteLocationRef | null
   lignes?: VenteDirecteLine[]
+  livraisons?: VenteDirecteLivraisonRef[]
   created_at?: string
 }
 

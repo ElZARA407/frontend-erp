@@ -19,7 +19,7 @@ export default function LoginPage() {
 
         <div>
           <blockquote className="text-2xl font-light leading-snug text-steel-200">
-            "Centraliser pour mieux produire, tracer pour mieux décider."
+            "Omeo lanja ny vokatrao, safidio ny kalitao."
           </blockquote>
           <p className="mt-4 text-sm text-steel-500">
             Compagnie Malagasy de Plastique — Antananarivo
@@ -27,7 +27,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-xs text-steel-600">
-          © {new Date().getFullYear()} CMP. Tous droits réservés.
+          © {new Date().getFullYear()} CMP.
         </p>
       </div>
 

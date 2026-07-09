@@ -1,13 +1,16 @@
-// src/components/ui/input.tsx
+import { forwardRef, type InputHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
   icon?: React.ReactNode
 }
 
-export function Input({ label, error, icon, className, id, ...props }: InputProps) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { label, error, icon, className, id, ...props },
+  ref,
+) {
   const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
 
   return (
@@ -24,6 +27,7 @@ export function Input({ label, error, icon, className, id, ...props }: InputProp
           </div>
         )}
         <input
+          ref={ref}
           {...props}
           id={inputId}
           className={cn(
@@ -40,4 +44,4 @@ export function Input({ label, error, icon, className, id, ...props }: InputProp
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   )
-}
+})

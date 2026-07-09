@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, ShoppingCart } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, RotateCcw, ShoppingCart } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { StatCard } from '@/components/ui/stat-card'
 import { formatDate, formatDateTime, formatMGA, formatQty, getStatutColor } from '@/lib/utils'
-import { useValiderVenteDirecte, useVenteDirecte } from '@/lib/hooks/use-ventes-directes'
+import { useAnnulerVenteDirecte, useValiderVenteDirecte, useVenteDirecte } from '@/lib/hooks/use-ventes-directes'
 import type { VenteDirecte } from '@/lib/ventes-directes.types'
 
 interface VenteDirecteDetailViewProps {
@@ -19,15 +19,31 @@ interface VenteDirecteDetailViewProps {
 export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps) {
   const { data: vente, isLoading } = useVenteDirecte(venteId)
   const validerVente = useValiderVenteDirecte()
+  const annulerVente = useAnnulerVenteDirecte()
 
   const lignes = Array.isArray(vente?.lignes) ? vente.lignes : []
+  const livraisons = Array.isArray(vente?.livraisons) ? vente.livraisons : []
+  const hasLivraisons = livraisons.length > 0
+
+  const statutLabel =
+    vente?.statut === 'brouillon'
+      ? 'Brouillon'
+      : vente?.statut === 'validee'
+        ? 'Validee'
+        : vente?.statut === 'annulee'
+          ? 'Annulee'
+          : vente?.statut === 'livree'
+            ? 'Livree'
+            : vente?.statut ?? '—'
+
+  const canAnnuler = vente?.statut === 'validee' && !hasLivraisons
 
   if (!isLoading && !vente) {
     return (
       <div className="space-y-5">
         <PageHeader
           title={`Vente directe #${venteId}`}
-          subtitle="Fiche non trouvée"
+          subtitle="Fiche non trouvee"
           actions={
             <Link
               href="/ventes-directes"
@@ -61,6 +77,16 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
                 onClick={() => validerVente.mutate(vente.id)}
               >
                 Valider
+              </Button>
+            )}
+            {canAnnuler && (
+              <Button
+                variant="danger"
+                icon={<RotateCcw className="h-3.5 w-3.5" />}
+                loading={annulerVente.isPending}
+                onClick={() => annulerVente.mutate(vente.id)}
+              >
+                Annuler
               </Button>
             )}
             <Link
@@ -105,9 +131,9 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
             />
             <StatCard
               label="Statut"
-              value={vente?.statut === 'brouillon' ? 'Brouillon' : 'Validée'}
+              value={statutLabel}
               icon={<ShoppingCart className="h-5 w-5" />}
-              accent={vente?.statut === 'validee' ? 'success' : 'primary'}
+              accent={vente?.statut === 'annulee' ? 'danger' : vente?.statut === 'validee' ? 'success' : 'primary'}
             />
           </>
         )}
@@ -122,7 +148,7 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
             </p>
           </div>
           <Badge variant={vente ? getStatutColor(vente.statut) : 'default'} dot>
-            {vente?.statut === 'brouillon' ? 'Brouillon' : 'Validée'}
+            {statutLabel}
           </Badge>
         </CardHeader>
 
@@ -157,7 +183,7 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
                 <p className="mt-1 font-semibold text-steel-900">{formatDate(vente.date)}</p>
               </div>
               <div className="rounded-lg border border-surface-border p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Créée le</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Créee le</p>
                 <p className="mt-1 font-semibold text-steel-900">{formatDateTime(vente.created_at)}</p>
               </div>
             </div>
@@ -165,12 +191,64 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
         </CardBody>
       </Card>
 
+      {livraisons.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div>
+              <h2 className="text-sm font-semibold text-steel-900">Livraisons liees</h2>
+              <p className="text-xs text-steel-500">
+                Les livraisons liees bloquent l annulation de la vente.
+              </p>
+            </div>
+            <Badge variant="info" dot>
+              {livraisons.length} BL
+            </Badge>
+          </CardHeader>
+          <CardBody>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-surface-border">
+                    {['Numero', 'Date', 'Statut', 'Facturee'].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-border">
+                  {livraisons.map((livraison) => (
+                    <tr key={livraison.id} className="hover:bg-surface-muted/60 transition-colors">
+                      <td className="px-4 py-3 font-medium text-steel-900">{livraison.numero}</td>
+                      <td className="px-4 py-3 text-steel-600">{formatDate(livraison.date_livraison)}</td>
+                      <td className="px-4 py-3">
+                        <Badge variant={getStatutColor(livraison.statut)} dot>
+                          {livraison.statut}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={livraison.est_facturee ? 'success' : 'muted'} dot>
+                          {livraison.est_facturee ? 'Oui' : 'Non'}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <div>
             <h2 className="text-sm font-semibold text-steel-900">Lignes de vente</h2>
             <p className="text-xs text-steel-500">
-              Classement, quantité et prix unitaire.
+              Classement, quantite et prix unitaire.
             </p>
           </div>
           <Badge variant="info" dot>
@@ -189,7 +267,7 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-border">
-                  {['Classement', 'Quantité', 'PU', 'Total', 'Ligne'].map((h) => (
+                  {['Classement', 'Quantite', 'PU', 'Total', 'Ligne'].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"

@@ -146,15 +146,26 @@ export interface Commande {
 }
 
 // ── Stock ───────────────────────────────────────────────
+export interface StockArticleRef {
+  id: number
+  designation?: string | null
+  nomencla?: string | null
+  nom?: string | null
+  reference?: string | null
+  seuil?: number | null
+}
+
 export interface Stock {
   id: number
   entite_type: 'matiere' | 'produit'
   entite_id: number
   stock_total: number
   en_rupture: boolean
+  seuil?: number | null
+  sous_seuil_alerte?: boolean
   location?: Location
-  classement?: { id: number; qualite: string; libelle:string }
-  entite?:{id:number;designation:string, nomencla:string}
+  classement?: { id: number; qualite?: string; libelle?: string; designation?: string }
+  entite?: StockArticleRef
   updated_at: string
 }
 
@@ -167,13 +178,30 @@ export interface MouvementStock {
   impact_stock: number
   reference_type: string
   reference_id: number
+  motif?: string | null
+  stock_theorique?: number | null
+  stock_physique?: number | null
+  ecart?: number | null
   date_mouvement: string
   location?: { id: number; nom: string }
   utilisateur?: { id: number; nom: string }
-  classement?: { id: number; designation: string }
+  entite?: StockArticleRef
+  classement?: { id: number; designation?: string; libelle?: string }
 }
 
+export interface StockAjustementResult {
+  stock: Stock
+  mouvement: MouvementStock
+}
 
+// ── Machines ────────────────────────────────────────────
+export interface Machine {
+  id: number
+  nom: string
+  description?: string | null
+  actif: boolean
+  created_at?: string
+}
 
 // ── Achats ──────────────────────────────────────────────
 export interface JournalAchat {
@@ -205,7 +233,7 @@ export interface BonProduction {
   id: number
   numero: string
   date: string
-  machine_production: string
+  machine_id: number | null
   quantite_cible: number
   quantite_produite: number
   taux_realisation: number
@@ -213,6 +241,7 @@ export interface BonProduction {
   statut: StatutProduction
   location?: { id: number; nom: string }
   produit?: { id: number; nomencla: string; designation: string }
+  machine?: Machine
   sessions?: BpSession[]
   created_at: string
 }
@@ -221,10 +250,11 @@ export interface BpSession {
   id: number
   session_numero: number
   date_session: string
-  machine_production: string
+  machine_id: number | null
   cout_electricite: number
   cout_total: number
   statut: 'ouverte' | 'validee'
+  machine?: Machine
 }
 
 // ── Livraisons ──────────────────────────────────────────
@@ -250,22 +280,6 @@ export interface StatutFacture {
   libelle: string
   couleur: string
 }
-
-// export interface Facture {
-//   id: number
-//   numero: string
-//   date: string
-//   total: number
-//   statut: StatutFacture
-//   echeance_paiement: string | null
-//   date_paiement: string | null
-//   mode_paiement: string | null
-//   en_retard: boolean
-//   jours_retard: number
-//   notes: string | null
-//   client?: { id: number; nom: string }
-//   created_at: string
-// }
 
 // ── Dashboard ───────────────────────────────────────────
 export interface DashboardKpi {

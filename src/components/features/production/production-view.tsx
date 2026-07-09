@@ -23,7 +23,7 @@ export function ProductionView() {
   const { data, isLoading } = useBonsProduction({
     statut: statut || undefined,
     page,
-    per_page: 20,
+    per_page: 10,
   })
   const { mutate: clotureBP, isPending: closing } = useClotureBP()
   const { mutate: annulerBP, isPending: cancelling } = useAnnulerBP()
@@ -73,7 +73,7 @@ export function ProductionView() {
 
       <Card>
         {isLoading ? (
-          <TableSkeleton rows={10} cols={10} />
+          <TableSkeleton rows={10} cols={11} />
         ) : bps.length === 0 ? (
           <CardBody>
             <div className="flex flex-col items-center justify-center py-16 text-steel-400">
@@ -86,7 +86,7 @@ export function ProductionView() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-border">
-                  {['Numéro', 'Produit', 'Site', 'Date', 'Cible', 'Produite', 'Taux', 'Coût', 'Statut', ''].map((h) => (
+                  {['Numéro', 'Produit', 'Site', 'Machine', 'Date', 'Cible', 'Produite', 'Taux', 'Coût', 'Statut', ''].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
@@ -109,6 +109,7 @@ export function ProductionView() {
                       {bp.produit?.designation ?? '—'}
                     </td>
                     <td className="px-4 py-3 text-steel-600">{bp.location?.nom ?? '—'}</td>
+                    <td className="px-4 py-3 text-steel-600">{bp.machine?.nom ?? '—'}</td>
                     <td className="px-4 py-3 text-steel-600">{formatDate(bp.date)}</td>
                     <td className="px-4 py-3 tabular-nums">{formatQty(bp.quantite_cible)}</td>
                     <td className="px-4 py-3 tabular-nums">{formatQty(bp.quantite_produite)}</td>
@@ -146,7 +147,7 @@ export function ProductionView() {
                             Annuler
                           </Button>
                         )}
-                        {bp.statut.valeur === 'en_cours' && (
+                        {bp.statut.valeur === 'en_cours' && bp.taux_realisation >= 100 && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -187,7 +188,7 @@ export function ProductionView() {
         open={showCreate}
         onClose={() => setShowCreate(false)}
         title="Nouveau bon de production"
-        size="md"
+        size="wide"
       >
         <BpForm onSuccess={() => setShowCreate(false)} />
       </Dialog>

@@ -18,29 +18,35 @@ export function removeToken(): void {
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}/api/v1`,
-  headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+  headers: { Accept: 'application/json' },
   timeout: 30_000,
 })
 
-// ── Intercepteur requête — injecte le token ─────────────
 apiClient.interceptors.request.use((config) => {
   const token = getToken()
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
+
   return config
 })
 
-// ── Intercepteur réponse — gestion erreurs globale ──────
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       removeToken()
+
       if (typeof window !== 'undefined') {
         window.location.href = '/login'
       }
     }
+
     return Promise.reject(error)
   },
 )

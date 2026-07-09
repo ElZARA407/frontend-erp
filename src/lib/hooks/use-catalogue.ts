@@ -1,5 +1,4 @@
-// src/lib/hooks/use-catalogue.ts
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { catalogueApi } from '@/lib/api/catalogue'
 import type {
@@ -31,6 +30,7 @@ export function useProducts(filters: CatalogueProductFilters = {}) {
     queryKey: [...CATALOGUE_KEYS.products, filters],
     queryFn: () => catalogueApi.listProducts(filters),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -47,6 +47,7 @@ export function useMatieres(filters: CatalogueMatiereFilters = {}) {
     queryKey: [...CATALOGUE_KEYS.matieres, filters],
     queryFn: () => catalogueApi.listMatieres(filters),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -119,6 +120,19 @@ export function useDeleteProduct() {
   })
 }
 
+export function useImportProducts() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: FormData) => catalogueApi.importProducts(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: CATALOGUE_KEYS.products })
+      toast.success('Import produits terminé.')
+    },
+    onError: () => toast.error('Erreur lors de l’import Excel des produits.'),
+  })
+}
+
 export function useCreateMatiere() {
   const qc = useQueryClient()
   return useMutation({
@@ -153,5 +167,18 @@ export function useDeleteMatiere() {
       toast.success('Matière première archivée.')
     },
     onError: () => toast.error('Impossible d’archiver cette matière première.'),
+  })
+}
+
+export function useImportMatieres() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: FormData) => catalogueApi.importMatieres(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: CATALOGUE_KEYS.matieres })
+      toast.success('Import matières terminé.')
+    },
+    onError: () => toast.error('Erreur lors de l’import Excel des matières.'),
   })
 }

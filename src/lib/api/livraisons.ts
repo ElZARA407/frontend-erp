@@ -26,4 +26,9 @@ export const livraisonsApi = {
     const { data } = await apiClient.post<ApiResponse<Livraison>>(`/logistique/livraisons/${id}/confirmer`)
     return data.data
   },
+
+  annuler: async (id: number) => {
+    const { data } = await apiClient.post<ApiResponse<Livraison>>(`/logistique/livraisons/${id}/annuler`)
+    return data.data
+  },
 }

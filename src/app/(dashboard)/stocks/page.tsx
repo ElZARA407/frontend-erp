@@ -1,13 +1,11 @@
-import { StocksView } from '@/components/features/stocks/stocks-view';
-import { PageHeader } from '@/components/layout/page-header';
+import { StocksView } from '@/components/features/stocks/stocks-view'
+import { PageHeader } from '@/components/layout/page-header'
 
 export default function StocksPage() {
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Gestion des stocks"
-      />
+      <PageHeader title="Stock" />
       <StocksView />
     </div>
-  );
+  )
 }
