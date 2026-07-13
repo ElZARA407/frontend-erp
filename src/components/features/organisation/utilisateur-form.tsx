@@ -1,7 +1,5 @@
-// src/components/features/organisation/utilisateur-form.tsx
 'use client'
 
-import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
@@ -13,14 +11,12 @@ import {
   type OrganisationUtilisateurCreateSchema,
   type OrganisationUtilisateurEditSchema,
 } from '@/lib/schemas/organisation.schema'
-import {
-  useCreateUser,
-  useUpdateUser,
-} from '@/lib/hooks/use-organisation'
+import { useCreateUser, useUpdateUser } from '@/lib/hooks/use-organisation'
 import type {
   OrganisationLocation,
   OrganisationRole,
   OrganisationUtilisateur,
+  OrganisationUtilisateurPayload,
 } from '@/lib/organisation.types'
 
 interface UtilisateurFormProps {
@@ -30,7 +26,9 @@ interface UtilisateurFormProps {
   onSuccess?: () => void
 }
 
-type FormValues = OrganisationUtilisateurCreateSchema | OrganisationUtilisateurEditSchema
+type UtilisateurFormValues =
+  | OrganisationUtilisateurCreateSchema
+  | OrganisationUtilisateurEditSchema
 
 export function UtilisateurForm({
   defaultValues,
@@ -41,11 +39,16 @@ export function UtilisateurForm({
   const isEditing = Boolean(defaultValues?.id)
   const createUser = useCreateUser()
   const updateUser = useUpdateUser()
+  const schema = isEditing
+    ? organisationUtilisateurEditSchema
+    : organisationUtilisateurCreateSchema
 
-  const schema = isEditing ? organisationUtilisateurEditSchema : organisationUtilisateurCreateSchema
-
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
-    resolver: zodResolver(schema) as any, // Cast resolver to bypass the schema type gap
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<UtilisateurFormValues>({
+    resolver: zodResolver(schema) as any,
     defaultValues: {
       nom: defaultValues?.nom ?? '',
       email: defaultValues?.email ?? '',
@@ -53,39 +56,35 @@ export function UtilisateurForm({
       role_id: defaultValues?.role?.id ?? 0,
       location_id: defaultValues?.location?.id ?? 0,
       actif: defaultValues?.actif ?? true,
-    } as FormValues,
+    },
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
   })
 
-  useEffect(() => {
-    reset({
-      nom: defaultValues?.nom ?? '',
-      email: defaultValues?.email ?? '',
-      password: '',
-      role_id: defaultValues?.role?.id ?? 0,
-      location_id: defaultValues?.location?.id ?? 0,
-      actif: defaultValues?.actif ?? true,
-    } as FormValues)
-  }, [defaultValues, reset])
+  const formErrors = errors as Record<string, { message?: string }>
 
-  const onSubmit = (values: FormValues) => {
-    const payload = {
-      nom: values.nom,
-      email: values.email,
+  const onSubmit = (values: UtilisateurFormValues) => {
+    const password =
+      typeof values.password === 'string' ? values.password.trim() : ''
+
+    const payload: Partial<OrganisationUtilisateurPayload> = {
+      nom: values.nom.trim(),
+      email: values.email.trim(),
       role_id: Number(values.role_id),
       location_id: Number(values.location_id),
       actif: Boolean(values.actif),
-      ...(values.password ? { password: values.password } : {}),
+      ...(password ? { password } : {}),
     }
 
     if (isEditing && defaultValues?.id) {
       updateUser.mutate(
         { id: defaultValues.id, payload },
-        { onSuccess }
+        { onSuccess },
       )
       return
     }
 
-    createUser.mutate(payload as OrganisationUtilisateurCreateSchema, { onSuccess })
+    createUser.mutate(payload as OrganisationUtilisateurPayload, { onSuccess })
   }
 
   return (
@@ -94,14 +93,14 @@ export function UtilisateurForm({
         <Input
           label="Nom complet *"
           placeholder="Jean Dupont"
-          error={errors.nom?.message}
+          error={formErrors.nom?.message}
           {...register('nom')}
         />
         <Input
           label="Email *"
           type="email"
           placeholder="utilisateur@cmp.mg"
-          error={errors.email?.message}
+          error={formErrors.email?.message}
           {...register('email')}
         />
       </div>
@@ -114,7 +113,7 @@ export function UtilisateurForm({
             label: role.nom,
           }))}
           placeholder="Choisir le rôle"
-          error={errors.role_id?.message}
+          error={formErrors.role_id?.message}
           {...register('role_id', { valueAsNumber: true })}
         />
 
@@ -125,7 +124,7 @@ export function UtilisateurForm({
             label: `${location.nom} (${location.type})`,
           }))}
           placeholder="Choisir la location"
-          error={errors.location_id?.message}
+          error={formErrors.location_id?.message}
           {...register('location_id', { valueAsNumber: true })}
         />
       </div>
@@ -134,8 +133,8 @@ export function UtilisateurForm({
         label={isEditing ? 'Nouveau mot de passe' : 'Mot de passe *'}
         type="password"
         placeholder={isEditing ? 'Laisser vide pour ne pas changer' : 'Mot de passe sécurisé'}
-        error={(errors as Record<string, { message?: string }>).password?.message}
-        {...register('password' as never)}
+        error={formErrors.password?.message}
+        {...register('password')}
       />
 
       <label className="flex items-center gap-2 text-sm text-steel-700">

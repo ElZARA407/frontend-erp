@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import {  useMemo } from 'react'
 import { Controller, useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
@@ -53,7 +53,6 @@ export function ProduitForm({ categories, defaultValues, onSuccess }: ProduitFor
   const {
     control,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm<ProduitFormValues>({
     resolver,
@@ -62,9 +61,9 @@ export function ProduitForm({ categories, defaultValues, onSuccess }: ProduitFor
     reValidateMode: 'onSubmit',
   })
 
-  useEffect(() => {
-    reset(initialValues, { keepDirtyValues: true, keepErrors: true })
-  }, [initialValues, reset])
+  // useEffect(() => {
+  //   reset(initialValues, { keepDirtyValues: true, keepErrors: true })
+  // }, [initialValues, reset])
 
   const onSubmit = (values: ProduitFormValues) => {
     if (isEditing && defaultValues?.id) {

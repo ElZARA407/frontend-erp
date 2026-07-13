@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 export const venteDirecteLineSchema = z.object({
+  produit_id: z.coerce.number().int().positive('Le produit est requis'),
   classement_id: z.coerce.number().int().positive('Le classement est requis'),
   quantite: z.coerce.number().positive('La quantité doit être supérieure à 0'),
   prix_unitaire: z.coerce.number().min(0, 'Le prix unitaire doit être positif'),

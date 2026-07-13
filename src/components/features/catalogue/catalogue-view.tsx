@@ -576,6 +576,7 @@ export function CatalogueView() {
         size="xl"
       >
         <ProduitForm
+          key={selectedProduct?.id ?? 'product-new'}
           categories={categoriesList}
           defaultValues={selectedProduct ?? undefined}
           onSuccess={() => setShowProductDialog(false)}
@@ -589,6 +590,7 @@ export function CatalogueView() {
         size="lg"
       >
         <MatiereForm
+          key={selectedMatiere?.id ?? 'matiere-new'}
           defaultValues={selectedMatiere ?? undefined}
           onSuccess={() => setShowMatiereDialog(false)}
         />

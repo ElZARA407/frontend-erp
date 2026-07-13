@@ -2,7 +2,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useFieldArray, useForm } from 'react-hook-form'
+import { useFieldArray, useForm,type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -47,7 +47,7 @@ export function DemandeAchatForm({ matieres, produits, onSuccess }: DemandeAchat
     watch,
     formState: { errors },
   } = useForm<DemandeAchatSchema>({
-    resolver: zodResolver(demandeAchatSchema) as any,
+    resolver: zodResolver(demandeAchatSchema) as unknown as Resolver<DemandeAchatSchema>,
     defaultValues: {
       date_demande: dateToday,
       observations: '',
@@ -140,6 +140,7 @@ export function DemandeAchatForm({ matieres, produits, onSuccess }: DemandeAchat
                   error={errors.lignes?.[index]?.entite_id?.message}
                   {...register(`lignes.${index}.entite_id`, { valueAsNumber: true })}
                 />
+                
 
                 <Input
                   label="Quantite *"

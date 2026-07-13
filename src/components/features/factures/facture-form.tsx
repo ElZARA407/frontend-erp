@@ -1,8 +1,7 @@
-// src/components/features/factures/facture-form.tsx
 'use client'
 
 import { useMemo } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm,type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
@@ -36,10 +35,12 @@ export function FactureForm({ onSuccess }: FactureFormProps) {
     handleSubmit,
     formState: { errors },
   } = useForm<FactureCreateSchema>({
-    resolver: zodResolver(factureCreateSchema) as any,
+    resolver: zodResolver(factureCreateSchema) as unknown as Resolver<FactureCreateSchema>,
     defaultValues: {
       livraison_id: 0,
     },
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
   })
 
   const onSubmit = (values: FactureCreateSchema) => {

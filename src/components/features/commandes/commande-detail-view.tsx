@@ -216,7 +216,7 @@ export function CommandeDetailView({ commandeId }: CommandeDetailViewProps) {
                       {ligne.classement?.qualite_libelle ?? `Ligne ${index + 1}`}
                     </td>
                     <td className="px-4 py-3 text-steel-600">
-                      {ligne.classement?.produit?.designation ?? '—'}
+                      {ligne.produit?.designation ?? ligne.produit?.nomencla ?? ligne.classement?.produit?.designation ?? '—'}
                     </td>
                     <td className="px-4 py-3 text-steel-600">{ligne.quantite}</td>
                     <td className="px-4 py-3 text-steel-600">{ligne.quantite_restante}</td>

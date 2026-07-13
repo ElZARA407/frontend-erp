@@ -1,8 +1,7 @@
-// src/components/features/organisation/role-form.tsx
 'use client'
 
-import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,45 +9,55 @@ import {
   organisationRoleSchema,
   type OrganisationRoleSchema,
 } from '@/lib/schemas/organisation.schema'
-import {
-  useCreateRole,
-  useUpdateRole,
-} from '@/lib/hooks/use-organisation'
+import { useCreateRole, useUpdateRole } from '@/lib/hooks/use-organisation'
 
 interface RoleFormProps {
   defaultValues?: Partial<OrganisationRoleSchema> & { id?: number }
   onSuccess?: () => void
 }
 
+type RoleFormValues = z.input<typeof organisationRoleSchema>
+
+function normalizeOptionalText(value: unknown) {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed ? trimmed : undefined
+}
+
 export function RoleForm({ defaultValues, onSuccess }: RoleFormProps) {
   const isEditing = Boolean(defaultValues?.id)
   const createRole = useCreateRole()
   const updateRole = useUpdateRole()
-const { register, handleSubmit, reset, formState: { errors } } = useForm<OrganisationRoleSchema>({
-  resolver: zodResolver(organisationRoleSchema) as any, // Cast resolver to bypass the schema type gap,
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RoleFormValues>({
+    resolver: zodResolver(organisationRoleSchema),
     defaultValues: {
       nom: defaultValues?.nom ?? '',
       description: defaultValues?.description ?? '',
     },
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
   })
 
-  useEffect(() => {
-    reset({
-      nom: defaultValues?.nom ?? '',
-      description: defaultValues?.description ?? '',
-    })
-  }, [defaultValues, reset])
+  const onSubmit = (values: RoleFormValues) => {
+    const payload = {
+      nom: values.nom.trim(),
+      description: normalizeOptionalText(values.description),
+    }
 
-  const onSubmit = (values: OrganisationRoleSchema) => {
     if (isEditing && defaultValues?.id) {
       updateRole.mutate(
-        { id: defaultValues.id, payload: values },
-        { onSuccess }
+        { id: defaultValues.id, payload },
+        { onSuccess },
       )
       return
     }
 
-    createRole.mutate(values, { onSuccess })
+    createRole.mutate(payload, { onSuccess })
   }
 
   return (

@@ -9,8 +9,11 @@ import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { StatCard } from '@/components/ui/stat-card'
 import { formatDate, formatDateTime, formatMGA, formatQty, getStatutColor } from '@/lib/utils'
-import { useAnnulerVenteDirecte, useValiderVenteDirecte, useVenteDirecte } from '@/lib/hooks/use-ventes-directes'
-import type { VenteDirecte } from '@/lib/ventes-directes.types'
+import {
+  useAnnulerVenteDirecte,
+  useValiderVenteDirecte,
+  useVenteDirecte,
+} from '@/lib/hooks/use-ventes-directes'
 
 interface VenteDirecteDetailViewProps {
   venteId: number
@@ -133,7 +136,13 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
               label="Statut"
               value={statutLabel}
               icon={<ShoppingCart className="h-5 w-5" />}
-              accent={vente?.statut === 'annulee' ? 'danger' : vente?.statut === 'validee' ? 'success' : 'primary'}
+              accent={
+                vente?.statut === 'annulee'
+                  ? 'danger'
+                  : vente?.statut === 'validee'
+                    ? 'success'
+                    : 'primary'
+              }
             />
           </>
         )}
@@ -248,7 +257,7 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
           <div>
             <h2 className="text-sm font-semibold text-steel-900">Lignes de vente</h2>
             <p className="text-xs text-steel-500">
-              Classement, quantite et prix unitaire.
+              Produit, classement, quantite et prix unitaire.
             </p>
           </div>
           <Badge variant="info" dot>
@@ -258,7 +267,7 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
 
         <CardBody>
           {isLoading ? (
-            <TableSkeleton rows={6} cols={5} />
+            <TableSkeleton rows={6} cols={6} />
           ) : lignes.length === 0 ? (
             <div className="py-10 text-center text-steel-500">
               Aucune ligne de vente.
@@ -267,7 +276,7 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-border">
-                  {['Classement', 'Quantite', 'PU', 'Total', 'Ligne'].map((h) => (
+                  {['Produit', 'Classement', 'Quantite', 'PU', 'Total', 'Ligne'].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
@@ -281,7 +290,10 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
                 {lignes.map((ligne, index) => (
                   <tr key={ligne.id} className="hover:bg-surface-muted/60 transition-colors">
                     <td className="px-4 py-3 font-medium text-steel-900">
-                      {ligne.classement?.designation ?? `Ligne ${index + 1}`}
+                      {ligne.produit?.designation ?? ligne.produit?.nomencla ?? `Ligne ${index + 1}`}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-steel-900">
+                      {ligne.classement?.designation ?? ligne.classement?.libelle ?? ligne.classement?.qualite ?? '—'}
                     </td>
                     <td className="px-4 py-3 text-steel-600">{formatQty(ligne.quantite)}</td>
                     <td className="px-4 py-3 text-steel-600">{formatMGA(ligne.prix_unitaire)}</td>

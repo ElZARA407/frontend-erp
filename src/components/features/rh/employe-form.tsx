@@ -1,8 +1,6 @@
-// src/components/features/rh/employe-form.tsx
 'use client'
 
-import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,14 +8,9 @@ import { Select } from '@/components/ui/select'
 import {
   rhEmployeSchema,
   rhEmployeUpdateSchema,
-  type RhEmployeSchema,
-  type RhEmployeUpdateSchema,
 } from '@/lib/schemas/rh.schema'
-import {
-  useCreateEmploye,
-  useUpdateEmploye,
-} from '@/lib/hooks/use-rh'
-import type { RhEmploye, RhPoste } from '@/lib/rh.types'
+import { useCreateEmploye, useUpdateEmploye } from '@/lib/hooks/use-rh'
+import type { RhEmploye, RhEmployePayload, RhPoste } from '@/lib/rh.types'
 
 interface EmployeFormProps {
   postes: RhPoste[]
@@ -25,72 +18,83 @@ interface EmployeFormProps {
   onSuccess?: () => void
 }
 
-type FormValues = RhEmployeSchema | RhEmployeUpdateSchema
+type EmployeFormValues = {
+  matricule: string
+  nom: string
+  prenom: string
+  poste_id: string
+  date_embauche: string
+  date_depart?: string
+  actif: boolean
+}
+
+function normalizeOptionalDate(value?: string) {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : undefined
+}
 
 export function EmployeForm({ postes, defaultValues, onSuccess }: EmployeFormProps) {
   const isEditing = Boolean(defaultValues?.id)
   const createEmploye = useCreateEmploye()
   const updateEmploye = useUpdateEmploye()
-
   const schema = isEditing ? rhEmployeUpdateSchema : rhEmployeSchema
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
-    resolver: zodResolver(schema as never),
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<EmployeFormValues>({
+    resolver: zodResolver(schema) as unknown as Resolver<EmployeFormValues>,
     defaultValues: {
       matricule: defaultValues?.matricule ?? '',
       nom: defaultValues?.nom ?? '',
       prenom: defaultValues?.prenom ?? '',
-      poste_id: defaultValues?.poste?.id ?? postes[0]?.id ?? 0,
+      poste_id: defaultValues?.poste?.id ? String(defaultValues.poste.id) : '',
       date_embauche: defaultValues?.date_embauche ?? '',
       date_depart: defaultValues?.date_depart ?? '',
       actif: defaultValues?.actif ?? true,
-    } as never,
+    },
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
   })
 
-  useEffect(() => {
-    reset({
-      matricule: defaultValues?.matricule ?? '',
-      nom: defaultValues?.nom ?? '',
-      prenom: defaultValues?.prenom ?? '',
-      poste_id: defaultValues?.poste?.id ?? postes[0]?.id ?? 0,
-      date_embauche: defaultValues?.date_embauche ?? '',
-      date_depart: defaultValues?.date_depart ?? '',
-      actif: defaultValues?.actif ?? true,
-    } as never)
-  }, [defaultValues, postes, reset])
+  const formErrors = errors as Record<string, { message?: string }>
 
-  const onSubmit = (values: FormValues) => {
+  const onSubmit = (values: EmployeFormValues) => {
+    const posteId = Number(values.poste_id)
+
+    if (!Number.isFinite(posteId) || posteId <= 0) {
+      return
+    }
+
+    const payloadBase: RhEmployePayload = {
+      matricule: values.matricule.trim(),
+      nom: values.nom.trim(),
+      prenom: values.prenom.trim(),
+      poste_id: posteId,
+      date_embauche: values.date_embauche,
+      date_depart: normalizeOptionalDate(values.date_depart) ?? null,
+      actif: Boolean(values.actif),
+    }
+
     if (isEditing && defaultValues?.id) {
-      const payload = {
-        nom: (values as RhEmployeUpdateSchema).nom,
-        prenom: (values as RhEmployeUpdateSchema).prenom,
-        poste_id: Number((values as RhEmployeUpdateSchema).poste_id),
-        date_embauche: (values as RhEmployeUpdateSchema).date_embauche,
-        date_depart: (values as RhEmployeUpdateSchema).date_depart ?? null,
-        actif: (values as RhEmployeUpdateSchema).actif,
+      const payload: Partial<RhEmployePayload> = {
+        nom: payloadBase.nom,
+        prenom: payloadBase.prenom,
+        poste_id: payloadBase.poste_id,
+        date_embauche: payloadBase.date_embauche,
+        date_depart: payloadBase.date_depart,
+        actif: payloadBase.actif,
       }
 
       updateEmploye.mutate(
         { id: defaultValues.id, payload },
-        { onSuccess }
+        { onSuccess },
       )
       return
     }
 
-    const createValues = values as RhEmployeSchema
-
-    createEmploye.mutate(
-      {
-        matricule: createValues.matricule,
-        nom: createValues.nom,
-        prenom: createValues.prenom,
-        poste_id: Number(createValues.poste_id),
-        date_embauche: createValues.date_embauche,
-        date_depart: createValues.date_depart ?? null,
-        actif: Boolean(createValues.actif),
-      },
-      { onSuccess }
-    )
+    createEmploye.mutate(payloadBase, { onSuccess })
   }
 
   return (
@@ -100,7 +104,7 @@ export function EmployeForm({ postes, defaultValues, onSuccess }: EmployeFormPro
           label="Matricule *"
           placeholder="EMP-001"
           disabled={isEditing}
-          error={(errors as Record<string, { message?: string }>).matricule?.message}
+          error={formErrors.matricule?.message}
           {...register('matricule')}
         />
         <Select
@@ -110,8 +114,8 @@ export function EmployeForm({ postes, defaultValues, onSuccess }: EmployeFormPro
             label: poste.nom,
           }))}
           placeholder="Choisir un poste"
-          error={(errors as Record<string, { message?: string }>).poste_id?.message}
-          {...register('poste_id', { valueAsNumber: true })}
+          error={formErrors.poste_id?.message}
+          {...register('poste_id')}
         />
       </div>
 
@@ -119,13 +123,13 @@ export function EmployeForm({ postes, defaultValues, onSuccess }: EmployeFormPro
         <Input
           label="Nom *"
           placeholder="Rakoto"
-          error={errors.nom?.message}
+          error={formErrors.nom?.message}
           {...register('nom')}
         />
         <Input
           label="Prénom *"
           placeholder="Jean"
-          error={errors.prenom?.message}
+          error={formErrors.prenom?.message}
           {...register('prenom')}
         />
       </div>
@@ -134,13 +138,13 @@ export function EmployeForm({ postes, defaultValues, onSuccess }: EmployeFormPro
         <Input
           label="Date d'embauche *"
           type="date"
-          error={(errors as Record<string, { message?: string }>).date_embauche?.message}
+          error={formErrors.date_embauche?.message}
           {...register('date_embauche')}
         />
         <Input
           label="Date de départ"
           type="date"
-          error={(errors as Record<string, { message?: string }>).date_depart?.message}
+          error={formErrors.date_depart?.message}
           {...register('date_depart')}
         />
       </div>

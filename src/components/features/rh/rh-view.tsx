@@ -307,6 +307,7 @@ export function RhView() {
         size="md"
       >
         <PosteForm
+          key={selectedPoste?.id ?? 'poste-new'}
           defaultValues={selectedPoste ?? undefined}
           onSuccess={() => setShowPosteDialog(false)}
         />
@@ -319,6 +320,7 @@ export function RhView() {
         size="lg"
       >
         <EmployeForm
+          key={selectedEmploye?.id ?? 'employe-new'}
           postes={postesList}
           defaultValues={selectedEmploye ?? undefined}
           onSuccess={() => setShowEmployeDialog(false)}

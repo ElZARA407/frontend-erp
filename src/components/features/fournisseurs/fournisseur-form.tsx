@@ -1,8 +1,6 @@
-// src/components/features/fournisseurs/fournisseur-form.tsx
 'use client'
 
-import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,8 +18,12 @@ export function FournisseurForm({ defaultValues, onSuccess }: FournisseurFormPro
   const createFournisseur = useCreateFournisseur()
   const updateFournisseur = useUpdateFournisseur()
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FournisseurSchema>({
-    resolver: zodResolver(fournisseurSchema) as any,
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FournisseurSchema>({
+    resolver: zodResolver(fournisseurSchema) as unknown as Resolver<FournisseurSchema>,
     defaultValues: {
       nom: defaultValues?.nom ?? '',
       reference: defaultValues?.reference ?? '',
@@ -34,33 +36,33 @@ export function FournisseurForm({ defaultValues, onSuccess }: FournisseurFormPro
       code_compta: defaultValues?.code_compta ?? '',
       actif: defaultValues?.actif ?? true,
     },
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
   })
 
-  useEffect(() => {
-    reset({
-      nom: defaultValues?.nom ?? '',
-      reference: defaultValues?.reference ?? '',
-      NIF: defaultValues?.NIF ?? '',
-      STAT: defaultValues?.STAT ?? '',
-      adresse: defaultValues?.adresse ?? '',
-      email: defaultValues?.email ?? '',
-      contact: defaultValues?.contact ?? '',
-      interlocutaire: defaultValues?.interlocutaire ?? '',
-      code_compta: defaultValues?.code_compta ?? '',
-      actif: defaultValues?.actif ?? true,
-    })
-  }, [defaultValues, reset])
-
   const onSubmit = (values: FournisseurSchema) => {
+    const payload = {
+      nom: values.nom.trim(),
+      reference: values.reference.trim(),
+      NIF: values.NIF?.trim() || null,
+      STAT: values.STAT?.trim() || null,
+      adresse: values.adresse.trim(),
+      email: values.email?.trim() || null,
+      contact: values.contact.trim(),
+      interlocutaire: values.interlocutaire?.trim() || null,
+      code_compta: values.code_compta?.trim() || null,
+      actif: Boolean(values.actif),
+    }
+
     if (isEditing && defaultValues?.id) {
       updateFournisseur.mutate(
-        { id: defaultValues.id, payload: values },
-        { onSuccess }
+        { id: defaultValues.id, payload },
+        { onSuccess },
       )
       return
     }
 
-    createFournisseur.mutate(values, { onSuccess })
+    createFournisseur.mutate(payload, { onSuccess })
   }
 
   return (
@@ -82,8 +84,8 @@ export function FournisseurForm({ defaultValues, onSuccess }: FournisseurFormPro
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Input label="NIF" placeholder="1234567890" {...register('NIF')} />
-        <Input label="STAT" placeholder="STAT001" {...register('STAT')} />
+        <Input label="NIF" placeholder="1234567890" error={errors.NIF?.message} {...register('NIF')} />
+        <Input label="STAT" placeholder="STAT001" error={errors.STAT?.message} {...register('STAT')} />
       </div>
 
       <Input
@@ -110,8 +112,8 @@ export function FournisseurForm({ defaultValues, onSuccess }: FournisseurFormPro
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Input label="Interlocuteur" placeholder="Jean Dupont" {...register('interlocutaire')} />
-        <Input label="Code compta" placeholder="CMP-001" {...register('code_compta')} />
+        <Input label="Interlocuteur" placeholder="Jean Dupont" error={errors.interlocutaire?.message} {...register('interlocutaire')} />
+        <Input label="Code compta" placeholder="CMP-001" error={errors.code_compta?.message} {...register('code_compta')} />
       </div>
 
       <label className="flex items-center gap-2 text-sm text-steel-700">

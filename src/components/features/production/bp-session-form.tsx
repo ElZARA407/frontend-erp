@@ -1,12 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useRef } from 'react'
-import { FormProvider, useFieldArray, useForm, useFormContext, useWatch } from 'react-hook-form'
+import { FormProvider, useFieldArray, useForm, useFormContext, useWatch, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Clock3, Factory, FlaskConical, Plus, Trash2, UserRound } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { useLocations } from '@/lib/hooks/use-organisation'
@@ -62,7 +60,7 @@ function createEmployeRow(defaultEmployeId: number): SessionBatchSchema['employe
 
 function createEvenementRow(): SessionBatchSchema['evenements'][number] {
   return {
-    type_evenement: 'debut',
+    type_evenement: 'production',
     heure_debut: '',
     heure_fin: undefined,
     description: undefined,
@@ -87,7 +85,7 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
   const initializedRef = useRef(false)
 
   const methods = useForm<SessionBatchSchema>({
-    resolver: zodResolver(sessionSchema) as any,
+    resolver: zodResolver(sessionSchema) as unknown as Resolver<SessionBatchSchema>,
     defaultValues,
   })
 
@@ -389,8 +387,7 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
                   <Select
                     label="Type *"
                     options={[
-                      { value: 'debut', label: 'Début' },
-                      { value: 'fin', label: 'Fin' },
+                      { value: 'production', label: 'Production' },
                       { value: 'panne', label: 'Panne' },
                       { value: 'autre', label: 'Autre' },
                     ]}

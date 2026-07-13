@@ -32,7 +32,7 @@ export interface BpEmployePayload {
 }
 
 export interface BpEvenementPayload {
-  type_evenement: 'debut' | 'fin' | 'panne' | 'autre'
+  type_evenement: 'production' | 'panne' | 'autre'
   heure_debut: string
   heure_fin?: string
   description?: string

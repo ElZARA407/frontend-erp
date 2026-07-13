@@ -12,16 +12,27 @@ export interface VenteDirecteLocationRef {
   nom: string
 }
 
+export interface VenteDirecteProduitRef {
+  id: number
+  nomencla: string
+  designation: string
+}
+
 export interface VenteDirecteClassementRef {
   id: number
-  designation: string
+  designation?: string | null
+  qualite?: string | null
+  libelle?: string | null
 }
 
 export interface VenteDirecteLine {
   id: number
+  produit_id: number
+  classement_id: number
   quantite: number
   prix_unitaire: number
   total_ligne: number
+  produit?: VenteDirecteProduitRef | null
   classement?: VenteDirecteClassementRef | null
 }
 
@@ -54,6 +65,7 @@ export interface VenteDirectePayload {
   date: string
   location_id: number
   lignes: Array<{
+    produit_id: number
     classement_id: number
     quantite: number
     prix_unitaire: number

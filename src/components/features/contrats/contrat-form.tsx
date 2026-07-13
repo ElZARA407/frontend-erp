@@ -2,7 +2,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useFieldArray, useForm } from 'react-hook-form'
+import { useFieldArray, useForm,type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,7 +35,7 @@ export function ContratForm({ clients, produits, onSuccess }: ContratFormProps) 
   )
 
   const { register, control, handleSubmit, watch, formState: { errors } } = useForm<ContratSchema>({
-    resolver: zodResolver(contratSchema) as any,
+    resolver: zodResolver(contratSchema) as unknown as Resolver<ContratSchema>,
     defaultValues: {
       client_id: clients[0]?.id ?? 0,
       mois: todayMonth,

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm,type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Dialog } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -39,7 +39,7 @@ export function AjustementDialog({ open, onClose, stock }: AjustementDialogProps
     watch,
     formState: { errors },
   } = useForm<AjustementStockValues>({
-    resolver: zodResolver(ajustementStockSchema) as any,
+    resolver: zodResolver(ajustementStockSchema) as unknown as Resolver<AjustementStockValues>,
     defaultValues: initialValues,
   })
 

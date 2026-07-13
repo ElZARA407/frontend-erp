@@ -1,19 +1,11 @@
-// src/components/features/rh/poste-form.tsx
 'use client'
 
-import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm,type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  rhPosteSchema,
-  type RhPosteSchema,
-} from '@/lib/schemas/rh.schema'
-import {
-  useCreatePoste,
-  useUpdatePoste,
-} from '@/lib/hooks/use-rh'
+import { rhPosteSchema, type RhPosteSchema } from '@/lib/schemas/rh.schema'
+import { useCreatePoste, useUpdatePoste } from '@/lib/hooks/use-rh'
 import type { RhPoste } from '@/lib/rh.types'
 
 interface PosteFormProps {
@@ -26,28 +18,26 @@ export function PosteForm({ defaultValues, onSuccess }: PosteFormProps) {
   const createPoste = useCreatePoste()
   const updatePoste = useUpdatePoste()
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<RhPosteSchema>({
-    resolver: zodResolver(rhPosteSchema) as any,
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RhPosteSchema>({
+    resolver: zodResolver(rhPosteSchema) as unknown as Resolver<RhPosteSchema>,
     defaultValues: {
       nom: defaultValues?.nom ?? '',
       taux_horaire: defaultValues?.taux_horaire ?? 0,
       salaire_mensuel: defaultValues?.salaire_mensuel ?? undefined,
     },
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
   })
-
-  useEffect(() => {
-    reset({
-      nom: defaultValues?.nom ?? '',
-      taux_horaire: defaultValues?.taux_horaire ?? 0,
-      salaire_mensuel: defaultValues?.salaire_mensuel ?? undefined,
-    })
-  }, [defaultValues, reset])
 
   const onSubmit = (values: RhPosteSchema) => {
     if (isEditing && defaultValues?.id) {
       updatePoste.mutate(
         { id: defaultValues.id, payload: values },
-        { onSuccess }
+        { onSuccess },
       )
       return
     }
@@ -71,14 +61,15 @@ export function PosteForm({ defaultValues, onSuccess }: PosteFormProps) {
           step="0.01"
           placeholder="0"
           error={errors.taux_horaire?.message}
-          {...register('taux_horaire', { valueAsNumber: true })}
+          {...register('taux_horaire')}
         />
         <Input
           label="Salaire mensuel"
           type="number"
           step="0.01"
           placeholder="0"
-          {...register('salaire_mensuel', { valueAsNumber: true })}
+          error={errors.salaire_mensuel?.message}
+          {...register('salaire_mensuel')}
         />
       </div>
 

@@ -147,7 +147,7 @@ export function CommandesView() {
         )}
       </Card>
 
-      <Dialog open={showCreate} onClose={() => setShowCreate(false)} title="Nouvelle commande" size="xl">
+      <Dialog open={showCreate} onClose={() => setShowCreate(false)} title="Nouvelle commande" size="wide">
         <CommandeForm onSuccess={() => setShowCreate(false)} />
       </Dialog>
     </div>

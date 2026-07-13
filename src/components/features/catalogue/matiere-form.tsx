@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import {useMemo } from 'react'
 import { Controller, useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
@@ -58,7 +58,6 @@ export function MatiereForm({ defaultValues, onSuccess }: MatiereFormProps) {
   const {
     control,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm<MatiereFormValues>({
     resolver,
@@ -67,9 +66,9 @@ export function MatiereForm({ defaultValues, onSuccess }: MatiereFormProps) {
     reValidateMode: 'onSubmit',
   })
 
-  useEffect(() => {
-    reset(initialValues, { keepDirtyValues: true, keepErrors: true })
-  }, [initialValues, reset])
+  // useEffect(() => {
+  //   reset(initialValues, { keepDirtyValues: true, keepErrors: true })
+  // }, [initialValues, reset])
 
   const onSubmit = (values: MatiereFormValues) => {
     if (isEditing && defaultValues?.id) {

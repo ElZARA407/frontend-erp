@@ -1,7 +1,7 @@
 // src/components/features/demandes-achat/demande-achat-edit-form.tsx
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { type Resolver, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,7 +22,7 @@ export function DemandeAchatEditForm({ demande, onSuccess }: DemandeAchatEditFor
     handleSubmit,
     formState: { errors },
   } = useForm<DemandeAchatUpdateSchema>({
-    resolver: zodResolver(demandeAchatUpdateSchema) as any,
+    resolver: zodResolver(demandeAchatUpdateSchema) as unknown as Resolver<DemandeAchatUpdateSchema>,
     defaultValues: {
       date_demande: demande.date_demande,
       observations: demande.observations ?? '',

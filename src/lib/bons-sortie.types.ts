@@ -13,14 +13,25 @@ export interface BonSortieLocationRef {
   nom: string
 }
 
+export interface BonSortieProduitRef {
+  id: number
+  nomencla: string
+  designation: string
+}
+
 export interface BonSortieClassementRef {
   id: number
-  designation: string
+  qualite?: string | null
+  libelle?: string | null
+  designation?: string | null
 }
 
 export interface BonSortieLine {
   id: number
+  produit_id: number
+  classement_id: number
   quantite: number
+  produit?: BonSortieProduitRef | null
   classement?: BonSortieClassementRef | null
 }
 
@@ -44,6 +55,7 @@ export interface BonSortiePayload {
   client_id?: number | null
   observations?: string | null
   lignes: Array<{
+    produit_id: number
     classement_id: number
     quantite: number
   }>

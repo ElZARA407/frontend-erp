@@ -115,6 +115,9 @@ export interface Fournisseur {
 
 export interface LigneCommande {
   id: number
+  produit_id: number
+  classement_id: number
+  produit?: { id: number; nomencla: string; designation: string }
   classement?: ClassementProduit
   quantite: number
   quantite_restante: number

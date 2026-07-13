@@ -170,6 +170,7 @@ export function FournisseursView() {
         size="lg"
       >
         <FournisseurForm
+          key={selectedFournisseur?.id ?? 'fournisseur-new'}
           defaultValues={selectedFournisseur ?? undefined}
           onSuccess={() => setShowDialog(false)}
         />

@@ -243,7 +243,7 @@ export function StocksView() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-surface-border">
-                          {['Location', 'Type', 'Article', 'Classement', 'Quantite', 'Seuil', 'Statut', 'Action'].map((label) => (
+                          {['Localisation', 'Type', 'Article', 'Classement', 'Quantite', 'Seuil', 'Statut', 'Action'].map((label) => (
                             <th
                               key={label}
                               className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"

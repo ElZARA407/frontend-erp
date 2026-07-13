@@ -58,7 +58,7 @@ export const bpEmployeSchema = z.object({
 export type BpEmployeSchema = z.infer<typeof bpEmployeSchema>
 
 export const bpEvenementSchema = z.object({
-  type_evenement: z.enum(['debut', 'fin', 'panne', 'autre']),
+  type_evenement: z.enum(['production', 'panne', 'autre']),
   heure_debut: z.string().min(1, 'Heure début requise'),
   heure_fin: optionalText,
   description: optionalText,

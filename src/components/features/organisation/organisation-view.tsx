@@ -421,6 +421,7 @@ export function OrganisationView() {
         size="lg"
       >
         <UtilisateurForm
+          key={selectedUser?.id ?? 'user-new'}
           defaultValues={selectedUser ?? undefined}
           roles={rolesList}
           locations={locationsList}
@@ -435,6 +436,7 @@ export function OrganisationView() {
         size="md"
       >
         <RoleForm
+          key={selectedRole?.id ?? 'role-new'}
           defaultValues={selectedRole ? { ...selectedRole, description: selectedRole.description ?? undefined } : undefined}
           onSuccess={() => setShowRoleDialog(false)}
         />
@@ -447,6 +449,7 @@ export function OrganisationView() {
         size="md"
       >
         <LocationForm
+          key={selectedLocation?.id ?? 'location-new'}
           defaultValues={selectedLocation ?? undefined}
           onSuccess={() => setShowLocationDialog(false)}
         />

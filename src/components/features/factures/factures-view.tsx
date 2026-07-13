@@ -4,6 +4,8 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import {  type Resolver } from 'react-hook-form'
+import type { PayerFactureSchema } from '@/lib/schemas/facture.schema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertTriangle, CheckCircle2, Eye, Plus, Receipt, XCircle } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
@@ -19,7 +21,7 @@ import { MODES_PAIEMENT } from '@/lib/constants'
 import { useClients } from '@/lib/hooks/use-clients'
 import { useAnnulerFacture, useFactures, usePayerFacture } from '@/lib/hooks/use-factures'
 import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
-import { factureCreateSchema, payerFactureSchema } from '@/lib/schemas/facture.schema'
+import { payerFactureSchema } from '@/lib/schemas/facture.schema'
 import type { Facture } from '@/lib/factures.types'
 import { FactureForm } from './facture-form'
 
@@ -53,23 +55,23 @@ export function FacturesView() {
   const factures = Array.isArray(pagination?.data) ? pagination.data : []
   const clients = Array.isArray(clientsPage?.data?.data) ? clientsPage.data.data : []
 
-  const { register, handleSubmit, reset } = useForm<{ mode_paiement: string }>({
-    resolver: zodResolver(payerFactureSchema) as any,
-    defaultValues: { mode_paiement: '' },
+  const { register, handleSubmit, reset } = useForm<PayerFactureSchema>({
+    resolver: zodResolver(payerFactureSchema) as unknown as Resolver<PayerFactureSchema>,
+    defaultValues: { mode_paiement: 'espece' },
   })
 
-  const onPay = (formData: { mode_paiement: string }) => {
-    if (!payingId) return
-    payer(
-      { id: payingId, mode_paiement: formData.mode_paiement as any },
-      {
-        onSuccess: () => {
-          setPayingId(null)
-          reset()
-        },
-      }
-    )
-  }
+  const onPay = (formData: PayerFactureSchema) => {
+  if (!payingId) return
+  payer(
+    { id: payingId, mode_paiement: formData.mode_paiement },
+    {
+      onSuccess: () => {
+        setPayingId(null)
+        reset({ mode_paiement: 'espece' })
+      },
+    }
+  )
+}
 
   const statutOptions = [
     { value: '', label: 'Tous' },

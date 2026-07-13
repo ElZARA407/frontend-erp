@@ -13,6 +13,7 @@ const optionalNumber = z.preprocess((value) => {
 }, z.number().optional())
 
 export const bonSortieLineSchema = z.object({
+  produit_id: z.coerce.number().int().positive('Le produit est requis'),
   classement_id: z.coerce.number().int().positive('Le classement est requis'),
   quantite: z.coerce.number().positive('La quantité doit être supérieure à 0'),
 })

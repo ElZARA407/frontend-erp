@@ -1,4 +1,3 @@
-// src/lib/api/commandes.ts
 import apiClient from './client'
 import type { ApiResponse, PaginatedResponse, Commande } from '../types'
 import { buildQueryString } from '../utils'
@@ -22,6 +21,7 @@ export interface CreateCommandePayload {
   location_id: number
   echeance: number
   lignes: Array<{
+    produit_id: number
     classement_id: number
     quantite: number
     prix_unitaire: number

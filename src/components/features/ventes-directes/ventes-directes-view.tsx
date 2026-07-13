@@ -227,7 +227,7 @@ export function VentesDirectesView() {
         open={showCreate}
         onClose={() => setShowCreate(false)}
         title="Nouvelle vente directe"
-        size="xl"
+        size="wide"
       >
         <VenteDirecteForm onSuccess={() => setShowCreate(false)} />
       </Dialog>

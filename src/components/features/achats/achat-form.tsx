@@ -1,8 +1,7 @@
-// src/components/features/achats/achat-form.tsx
 'use client'
 
 import { useMemo } from 'react'
-import { useFieldArray, useForm } from 'react-hook-form'
+import { useFieldArray, useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -14,6 +13,7 @@ import { useLocations } from '@/lib/hooks/use-organisation'
 import { useMatieres } from '@/lib/hooks/use-catalogue'
 import { achatSchema, type AchatSchema } from '@/lib/schemas/achat.schema'
 import { formatMGA } from '@/lib/utils'
+
 
 interface AchatFormProps {
   onSuccess?: () => void
@@ -46,7 +46,7 @@ export function AchatForm({ onSuccess }: AchatFormProps) {
     watch,
     formState: { errors },
   } = useForm<AchatSchema>({
-    resolver: zodResolver(achatSchema) as any,
+    resolver: zodResolver(achatSchema) as unknown as Resolver<AchatSchema>,
     defaultValues: {
       date: new Date().toISOString().slice(0, 10),
       fournisseur_id: fournisseurs[0]?.id ?? 0,
@@ -61,6 +61,8 @@ export function AchatForm({ onSuccess }: AchatFormProps) {
         },
       ],
     },
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
   })
 
   const { fields, append, remove } = useFieldArray({

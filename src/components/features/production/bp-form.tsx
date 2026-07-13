@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -63,7 +63,7 @@ export function BpForm({ onSuccess }: BpFormProps) {
     setValue,
     formState: { errors: bpErrors },
   } = useForm<BonProductionSchema>({
-    resolver: zodResolver(bonProductionSchema) as any,
+    resolver: zodResolver(bonProductionSchema) as unknown as Resolver<BonProductionSchema>,
     defaultValues: {
       date: today,
       location_id: 0,
@@ -79,7 +79,7 @@ export function BpForm({ onSuccess }: BpFormProps) {
     reset: resetMachine,
     formState: { errors: machineErrors },
   } = useForm<MachineSchema>({
-    resolver: zodResolver(machineSchema) as any,
+    resolver: zodResolver(machineSchema) as unknown as Resolver<MachineSchema>,
     defaultValues: {
       nom: '',
       description: '',
