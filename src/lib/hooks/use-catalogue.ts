@@ -8,6 +8,7 @@ import type {
   CatalogueMatiereUpdatePayload,
   CatalogueProductCreatePayload,
   CatalogueProductFilters,
+  CatalogueProductClassment,
   CatalogueProductUpdatePayload,
 } from '@/lib/catalogue.types'
 
@@ -180,5 +181,13 @@ export function useImportMatieres() {
       toast.success('Import matières terminé.')
     },
     onError: () => toast.error('Erreur lors de l’import Excel des matières.'),
+  })
+}
+
+export function useClassments() {
+  return useQuery({
+    queryKey: [...CATALOGUE_KEYS.products, 'classments'],
+    queryFn: catalogueApi.listClassments,
+    staleTime: 60_000,
   })
 }

@@ -58,7 +58,7 @@ export function PosteForm({ defaultValues, onSuccess }: PosteFormProps) {
         <Input
           label="Taux horaire *"
           type="number"
-          step="0.01"
+          step="1"
           placeholder="0"
           error={errors.taux_horaire?.message}
           {...register('taux_horaire')}
@@ -66,7 +66,7 @@ export function PosteForm({ defaultValues, onSuccess }: PosteFormProps) {
         <Input
           label="Salaire mensuel"
           type="number"
-          step="0.01"
+          step="10000"
           placeholder="0"
           error={errors.salaire_mensuel?.message}
           {...register('salaire_mensuel')}

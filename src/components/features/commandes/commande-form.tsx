@@ -389,7 +389,7 @@ function CommandeLineRow({
       <Input
         label="Quantité *"
         type="number"
-        step="0.001"
+        step="1"
         error={errors.lignes?.[index]?.quantite?.message}
         {...register(`lignes.${index}.quantite`, { valueAsNumber: true })}
       />
@@ -397,7 +397,7 @@ function CommandeLineRow({
       <Input
         label="Prix unitaire *"
         type="number"
-        step="0.01"
+        step="100"
         error={errors.lignes?.[index]?.prix_unitaire?.message}
         {...register(`lignes.${index}.prix_unitaire`, { valueAsNumber: true })}
       />

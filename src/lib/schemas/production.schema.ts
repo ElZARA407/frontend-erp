@@ -53,12 +53,12 @@ export type BpObtenuSchema = z.infer<typeof bpObtenuSchema>
 
 export const bpEmployeSchema = z.object({
   employe_id: z.coerce.number().int().positive('Employé requis'),
-  heures_brutes: z.coerce.number().positive('Heures requises'),
+  heures_brutes: optionalNumber,
 })
 export type BpEmployeSchema = z.infer<typeof bpEmployeSchema>
 
 export const bpEvenementSchema = z.object({
-  type_evenement: z.enum(['production', 'panne', 'autre']),
+  type_evenement: z.enum(['production', 'pause', 'panne', 'autre']),
   heure_debut: z.string().min(1, 'Heure début requise'),
   heure_fin: optionalText,
   description: optionalText,

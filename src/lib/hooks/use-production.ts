@@ -179,3 +179,24 @@ export function useAddProductionEvenement() {
     onError: () => toast.error('Erreur lors de l’ajout de l’événement.'),
   })
 }
+
+export function useCoutMoyenProduit(
+  produitId: number,
+  params: { date_debut?: string; date_fin?: string } = {}
+) {
+  return useQuery({
+    queryKey: [...PRODUCTION_KEY, 'cout-moyen-produit', produitId, params],
+    queryFn: () => productionApi.coutMoyenProduit(produitId, params),
+    enabled: produitId > 0,
+    staleTime: 30_000,
+  })
+}
+
+export function useCoutMoyenBonProduction(bpId: number) {
+  return useQuery({
+    queryKey: [...PRODUCTION_KEY, 'cout-moyen-bp', bpId],
+    queryFn: () => productionApi.coutMoyenBp(bpId),
+    enabled: bpId > 0,
+    staleTime: 30_000,
+  })
+}

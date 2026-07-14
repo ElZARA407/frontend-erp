@@ -11,7 +11,7 @@ import { Dialog } from '@/components/ui/dialog'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { BpSessionCreateForm } from './bp-session-form'
 import { useAnnulerBP, useBonProduction, useClotureBP, useValiderSession } from '@/lib/hooks/use-production'
-import { formatDate, formatDateTime, formatMGA, formatPercent, formatQty, getStatutColor } from '@/lib/utils'
+import { formatDate, formatDateTime, formatDurationHours, formatMGA, formatPercent, formatQty, getStatutColor } from '@/lib/utils'
 import type { BpSession } from '@/lib/types'
 
 interface ProductionDetailViewProps {
@@ -67,7 +67,7 @@ type SessionEmployeRow = {
   }
 }
 
-type SessionEvenementType = 'production' | 'panne' | 'autre'
+type SessionEvenementType = 'production' | 'pause' | 'panne' | 'autre'
 
 type SessionEvenementRow = {
   id: number
@@ -86,10 +86,46 @@ type SessionRow = BpSession & {
   obtenus?: SessionObtenuRow[]
   employes?: SessionEmployeRow[]
   evenements?: SessionEvenementRow[]
+  calcul?: {
+    id: number
+    temps_brut: number
+    temps_pause: number
+    temps_panne: number
+    temps_effectif: number
+    quantite_totale_produite: number
+    cout_matieres_total: number
+    cout_main_oeuvre_total: number
+    cout_electricite: number
+    cout_global: number
+    cout_unitaire: number
+    details_json?: {
+      matieres?: Array<{
+        matiere_id: number
+        nom?: string
+        reference?: string
+        quantite_utilisee: number
+        quantite_restituee: number
+        quantite_nette: number
+        prix_moyen: number
+        cout: number
+      }>
+      employes?: Array<{
+        employe_id: number
+        nom_complet?: string
+        matricule?: string
+        heures_brutes: number
+        heures_effectives: number
+        taux_horaire: number
+        cout: number
+      }>
+    }
+    calcule_le?: string | null
+  }
 }
 
 function getEventLabel(type: SessionEvenementType | string | undefined): string {
   if (type === 'production') return 'Production'
+  if (type === 'pause') return 'Pause'
   if (type === 'panne') return 'Panne'
   if (type === 'autre') return 'Autre'
   return '—'
@@ -312,7 +348,7 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
           )}
         </CardHeader>
 
-        <CardBody>
+      <CardBody>
           {isLoading ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Skeleton className="h-20" />
@@ -332,6 +368,80 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
           ) : null}
         </CardBody>
       </Card>
+
+      {selectedSession?.calcul && (
+        <Card>
+          <CardHeader>
+            <div>
+              <h2 className="text-sm font-semibold text-steel-900">Calcul de la session</h2>
+              <p className="text-xs text-steel-500">
+                Résumé automatique enregistré lors de la validation.
+              </p>
+            </div>
+            <Badge variant="info" dot>
+              {selectedSession.session_numero}
+            </Badge>
+          </CardHeader>
+          <CardBody>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <SummaryCard
+                label="Temps brut"
+                value={formatQty(selectedSession.calcul.temps_brut)}
+                icon={<Clock3 className="h-5 w-5" />}
+                accent="primary"
+              />
+              <SummaryCard
+                label="Pause"
+                value={formatQty(selectedSession.calcul.temps_pause)}
+                icon={<Clock3 className="h-5 w-5" />}
+                accent="warning"
+              />
+              <SummaryCard
+                label="Panne"
+                value={formatQty(selectedSession.calcul.temps_panne)}
+                icon={<XCircle className="h-5 w-5" />}
+                accent="danger"
+              />
+              <SummaryCard
+                label="Temps effectif"
+                value={formatQty(selectedSession.calcul.temps_effectif)}
+                icon={<CheckCircle2 className="h-5 w-5" />}
+                accent="success"
+              />
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <SummaryCard
+                label="Coût matières"
+                value={selectedSession.calcul.cout_matieres_total}
+                icon={<Receipt className="h-5 w-5" />}
+                accent="primary"
+                isMoney
+              />
+              <SummaryCard
+                label="Main-d'œuvre"
+                value={selectedSession.calcul.cout_main_oeuvre_total}
+                icon={<Factory className="h-5 w-5" />}
+                accent="warning"
+                isMoney
+              />
+              <SummaryCard
+                label="Coût global"
+                value={selectedSession.calcul.cout_global}
+                icon={<TrendingUp className="h-5 w-5" />}
+                accent="success"
+                isMoney
+              />
+              <SummaryCard
+                label="Coût unitaire"
+                value={selectedSession.calcul.cout_unitaire}
+                icon={<Receipt className="h-5 w-5" />}
+                accent="primary"
+                isMoney
+              />
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -586,7 +696,7 @@ function SessionDetailsPanel({ session }: { session: SessionRow }) {
                     {line.employe?.matricule ?? '—'} - {line.employe?.poste?.nom ?? 'Sans poste'}
                   </p>
                 </div>
-                <Badge variant="info">{formatQty(line.heures_brutes)} h</Badge>
+                <Badge variant="info">{formatDurationHours(line.heures_effectives)}</Badge>
               </div>
             )}
           />

@@ -405,7 +405,7 @@ function BonSortieLineRow({
       <Input
         label="Quantité *"
         type="number"
-        step="0.001"
+        step="1"
         error={errors.lignes?.[index]?.quantite?.message}
         {...register(`lignes.${index}.quantite`, { valueAsNumber: true })}
       />

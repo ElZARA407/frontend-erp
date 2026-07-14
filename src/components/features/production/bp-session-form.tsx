@@ -1,7 +1,17 @@
 'use client'
 
 import { useEffect, useMemo, useRef } from 'react'
-import { FormProvider, useFieldArray, useForm, useFormContext, useWatch, type Resolver } from 'react-hook-form'
+import {
+  Controller,
+  FormProvider,
+  useFieldArray,
+  useForm,
+  useFormContext,
+  useWatch,
+  type Resolver,
+  type UseFormSetValue,
+} from 'react-hook-form'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Clock3, Factory, FlaskConical, Plus, Trash2, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -10,7 +20,7 @@ import { Select } from '@/components/ui/select'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import { useEmployes } from '@/lib/hooks/use-rh'
 import { useCreateSession, useMachines } from '@/lib/hooks/use-production'
-import { useMatieres, useProducts } from '@/lib/hooks/use-catalogue'
+import { useClassments, useMatieres, useProducts } from '@/lib/hooks/use-catalogue'
 import { sessionSchema, type SessionBatchSchema } from '@/lib/schemas/production.schema'
 import type { BonProduction } from '@/lib/types'
 import type { CatalogueMatiere, CatalogueProduct } from '@/lib/catalogue.types'
@@ -54,7 +64,7 @@ function createObtenuRow(defaultProduitId: number, defaultClassementId: number, 
 function createEmployeRow(defaultEmployeId: number): SessionBatchSchema['employes'][number] {
   return {
     employe_id: defaultEmployeId,
-    heures_brutes: 1,
+    heures_brutes: undefined,
   }
 }
 
@@ -74,12 +84,14 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
   const { data: productsPage, isLoading: productsLoading } = useProducts({ actif: true, per_page: 100 })
   const { data: employesPage, isLoading: employesLoading } = useEmployes({ actif: true, per_page: 100 })
   const { data: locationsData, isLoading: locationsLoading } = useLocations()
+  const { data: classmentsData, isLoading: classmentsLoading } = useClassments()
 
   const machines = Array.isArray(machinesData) ? machinesData : []
   const matieres = Array.isArray(matieresPage?.data?.data) ? matieresPage.data.data : []
   const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.data : []
   const employes = Array.isArray(employesPage?.data?.data) ? employesPage.data.data : []
   const locations = Array.isArray(locationsData) ? locationsData : []
+  const classments = Array.isArray(classmentsData) ? classmentsData.filter((item) => item.actif) : []
 
   const defaultValues = useMemo(() => buildDefaultValues(bp), [bp])
   const initializedRef = useRef(false)
@@ -94,6 +106,7 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
     reset,
     control,
     register,
+    setValue,
     formState: { errors },
   } = methods
 
@@ -146,11 +159,21 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
     [locations]
   )
 
+  const classmentOptions = useMemo(
+    () =>
+      classments.map((item) => ({
+        value: item.id,
+        label: item.qualite_libelle ?? item.qualite,
+      })),
+    [classments]
+  )
+
   const defaultDestinationId = bp?.location?.id ?? locations[0]?.id ?? 0
   const defaultProductId = bp?.produit?.id ?? products[0]?.id ?? 0
   const defaultMatiereId = matieres[0]?.id ?? 0
   const defaultEmployeId = employes[0]?.id ?? 0
-  const defaultMachineId = bp?.machine_id ?? machines[0]?.id ?? 0
+  // const defaultMachineId = bp?.machine_id ?? machines[0]?.id ?? 0
+  const defaultClassementId = classments[0]?.id ?? 0
 
   const matieresArray = useFieldArray({ control, name: 'matieres' })
   const obtenusArray = useFieldArray({ control, name: 'obtenus' })
@@ -186,7 +209,7 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
           <Input
             label="Coût électricité"
             type="number"
-            step="0.01"
+            step="100"
             placeholder="0"
             error={errors.cout_electricite?.message}
             {...register('cout_electricite')}
@@ -225,25 +248,34 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
                   key={field.id}
                   className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 md:grid-cols-4"
                 >
-                  <Select
-                    label="Matière *"
-                    options={matiereOptions}
-                    placeholder={matieres.length ? 'Choisir une matière' : 'Aucune matière disponible'}
-                    error={errors.matieres?.[index]?.matiere_id?.message}
-                    disabled={!matieres.length}
-                    {...register(`matieres.${index}.matiere_id` as const, { valueAsNumber: true })}
+                  <Controller
+                    control={control}
+                    name={`matieres.${index}.matiere_id` as const}
+                    render={({ field }) => (
+                      <SearchableSelect
+                        label="Matière *"
+                        options={matiereOptions}
+                        placeholder={matieres.length ? 'Choisir une matière' : 'Aucune matière disponible'}
+                        searchPlaceholder="Rechercher une référence ou un nom..."
+                        noOptionsMessage="Aucune matière trouvée."
+                        error={errors.matieres?.[index]?.matiere_id?.message}
+                        disabled={!matieres.length}
+                        value={field.value}
+                        onValueChange={(value) => field.onChange(Number(value))}
+                      />
+                    )}
                   />
                   <Input
                     label="Quantité utilisée *"
                     type="number"
-                    step="0.001"
+                    step="100"
                     error={errors.matieres?.[index]?.quantite_utilisee?.message}
                     {...register(`matieres.${index}.quantite_utilisee` as const, { valueAsNumber: true })}
                   />
                   <Input
                     label="Quantité restituée"
                     type="number"
-                    step="0.001"
+                    step="1"
                     error={errors.matieres?.[index]?.quantite_restituee?.message}
                     {...register(`matieres.${index}.quantite_restituee` as const, { valueAsNumber: true })}
                   />
@@ -274,9 +306,9 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
               size="sm"
               icon={<Plus className="h-3.5 w-3.5" />}
               onClick={() =>
-                obtenusArray.append(createObtenuRow(defaultProductId, products[0]?.stocks_par_qualite?.[0]?.classement_id ?? 0, defaultDestinationId))
+                obtenusArray.append(createObtenuRow(defaultProductId, defaultClassementId, defaultDestinationId))
               }
-              disabled={!products.length || !locations.length}
+              disabled={!products.length || !locations.length || !classments.length}
             >
               Ajouter une ligne
             </Button>
@@ -292,9 +324,10 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
                   index={index}
                   productOptions={productOptions}
                   locationOptions={locationOptions}
-                  products={products}
+                  classmentOptions={classmentOptions}
                   canChooseProduct={products.length > 0}
                   canChooseLocation={locations.length > 0}
+                  canChooseClassment={classments.length > 0}
                   onRemove={() => obtenusArray.remove(index)}
                 />
               ))}
@@ -337,11 +370,21 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
                     {...register(`employes.${index}.employe_id` as const, { valueAsNumber: true })}
                   />
                   <Input
-                    label="Heures brutes *"
+                    label="Heures brutes"
                     type="number"
-                    step="0.1"
+                    step="1"
+                    placeholder="Optionnel"
                     error={errors.employes?.[index]?.heures_brutes?.message}
-                    {...register(`employes.${index}.heures_brutes` as const, { valueAsNumber: true })}
+                    {...register(`employes.${index}.heures_brutes` as const, {
+                      setValueAs: (value) => {
+                        if (value === '' || value === null || value === undefined) {
+                          return undefined
+                        }
+
+                        const parsed = Number(value)
+                        return Number.isNaN(parsed) ? undefined : parsed
+                      },
+                    })}
                   />
                   <div className="flex items-end justify-end">
                     <Button
@@ -388,6 +431,7 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
                     label="Type *"
                     options={[
                       { value: 'production', label: 'Production' },
+                      { value: 'pause', label: 'Pause' },
                       { value: 'panne', label: 'Panne' },
                       { value: 'autre', label: 'Autre' },
                     ]}
@@ -480,63 +524,52 @@ function ObtenuRow({
   index,
   productOptions,
   locationOptions,
-  products,
+  classmentOptions,
   canChooseProduct,
   canChooseLocation,
+  canChooseClassment,
   onRemove,
 }: {
   index: number
   productOptions: Array<{ value: number; label: string }>
   locationOptions: Array<{ value: number; label: string }>
-  products: CatalogueProduct[]
+  classmentOptions: Array<{ value: number; label: string }>
   canChooseProduct: boolean
   canChooseLocation: boolean
+  canChooseClassment: boolean
   onRemove: () => void
 }) {
   const { control, register, formState: { errors } } = useFormContext<SessionBatchSchema>()
-  const produitId = useWatch({
-    control,
-    name: `obtenus.${index}.produit_id` as const,
-  })
-
-  const selectedProduct = useMemo(
-    () => products.find((product) => product.id === Number(produitId)),
-    [produitId, products]
-  )
-
-  const classementOptions = useMemo(
-    () =>
-      Array.isArray(selectedProduct?.stocks_par_qualite)
-        ? selectedProduct.stocks_par_qualite.map((item) => ({
-            value: item.classement_id,
-            label: `${item.libelle ?? item.qualite} (${item.stock_total ?? 0})`,
-          }))
-        : [],
-    [selectedProduct]
-  )
 
   return (
     <div className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 md:grid-cols-5">
-      <Select
-        label="Produit *"
-        options={productOptions}
-        placeholder={canChooseProduct ? 'Choisir un produit' : 'Aucun produit disponible'}
-        error={errors.obtenus?.[index]?.produit_id?.message}
-        disabled={!canChooseProduct}
-        {...register(`obtenus.${index}.produit_id` as const, { valueAsNumber: true })}
+      <Controller
+        control={control}
+        name={`obtenus.${index}.produit_id` as const}
+        render={({ field }) => (
+          <SearchableSelect
+            label="Produit *"
+            options={productOptions}
+            placeholder={canChooseProduct ? 'Choisir un produit' : 'Aucun produit disponible'}
+            searchPlaceholder="Rechercher une désignation ou une nomencla..."
+            noOptionsMessage="Aucun produit trouvé."
+            error={errors.obtenus?.[index]?.produit_id?.message}
+            disabled={!canChooseProduct}
+            value={field.value}
+            onValueChange={(nextValue) => field.onChange(Number(nextValue))}
+          />
+        )}
       />
+
       <Select
         label="Classement *"
-        options={classementOptions}
-        placeholder={
-          classementOptions.length
-            ? 'Choisir un classement'
-            : 'Aucun classement pour ce produit'
-        }
+        options={classmentOptions}
+        placeholder={canChooseClassment ? 'Choisir un classement' : 'Aucun classement disponible'}
         error={errors.obtenus?.[index]?.classement_id?.message}
-        disabled={!classementOptions.length}
+        disabled={!canChooseClassment}
         {...register(`obtenus.${index}.classement_id` as const, { valueAsNumber: true })}
       />
+
       <Input
         label="Quantité produite *"
         type="number"
@@ -544,6 +577,7 @@ function ObtenuRow({
         error={errors.obtenus?.[index]?.quantite_produite?.message}
         {...register(`obtenus.${index}.quantite_produite` as const, { valueAsNumber: true })}
       />
+
       <Select
         label="Destination *"
         options={locationOptions}
@@ -552,6 +586,7 @@ function ObtenuRow({
         disabled={!canChooseLocation}
         {...register(`obtenus.${index}.destination_location_id` as const, { valueAsNumber: true })}
       />
+
       <div className="flex items-end justify-end">
         <Button
           type="button"

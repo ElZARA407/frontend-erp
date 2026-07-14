@@ -24,18 +24,50 @@ export interface BpObtenuPayload {
   classement_id: number
   quantite_produite: number
   destination_location_id: number
-}
+} 
 
 export interface BpEmployePayload {
   employe_id: number
-  heures_brutes: number
+  heures_brutes?: number
 }
 
 export interface BpEvenementPayload {
-  type_evenement: 'production' | 'panne' | 'autre'
+  type_evenement: 'production' | 'pause' | 'panne' | 'autre'
   heure_debut: string
   heure_fin?: string
   description?: string
+}
+
+export interface ProductionCostSessionDetail {
+  bp_session_id: number
+  bp_session_numero: string
+  date_session: string | null
+  quantite: number
+  cout_unitaire: number
+  cout_pondere: number
+}
+
+export interface ProductionCostProductResponse {
+  produit: {
+    id: number
+    nomencla: string
+    designation: string
+  }
+  sessions_count: number
+  quantite_totale: number
+  cout_moyen_pondere: number
+  details: ProductionCostSessionDetail[]
+}
+
+export interface ProductionCostBpResponse {
+  bon_production: {
+    id: number
+    numero: string
+  }
+  sessions_count: number
+  quantite_totale: number
+  cout_moyen_pondere: number
+  details: ProductionCostSessionDetail[]
 }
 
 export interface BpSessionCreatePayload {
@@ -155,6 +187,22 @@ export const productionApi = {
       `/production/sessions/${sessionId}/evenements`,
       payload
     )
+    return data.data
+  },
+
+  coutMoyenProduit: async (produitId: number, params: { date_debut?: string; date_fin?: string } = {}) => {
+    const { data } = await apiClient.get<ApiResponse<ProductionCostProductResponse>>(
+      `/production/couts/produits/${produitId}${buildQueryString(params)}`
+    )
+
+    return data.data
+  },
+
+  coutMoyenBp: async (bpId: number) => {
+    const { data } = await apiClient.get<ApiResponse<ProductionCostBpResponse>>(
+      `/production/couts/bons-production/${bpId}`
+    )
+
     return data.data
   },
 }

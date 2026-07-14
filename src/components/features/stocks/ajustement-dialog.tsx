@@ -86,7 +86,7 @@ export function AjustementDialog({ open, onClose, stock }: AjustementDialogProps
           <Input
             label="Stock physique constate"
             type="number"
-            step="0.001"
+            step="100"
             error={errors.stock_physique?.message}
             {...register('stock_physique', { valueAsNumber: true })}
           />

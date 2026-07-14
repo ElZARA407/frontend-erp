@@ -251,13 +251,57 @@ export interface BonProduction {
 
 export interface BpSession {
   id: number
-  session_numero: number
+  session_numero: string
   date_session: string
   machine_id: number | null
   cout_electricite: number
   cout_total: number
   statut: 'ouverte' | 'validee'
   machine?: Machine
+  calcul?: BpSessionCalcul
+}
+
+export interface BpSessionCalcul {
+  id: number
+  temps_brut: number
+  temps_pause: number
+  temps_panne: number
+  temps_effectif: number
+  quantite_totale_produite: number
+  cout_matieres_total: number
+  cout_main_oeuvre_total: number
+  cout_electricite: number
+  cout_global: number
+  cout_unitaire: number
+  details_json?: {
+    matieres?: Array<{
+      matiere_id: number
+      reference?: string | null
+      nom?: string | null
+      quantite_utilisee: number
+      quantite_restituee: number
+      quantite_nette: number
+      prix_moyen: number
+      cout: number
+    }>
+    employes?: Array<{
+      employe_id: number
+      nom_complet?: string | null
+      matricule?: string | null
+      heures_brutes: number
+      heures_effectives: number
+      taux_horaire: number
+      cout: number
+    }>
+    evenements?: Array<{
+      type_evenement: string
+      heure_debut: string
+      heure_fin?: string | null
+      description?: string | null
+      duree: number
+    }>
+  } | null
+  calcule_le?: string | null
 }
 
 // ── Livraisons ──────────────────────────────────────────

@@ -2,7 +2,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useFieldArray, useForm,type Resolver } from 'react-hook-form'
+import { useFieldArray, Controller,useForm,type Resolver, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +12,7 @@ import { useCreateContrat } from '@/lib/hooks/use-lot3'
 import type { CatalogueProduct } from '@/lib/catalogue.types'
 import type { Client } from '@/lib/types'
 import { Plus, Trash2 } from 'lucide-react'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 
 interface ContratFormProps {
   clients: Client[]
@@ -34,7 +35,7 @@ export function ContratForm({ clients, produits, onSuccess }: ContratFormProps) 
     [produits]
   )
 
-  const { register, control, handleSubmit, watch, formState: { errors } } = useForm<ContratSchema>({
+  const { register, control, handleSubmit, formState: { errors } } = useForm<ContratSchema>({
     resolver: zodResolver(contratSchema) as unknown as Resolver<ContratSchema>,
     defaultValues: {
       client_id: clients[0]?.id ?? 0,
@@ -55,7 +56,8 @@ export function ContratForm({ clients, produits, onSuccess }: ContratFormProps) 
     name: 'lignes',
   })
 
-  const lignes = watch('lignes')
+  // const lignes = watch('lignes')
+  const lignes = useWatch({ control, name: 'lignes' })
   const total = lignes.reduce(
     (sum, ligne) => sum + (Number(ligne.quantite_contractuelle) || 0) * (Number(ligne.prix_unitaire) || 0),
     0
@@ -126,16 +128,30 @@ export function ContratForm({ clients, produits, onSuccess }: ContratFormProps) 
               {fields.map((field, index) => (
                 <tr key={field.id}>
                   <td className="px-3 py-2">
-                    <Select
-                      options={classementOptions}
-                      placeholder="Classement"
-                      {...register(`lignes.${index}.classement_id`, { valueAsNumber: true })}
+                    <Controller
+                      control={control}
+                      name={`lignes.${index}.classement_id` as const}
+                      render={({ field }) => (
+                        <SearchableSelect
+                          label="Classement *"
+                          options={classementOptions.map((opt) => ({
+                            value: opt.value,
+                            label: opt.label,
+                          }))}
+                          placeholder="Choisir un classement"
+                          searchPlaceholder="Rechercher un classement..."
+                          noOptionsMessage="Aucun classement trouvé."
+                          error={errors.lignes?.[index]?.classement_id?.message}
+                          value={field.value}
+                          onValueChange={(value) => field.onChange(Number(value))}
+                        />
+                      )}
                     />
                   </td>
                   <td className="px-3 py-2">
                     <Input
                       type="number"
-                      step="0.001"
+                      step="1"
                       className="text-right"
                       error={errors.lignes?.[index]?.quantite_contractuelle?.message}
                       {...register(`lignes.${index}.quantite_contractuelle`, { valueAsNumber: true })}
@@ -154,7 +170,7 @@ export function ContratForm({ clients, produits, onSuccess }: ContratFormProps) 
                   <td className="px-3 py-2">
                     <Input
                       type="number"
-                      step="0.01"
+                      step="100"
                       className="text-right"
                       {...register(`lignes.${index}.prix_unitaire`, { valueAsNumber: true })}
                     />

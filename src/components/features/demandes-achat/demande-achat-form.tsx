@@ -11,6 +11,8 @@ import { Select } from '@/components/ui/select'
 import { useCreateDemandeAchat } from '@/lib/hooks/use-lot3'
 import type { CatalogueMatiere, CatalogueProduct } from '@/lib/catalogue.types'
 import { demandeAchatSchema, type DemandeAchatSchema } from '@/lib/schemas/lot3.schema'
+import { Controller } from 'react-hook-form'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 
 interface DemandeAchatFormProps {
   matieres: CatalogueMatiere[]
@@ -45,6 +47,7 @@ export function DemandeAchatForm({ matieres, produits, onSuccess }: DemandeAchat
     control,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<DemandeAchatSchema>({
     resolver: zodResolver(demandeAchatSchema) as unknown as Resolver<DemandeAchatSchema>,
@@ -116,36 +119,59 @@ export function DemandeAchatForm({ matieres, produits, onSuccess }: DemandeAchat
 
         <div className="space-y-4 p-4">
           {fields.map((field, index) => {
-            const entiteType = watch(`lignes.${index}.entite_type`)
-            const options = entiteType === 'produit' ? produitOptions : matiereOptions
-
+            // const entiteType = watch(`lignes.${index}.entite_type`)
+            // const options = entiteType === 'produit' ? produitOptions : matiereOptions
+            const typeRegister = register(`lignes.${index}.entite_type` as const)
             return (
               <div
                 key={field.id}
                 className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 md:grid-cols-4"
               >
+                
                 <Select
                   label="Type *"
                   options={[
                     { value: 'matiere', label: 'Matiere' },
                     { value: 'produit', label: 'Produit' },
                   ]}
-                  {...register(`lignes.${index}.entite_type`)}
-                />
+                  {...typeRegister}
+                  onChange={(e) => {
+                    typeRegister.onChange(e)
+                    const nextType = e.target.value
+                    const nextDefaultId =
+                      nextType === 'produit' ? (produitOptions[0]?.value ?? 0) : (matiereOptions[0]?.value ?? 0)
 
-                <Select
-                  label="Article *"
-                  options={options}
-                  placeholder="Choisir"
-                  error={errors.lignes?.[index]?.entite_id?.message}
-                  {...register(`lignes.${index}.entite_id`, { valueAsNumber: true })}
+                    setValue(`lignes.${index}.entite_id` as const, nextDefaultId, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }}
                 />
-                
+                <Controller
+                  control={control}
+                  name={`lignes.${index}.entite_id` as const}
+                  render={({ field }) => {
+                    const entiteType = watch(`lignes.${index}.entite_type` as const)
+                    const options = entiteType === 'produit' ? produitOptions : matiereOptions
 
+                    return (
+                      <SearchableSelect
+                        label="Article *"
+                        options={options}
+                        placeholder="Choisir"
+                        searchPlaceholder="Rechercher..."
+                        noOptionsMessage="Aucun article trouvé."
+                        error={errors.lignes?.[index]?.entite_id?.message}
+                        value={field.value}
+                        onValueChange={(value) => field.onChange(Number(value))}
+                      />
+                    )
+                  }}
+                />
                 <Input
                   label="Quantite *"
                   type="number"
-                  step="0.001"
+                  step="1"
                   error={errors.lignes?.[index]?.quantite?.message}
                   {...register(`lignes.${index}.quantite`, { valueAsNumber: true })}
                 />

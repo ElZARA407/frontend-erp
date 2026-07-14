@@ -9,6 +9,7 @@ import type {
   CatalogueMatiereFilters,
   CatalogueMatiereUpdatePayload,
   CatalogueProduct,
+  CatalogueProductClassment,
   CatalogueProductCreatePayload,
   CatalogueProductFilters,
   CatalogueProductUpdatePayload,
@@ -202,4 +203,12 @@ export const catalogueApi = {
 
     return data.data
   },
+
+  listClassments: async () => {
+  const { data } = await apiClient.get<ApiResponse<CatalogueProductClassment[]>>(
+    '/catalogue/classements'
+  )
+
+  return Array.isArray(data.data) ? data.data : []
+},
 }

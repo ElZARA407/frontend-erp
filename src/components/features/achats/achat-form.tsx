@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useFieldArray, useForm, type Resolver } from 'react-hook-form'
+import { useFieldArray, useForm, type Resolver, Controller, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import { useLocations } from '@/lib/hooks/use-organisation'
 import { useMatieres } from '@/lib/hooks/use-catalogue'
 import { achatSchema, type AchatSchema } from '@/lib/schemas/achat.schema'
 import { formatMGA } from '@/lib/utils'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 
 
 interface AchatFormProps {
@@ -43,7 +44,6 @@ export function AchatForm({ onSuccess }: AchatFormProps) {
     register,
     control,
     handleSubmit,
-    watch,
     formState: { errors },
   } = useForm<AchatSchema>({
     resolver: zodResolver(achatSchema) as unknown as Resolver<AchatSchema>,
@@ -70,7 +70,8 @@ export function AchatForm({ onSuccess }: AchatFormProps) {
     name: 'lignes',
   })
 
-  const lignes = watch('lignes') ?? []
+  // const lignes = watch('lignes') ?? []
+  const lignes = useWatch({ control, name: 'lignes' }) ?? []
   const total = lignes.reduce(
     (sum, ligne) => sum + (Number(ligne.quantite) || 0) * (Number(ligne.prix_unitaire) || 0),
     0
@@ -182,17 +183,27 @@ export function AchatForm({ onSuccess }: AchatFormProps) {
                 return (
                   <tr key={field.id}>
                     <td className="px-3 py-2">
-                      <Select
-                        options={matiereOptions}
-                        placeholder="Choisir une matière"
-                        error={errors.lignes?.[index]?.matiere_id?.message}
-                        {...register(`lignes.${index}.matiere_id`, { valueAsNumber: true })}
+                      <Controller
+                        control={control}
+                        name={`lignes.${index}.matiere_id` as const}
+                        render={({ field }) => (
+                          <SearchableSelect
+                            label="Matière *"
+                            options={matiereOptions}
+                            placeholder="Choisir une matière"
+                            searchPlaceholder="Rechercher une référence ou un nom..."
+                            noOptionsMessage="Aucune matière trouvée."
+                            error={errors.lignes?.[index]?.matiere_id?.message}
+                            value={field.value}
+                            onValueChange={(value) => field.onChange(Number(value))}
+                          />
+                        )}
                       />
                     </td>
                     <td className="px-3 py-2">
                       <Input
                         type="number"
-                        step="0.001"
+                        step="1"
                         className="text-right"
                         error={errors.lignes?.[index]?.quantite?.message}
                         {...register(`lignes.${index}.quantite`, { valueAsNumber: true })}
@@ -201,7 +212,7 @@ export function AchatForm({ onSuccess }: AchatFormProps) {
                     <td className="px-3 py-2">
                       <Input
                         type="number"
-                        step="0.01"
+                        step="100"
                         className="text-right"
                         error={errors.lignes?.[index]?.prix_unitaire?.message}
                         {...register(`lignes.${index}.prix_unitaire`, { valueAsNumber: true })}

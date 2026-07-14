@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { CheckCircle, Eye, Factory, Plus, XCircle } from 'lucide-react'
+import { Calculator, CheckCircle, Eye, Factory, Plus, XCircle } from 'lucide-react'
 import { useAnnulerBP, useBonsProduction, useClotureBP } from '@/lib/hooks/use-production'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
@@ -45,9 +45,27 @@ export function ProductionView() {
         title="Bons de production"
         subtitle={`${pagination?.total ?? 0} bon${(pagination?.total ?? 0) > 1 ? 's' : ''} de fabrication`}
         actions={
-          <Button onClick={() => setShowCreate(true)} icon={<Plus className="h-3.5 w-3.5" />}>
-            Nouveau BP
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/production/cout-moyen-produit"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
+            >
+              <Calculator className="h-4 w-4" />
+              Coût produit
+            </Link>
+
+            <Link
+              href="/production/cout-moyen-bp"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
+            >
+              <Calculator className="h-4 w-4" />
+              Coût BP
+            </Link>
+
+            <Button onClick={() => setShowCreate(true)} icon={<Plus className="h-3.5 w-3.5" />}>
+              Nouveau BP
+            </Button>
+          </div>
         }
       />
 
