@@ -113,7 +113,7 @@ export function MouvementStockView({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-border">
-                  {['Date', 'Location', 'Type', 'Article', 'Classement', 'Quantite', 'Impact', 'Source', 'Motif', 'Utilisateur', 'Action'].map((label) => (
+                  {['Date', 'Localisation', 'Type', 'Article', 'Classement', 'Quantite', 'Impact', 'Source', 'Motif', 'Utilisateur', 'Action'].map((label) => (
                     <th
                       key={label}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"

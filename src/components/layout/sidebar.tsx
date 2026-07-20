@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   Box,
@@ -79,13 +80,19 @@ export function Sidebar() {
         )}
       >
         <div className="flex h-14 items-center gap-2.5 border-b border-steel-800 px-4">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-amber-500">
-            <Factory className="h-4 w-4 text-steel-900" />
+          <div className="flex h-11 w-16 items-center justify-center rounded-lg bg-white px-2 shadow-sm">
+            <Image
+              src="/images/logo-cmp.png"
+              alt="Logo CMP"
+              width={96}
+              height={56}
+              priority
+              className="h-auto max-h-9 w-auto object-contain"
+            />
           </div>
 
           <div className={cn('min-w-0', sidebarCollapsed ? 'md:hidden' : '')}>
             <p className="text-sm font-bold tracking-wide text-white">CMP ERP</p>
-            <p className="text-2xs text-steel-400">Malagasy de Plastique</p>
           </div>
         </div>
 

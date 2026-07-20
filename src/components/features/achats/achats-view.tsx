@@ -15,11 +15,14 @@ import { Dialog } from '@/components/ui/dialog'
 import { AchatForm } from './achat-form'
 import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
 import type { JournalAchat } from '@/lib/types'
+import { FileDown } from 'lucide-react'
+import {  usePdfExport } from '@/lib/hooks/use-pdf-export'
 
 export function AchatsView() {
   const [page, setPage] = useState(1)
   const [statut, setStatut] = useState<string>('')
   const [showCreate, setShowCreate] = useState(false)
+  const {exportPdf, isExporting} = usePdfExport()
 
   const { data, isLoading } = useAchats({
     statut: statut || undefined,
@@ -114,7 +117,17 @@ export function AchatsView() {
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-right">
+
                     <div className="flex items-center justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={<FileDown className="h-3.5 w-3.5" />}
+                      loading={isExporting('br', br.id)}
+                      onClick={() => exportPdf({ type: 'br', document: br })}
+                    >
+                      PDF
+                    </Button>
                       {br.statut === 'brouillon' && (
                         <Button
                           variant="ghost"

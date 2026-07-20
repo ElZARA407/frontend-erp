@@ -94,6 +94,7 @@ export interface Client {
   NIF: string | null
   STAT: string | null
   adresse: string
+  est_divers: boolean
   email: string | null
   contact: string
   interlocutaire: string | null
@@ -110,6 +111,11 @@ export interface Fournisseur {
   NIF: string | null
   adresse: string
   contact: string
+  est_divers: boolean
+  email: string | null
+  interlocutaire: string | null
+  code_compta: string | null
+  facturation: string | null
   actif: boolean
 }
 

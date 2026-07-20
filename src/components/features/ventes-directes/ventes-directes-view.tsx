@@ -154,7 +154,7 @@ export function VentesDirectesView() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-border">
-                  {['Numero', 'Client', 'Location', 'Date', 'Total', 'Statut', ''].map((h) => (
+                  {['Numero', 'Client', 'Localisation', 'Date', 'Total', 'Statut', ''].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"

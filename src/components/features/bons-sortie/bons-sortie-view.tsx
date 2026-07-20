@@ -18,6 +18,8 @@ import { useLocations } from '@/lib/hooks/use-organisation'
 import { useValiderBonSortie, useBonsSortie } from '@/lib/hooks/use-bons-sortie'
 import type { BonSortie } from '@/lib/bons-sortie.types'
 import { BonSortieForm } from './bon-sortie-form'
+import { FileDown } from 'lucide-react'
+import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 
 export function BonsSortieView() {
   const [page, setPage] = useState(1)
@@ -27,6 +29,7 @@ export function BonsSortieView() {
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
   const [showCreate, setShowCreate] = useState(false)
+  const { exportPdf, isExporting } = usePdfExport()
 
   const { data: locationsData } = useLocations()
   const { mutate: validerBonSortie, isPending: validating } = useValiderBonSortie()
@@ -147,7 +150,7 @@ export function BonsSortieView() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-border">
-                  {['Numéro', 'Location', 'Client', 'Motif', 'Date', 'Statut', ''].map((h) => (
+                  {['Numéro', 'Localisation', 'Client', 'Motif', 'Date', 'Statut', ''].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
@@ -196,6 +199,15 @@ export function BonsSortieView() {
                             Voir
                           </Button>
                         </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={<FileDown className="h-3.5 w-3.5" />}
+                          loading={isExporting('bon_sortie', bon.id)}
+                          onClick={() => exportPdf({ type: 'bon_sortie', document: bon })}
+                        >
+                          PDF
+                        </Button>
                       </div>
                     </td>
                   </tr>

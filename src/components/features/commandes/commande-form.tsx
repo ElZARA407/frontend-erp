@@ -255,9 +255,9 @@ const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.dat
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Select
-          label="Location *"
+          label="Localisation *"
           options={locations.map((location) => ({ value: location.id, label: location.nom }))}
-          placeholder="Sélectionner une location"
+          placeholder="Sélectionner une localisation"
           error={errors.location_id?.message}
           {...register('location_id', { valueAsNumber: true })}
         />

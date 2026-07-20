@@ -68,6 +68,14 @@ export function ClientForm({ defaultValues, onSuccess }: ClientFormProps) {
         <Input label="Interlocuteur" placeholder="Jean Dupont" {...register('interlocutaire')} />
         <Input label="Facturation"   placeholder="30" {...register('facturation')} />
       </div>
+      <label className="flex items-center gap-2 text-sm text-steel-700">
+        <input
+          type="checkbox"
+          className="h-4 w-4 accent-steel-700"
+          {...register('est_divers')}
+        />
+        Client divers
+      </label>
       <div className="flex justify-end gap-2 pt-2 border-t border-surface-border">
         <Button type="submit" loading={isPending}>
           Créer le client

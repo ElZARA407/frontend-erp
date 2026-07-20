@@ -12,5 +12,6 @@ export const clientSchema = z.object({
   interlocutaire: z.string().max(150).optional().or(z.literal('')),
   code_compta:    z.string().max(20).optional().or(z.literal('')),
   facturation:    z.string().max(20).optional().or(z.literal('')),
+  est_divers:     z.boolean().optional(),
 })
 export type ClientSchema = z.infer<typeof clientSchema>

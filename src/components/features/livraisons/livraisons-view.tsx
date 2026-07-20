@@ -7,18 +7,21 @@ import { useAnnulerLivraison, useConfirmerLivraison, useLivraisons } from '@/lib
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardBody } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { formatDate, getStatutColor } from '@/lib/utils'
 import type { Livraison } from '@/lib/types'
 import { FactureForm } from '../factures/facture-form'
+import { FileDown } from 'lucide-react'
+import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 
 export function LivraisonsView() {
   const [page, setPage] = useState(1)
   const [statut, setStatut] = useState<string>('')
   const [selectedLivraison, setSelectedLivraison] = useState<Livraison | null>(null)
+  const { exportPdf, isExporting } = usePdfExport()
 
   const { data, isLoading } = useLivraisons({
     statut: statut || undefined,
@@ -163,6 +166,15 @@ export function LivraisonsView() {
                             Voir
                           </Button>
                         </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={<FileDown className="h-3.5 w-3.5" />}
+                          loading={isExporting('livraison', livraison.id)}
+                          onClick={() => exportPdf({ type: 'livraison', document: livraison })}
+                        >
+                          PDF
+                        </Button>
                       </div>
                     </td>
                   </tr>

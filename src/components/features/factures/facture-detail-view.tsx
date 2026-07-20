@@ -18,6 +18,8 @@ import { MODES_PAIEMENT } from '@/lib/constants'
 import { useAnnulerFacture, useFacture, usePayerFacture } from '@/lib/hooks/use-factures'
 import { formatDate, formatDateTime, formatMGA, formatQty, getStatutColor } from '@/lib/utils'
 import { payerFactureSchema, type PayerFactureSchema } from '@/lib/schemas/facture.schema'
+import { FileDown } from 'lucide-react'
+import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 
 interface FactureDetailViewProps {
   factureId: number
@@ -29,6 +31,7 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
   const { data: facture, isLoading } = useFacture(factureId)
   const payerFacture = usePayerFacture()
   const annulerFacture = useAnnulerFacture()
+  const { exportPdf, isExporting } = usePdfExport()
 
   const lignes = Array.isArray(facture?.lignes) ? facture.lignes : []
   const livraisonsAssociees = Array.isArray(facture?.livraisons) && facture.livraisons.length > 0
@@ -86,13 +89,14 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
           title={`Facture #${factureId}`}
           subtitle="Fiche non trouvée"
           actions={
-            <Link
-              href="/factures"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Retour
-            </Link>
+              <Link
+                href="/factures"
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Retour
+              </Link>
+              
           }
         />
         <Card>
@@ -129,6 +133,16 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
                 Annuler
               </Button>
             )}
+            {facture && (
+                <Button
+                  variant="outline"
+                  icon={<FileDown className="h-3.5 w-3.5" />}
+                  loading={isExporting('facture', factureId)}
+                  onClick={() => exportPdf({ type: 'facture', document: facture })}
+                >
+                  Telecharger
+                </Button>
+              )}
             <Link
               href="/factures"
               className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"

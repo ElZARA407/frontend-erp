@@ -22,6 +22,9 @@ import { useAnnulerFacture, useFactures, usePayerFacture } from '@/lib/hooks/use
 import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
 import { payerFactureSchema } from '@/lib/schemas/facture.schema'
 import type { Facture } from '@/lib/factures.types'
+import { FileDown } from 'lucide-react'
+import { usePdfExport } from '@/lib/hooks/use-pdf-export'
+
 
 type FactureRow = Facture
 
@@ -33,6 +36,7 @@ export function FacturesView() {
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
   const [payingId, setPayingId] = useState<number | null>(null)
+  const { exportPdf, isExporting } = usePdfExport()
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 200 })
   const { data, isLoading } = useFactures({
@@ -287,6 +291,15 @@ export function FacturesView() {
                           <Eye className="h-3.5 w-3.5" />
                           Voir
                         </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={<FileDown className="h-3.5 w-3.5" />}
+                          loading={isExporting('facture', f.id)}
+                          onClick={() => exportPdf({ type: 'facture', document: f })}
+                        >
+                          PDF
+                        </Button>
                         {['emise', 'partiellement_payee'].includes(f.statut.valeur) && (
                           <Button
                             variant="ghost"
