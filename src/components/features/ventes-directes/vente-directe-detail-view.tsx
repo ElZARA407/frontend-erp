@@ -1,11 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, RotateCcw, ShoppingCart } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowLeft, CheckCircle2, RotateCcw, ShoppingCart, Truck } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
+import { Dialog } from '@/components/ui/dialog'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { StatCard } from '@/components/ui/stat-card'
 import { formatDate, formatDateTime, formatMGA, formatQty, getStatutColor } from '@/lib/utils'
@@ -14,6 +16,7 @@ import {
   useValiderVenteDirecte,
   useVenteDirecte,
 } from '@/lib/hooks/use-ventes-directes'
+import { LivraisonForm } from '../livraisons/livraison-form'
 
 interface VenteDirecteDetailViewProps {
   venteId: number
@@ -23,6 +26,7 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
   const { data: vente, isLoading } = useVenteDirecte(venteId)
   const validerVente = useValiderVenteDirecte()
   const annulerVente = useAnnulerVenteDirecte()
+  const [showLivraison, setShowLivraison] = useState(false)
 
   const lignes = Array.isArray(vente?.lignes) ? vente.lignes : []
   const livraisons = Array.isArray(vente?.livraisons) ? vente.livraisons : []
@@ -39,6 +43,9 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
             ? 'Livree'
             : vente?.statut ?? '—'
 
+  const canDeliver =
+    vente?.statut === 'validee' &&
+    lignes.some((ligne) => (ligne.quantite_restante ?? ligne.quantite) > 0)
   const canAnnuler = vente?.statut === 'validee' && !hasLivraisons
 
   if (!isLoading && !vente) {
@@ -73,6 +80,15 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
         subtitle={vente ? `Client ${vente.client?.nom ?? '—'}` : 'Chargement...'}
         actions={
           <div className="flex flex-wrap gap-2">
+            {canDeliver && (
+              <Button
+                variant="outline"
+                icon={<Truck className="h-3.5 w-3.5" />}
+                onClick={() => setShowLivraison(true)}
+              >
+                Livrer
+              </Button>
+            )}
             {vente?.statut === 'brouillon' && (
               <Button
                 icon={<CheckCircle2 className="h-3.5 w-3.5" />}
@@ -276,7 +292,7 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-border">
-                  {['Produit', 'Classement', 'Quantite', 'PU', 'Total', 'Ligne'].map((h) => (
+                  {['Produit', 'Classement', 'Quantite', 'Restante', 'PU', 'Total', 'Ligne'].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
@@ -296,6 +312,9 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
                       {ligne.classement?.designation ?? ligne.classement?.libelle ?? ligne.classement?.qualite ?? '—'}
                     </td>
                     <td className="px-4 py-3 text-steel-600">{formatQty(ligne.quantite)}</td>
+                    <td className="px-4 py-3 text-steel-600">
+                      {formatQty(ligne.quantite_restante ?? ligne.quantite)}
+                    </td>
                     <td className="px-4 py-3 text-steel-600">{formatMGA(ligne.prix_unitaire)}</td>
                     <td className="px-4 py-3 text-steel-600">{formatMGA(ligne.total_ligne)}</td>
                     <td className="px-4 py-3 text-xs text-steel-500">#{ligne.id}</td>
@@ -306,6 +325,21 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
           )}
         </CardBody>
       </Card>
+
+      <Dialog
+        open={showLivraison}
+        onClose={() => setShowLivraison(false)}
+        title={`Créer un BL depuis ${vente?.numero ?? 'la vente directe'}`}
+        size="wide"
+      >
+        {vente && (
+          <LivraisonForm
+            sourceType="vente_directe"
+            source={vente}
+            onSuccess={() => setShowLivraison(false)}
+          />
+        )}
+      </Dialog>
     </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Eye, Plus, RotateCcw, ShoppingCart, CheckCircle2 } from 'lucide-react'
+import { Eye, Plus, RotateCcw, ShoppingCart, Truck, CheckCircle2 } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,9 +14,14 @@ import { Pagination } from '@/components/ui/pagination'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
 import { useClients } from '@/lib/hooks/use-clients'
-import { useAnnulerVenteDirecte, useValiderVenteDirecte, useVentesDirectes } from '@/lib/hooks/use-ventes-directes'
+import {
+  useAnnulerVenteDirecte,
+  useValiderVenteDirecte,
+  useVentesDirectes,
+} from '@/lib/hooks/use-ventes-directes'
 import type { VenteDirecte } from '@/lib/ventes-directes.types'
 import { VenteDirecteForm } from './vente-directe-form'
+import { LivraisonForm } from '../livraisons/livraison-form'
 
 export function VentesDirectesView() {
   const [page, setPage] = useState(1)
@@ -25,6 +30,8 @@ export function VentesDirectesView() {
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
   const [showCreate, setShowCreate] = useState(false)
+  const [showLivraison, setShowLivraison] = useState(false)
+  const [selectedVente, setSelectedVente] = useState<VenteDirecte | null>(null)
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { mutate: validerVente, isPending: validating } = useValiderVenteDirecte()
@@ -57,6 +64,11 @@ export function VentesDirectesView() {
     if (statutVente === 'livree') return 'Livree'
     return statutVente
   }
+
+  const canDeliver = (vente: VenteDirecte) =>
+    vente.statut === 'validee' &&
+    Array.isArray(vente.lignes) &&
+    vente.lignes.some((ligne) => (ligne.quantite_restante ?? ligne.quantite) > 0)
 
   return (
     <div className="space-y-5">
@@ -175,6 +187,19 @@ export function VentesDirectesView() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {canDeliver(vente) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            icon={<Truck className="h-3.5 w-3.5" />}
+                            onClick={() => {
+                              setSelectedVente(vente)
+                              setShowLivraison(true)
+                            }}
+                          >
+                            Livrer
+                          </Button>
+                        )}
                         {vente.statut === 'brouillon' && (
                           <Button
                             variant="ghost"
@@ -230,6 +255,27 @@ export function VentesDirectesView() {
         size="wide"
       >
         <VenteDirecteForm onSuccess={() => setShowCreate(false)} />
+      </Dialog>
+
+      <Dialog
+        open={showLivraison}
+        onClose={() => {
+          setShowLivraison(false)
+          setSelectedVente(null)
+        }}
+        title={selectedVente ? `Créer un BL depuis ${selectedVente.numero}` : 'Créer un BL'}
+        size="wide"
+      >
+        {selectedVente && (
+          <LivraisonForm
+            sourceType="vente_directe"
+            source={selectedVente}
+            onSuccess={() => {
+              setShowLivraison(false)
+              setSelectedVente(null)
+            }}
+          />
+        )}
       </Dialog>
     </div>
   )

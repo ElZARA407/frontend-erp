@@ -11,7 +11,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { Select } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ExcelImportDialog } from '@/components/ui/excel-import-dialog'
-import { formatDateTime, formatMGA, formatQty } from '@/lib/utils'
+import { formatDate, formatDateTime, formatMGA, formatQty } from '@/lib/utils'
 import {
   useCategories,
   useCreateCategory,
@@ -264,7 +264,7 @@ export function CatalogueView() {
                             <Badge variant="info">{category.produits_count ?? 0}</Badge>
                           </td>
                           <td className="px-4 py-3 text-steel-500">
-                            {formatDateTime(category.created_at)}
+                            {formatDate(category.created_at)}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex justify-end">
@@ -379,7 +379,7 @@ export function CatalogueView() {
                             </Badge>
                           </td>
                           <td className="px-4 py-3 text-steel-500">
-                            {formatDateTime(product.created_at)}
+                            {formatDate(product.created_at)}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex justify-end gap-1">
@@ -517,7 +517,7 @@ export function CatalogueView() {
                             </Badge>
                           </td>
                           <td className="px-4 py-3 text-steel-500">
-                            {formatDateTime(matiere.created_at)}
+                            {formatDate(matiere.created_at)}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex justify-end gap-1">

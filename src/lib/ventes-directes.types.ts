@@ -30,6 +30,7 @@ export interface VenteDirecteLine {
   produit_id: number
   classement_id: number
   quantite: number
+  quantite_restante?: number
   prix_unitaire: number
   total_ligne: number
   produit?: VenteDirecteProduitRef | null

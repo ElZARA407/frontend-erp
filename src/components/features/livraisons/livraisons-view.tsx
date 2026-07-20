@@ -2,20 +2,23 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { CheckCircle, Eye, RotateCcw, Truck } from 'lucide-react'
+import { CheckCircle, Eye, FileText, RotateCcw, Truck } from 'lucide-react'
 import { useAnnulerLivraison, useConfirmerLivraison, useLivraisons } from '@/lib/hooks/use-livraisons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
+import { Card, CardBody } from '@/components/ui/card'
+import { Dialog } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { formatDate, getStatutColor } from '@/lib/utils'
 import type { Livraison } from '@/lib/types'
+import { FactureForm } from '../factures/facture-form'
 
 export function LivraisonsView() {
   const [page, setPage] = useState(1)
   const [statut, setStatut] = useState<string>('')
+  const [selectedLivraison, setSelectedLivraison] = useState<Livraison | null>(null)
 
   const { data, isLoading } = useLivraisons({
     statut: statut || undefined,
@@ -86,6 +89,7 @@ export function LivraisonsView() {
                   livraison.statut === 'livre' &&
                   livraison.source_type === 'commande' &&
                   !livraison.est_facturee
+                const canFacturer = livraison.statut === 'livre' && !livraison.est_facturee
 
                 return (
                   <tr key={livraison.id} className="transition-colors hover:bg-surface-muted/60">
@@ -133,6 +137,16 @@ export function LivraisonsView() {
                             Confirmer
                           </Button>
                         )}
+                        {canFacturer && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            icon={<FileText className="h-3.5 w-3.5" />}
+                            onClick={() => setSelectedLivraison(livraison)}
+                          >
+                            Facturer
+                          </Button>
+                        )}
                         {canAnnuler && (
                           <Button
                             variant="danger"
@@ -169,6 +183,20 @@ export function LivraisonsView() {
           />
         )}
       </Card>
+
+      <Dialog
+        open={selectedLivraison !== null}
+        onClose={() => setSelectedLivraison(null)}
+        title={selectedLivraison ? `Créer une facture depuis ${selectedLivraison.numero}` : 'Nouvelle facture'}
+        size="lg"
+      >
+        {selectedLivraison && (
+          <FactureForm
+            defaultLivraisonId={selectedLivraison.id}
+            onSuccess={() => setSelectedLivraison(null)}
+          />
+        )}
+      </Dialog>
     </div>
   )
 }

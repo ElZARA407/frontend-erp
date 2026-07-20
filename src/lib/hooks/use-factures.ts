@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { facturesApi } from '../api/factures'
 import { DASHBOARD_KEY } from './use-dashboard'
@@ -9,15 +9,17 @@ import type {
   FactureCreatePayload,
   FactureFilters,
   FacturePayerPayload,
+  FacturePreviewPayload,
 } from '../factures.types'
 
-export const FACTURES_KEY = ['factures']
+export const FACTURES_KEY = ['factures'] as const
 
 export function useFactures(filters: FactureFilters = {}) {
   return useQuery({
     queryKey: [...FACTURES_KEY, filters],
     queryFn: () => facturesApi.list(filters),
     staleTime: 30 * 1000,
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -29,12 +31,23 @@ export function useFacture(id: number) {
   })
 }
 
+export function useFacturePreview(livraisonIds: number[] = []) {
+  const ids = [...new Set(livraisonIds)].filter((id) => id > 0).sort((a, b) => a - b)
+
+  return useQuery({
+    queryKey: [...FACTURES_KEY, 'preview', ids],
+    queryFn: () => facturesApi.preview({ livraison_ids: ids }),
+    enabled: ids.length > 0,
+    staleTime: 0,
+    placeholderData: keepPreviousData,
+  })
+}
 
 export function useCreateFacture() {
   const qc = useQueryClient()
 
   return useMutation({
-    mutationFn: (payload: FactureCreatePayload) => facturesApi.creerDepuisLivraison(payload.livraison_id),
+    mutationFn: (payload: FactureCreatePayload) => facturesApi.creerDepuisLivraison(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: FACTURES_KEY })
       qc.invalidateQueries({ queryKey: LIVRAISONS_KEY })
@@ -48,9 +61,13 @@ export function useCreateFacture() {
 
 export function usePayerFacture() {
   const qc = useQueryClient()
+
   return useMutation({
-    mutationFn: ({ id, mode_paiement }: { id: number; mode_paiement: FacturePayerPayload['mode_paiement'] }) =>
-      facturesApi.payer(id, mode_paiement),
+    mutationFn: (payload: { id: number; mode_paiement: FacturePayerPayload['mode_paiement']; montant_paye: number }) =>
+      facturesApi.payer(payload.id, {
+        mode_paiement: payload.mode_paiement,
+        montant_paye: payload.montant_paye,
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: FACTURES_KEY })
       qc.invalidateQueries({ queryKey: LIVRAISONS_KEY })
@@ -64,6 +81,7 @@ export function usePayerFacture() {
 
 export function useAnnulerFacture() {
   const qc = useQueryClient()
+
   return useMutation({
     mutationFn: (id: number) => facturesApi.annuler(id),
     onSuccess: () => {

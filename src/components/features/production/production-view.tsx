@@ -42,8 +42,8 @@ export function ProductionView() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Bons de production"
-        subtitle={`${pagination?.total ?? 0} bon${(pagination?.total ?? 0) > 1 ? 's' : ''} de fabrication`}
+        title="Ordre de fabrication"
+        subtitle={`${pagination?.total ?? 0} ordre${(pagination?.total ?? 0) > 1 ? 's' : ''} de fabrication`}
         actions={
           <div className="flex flex-wrap gap-2">
             <Link
@@ -96,7 +96,7 @@ export function ProductionView() {
           <CardBody>
             <div className="flex flex-col items-center justify-center py-16 text-steel-400">
               <Factory className="mb-2 h-8 w-8" />
-              <p className="text-sm font-medium">Aucun bon de production</p>
+              <p className="text-sm font-medium">Aucun ordre de fabrication</p>
             </div>
           </CardBody>
         ) : (

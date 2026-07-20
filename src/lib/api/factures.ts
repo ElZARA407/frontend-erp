@@ -1,19 +1,17 @@
-// src/lib/api/factures.ts
 import apiClient from './client'
 import type { ApiResponse, PaginatedResponse } from '../types'
-import type { Facture } from '../factures.types'
+import type {
+  Facture,
+  FactureCreatePayload,
+  FactureFilters,
+  FacturePreview,
+  FacturePreviewPayload,
+  FacturePayerPayload,
+} from '../factures.types'
 import { buildQueryString } from '../utils'
 
 export const facturesApi = {
-  list: async (filters: {
-    client_id?: number
-    statut?: string
-    en_retard?: boolean
-    date_debut?: string
-    date_fin?: string
-    per_page?: number
-    page?: number
-  } = {}) => {
+  list: async (filters: FactureFilters = {}) => {
     const { data } = await apiClient.get<PaginatedResponse<Facture>>(
       `/finance/factures${buildQueryString(filters)}`
     )
@@ -25,13 +23,21 @@ export const facturesApi = {
     return data.data
   },
 
-  creerDepuisLivraison: async (livraison_id: number) => {
-    const { data } = await apiClient.post<ApiResponse<Facture>>('/finance/factures', { livraison_id })
+  preview: async (payload: FacturePreviewPayload) => {
+    const { data } = await apiClient.post<ApiResponse<FacturePreview>>(
+      '/finance/factures/preview',
+      payload
+    )
     return data.data
   },
 
-  payer: async (id: number, mode_paiement: string) => {
-    const { data } = await apiClient.post<ApiResponse<Facture>>(`/finance/factures/${id}/payer`, { mode_paiement })
+  creerDepuisLivraison: async (payload: FactureCreatePayload) => {
+    const { data } = await apiClient.post<ApiResponse<Facture>>('/finance/factures', payload)
+    return data.data
+  },
+
+  payer: async (id: number, payload: FacturePayerPayload) => {
+    const { data } = await apiClient.post<ApiResponse<Facture>>(`/finance/factures/${id}/payer`, payload)
     return data.data
   },
 

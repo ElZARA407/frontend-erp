@@ -60,11 +60,42 @@ export function CommandeForm({ onSuccess }: CommandeFormProps) {
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { data: locationsData } = useLocations()
-  const { data: productsPage } = useProducts({ actif: true, per_page: 500 })
+  
 
   const clients = Array.isArray(clientsPage?.data?.data) ? clientsPage.data.data : []
   const locations = Array.isArray(locationsData) ? locationsData : []
-  const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.data : []
+  
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    getValues,
+    formState: { errors },
+  } = useForm<CommandeFormValues>({
+    resolver: zodResolver(commandeSchema) as unknown as Resolver<CommandeFormValues>,
+    defaultValues: {
+      client_id: 0,
+      date: new Date().toISOString().slice(0, 10),
+      date_livraison_prevue: '',
+      location_id: 0,
+      echeance: 30,
+      lignes: [createEmptyLine()],
+    },
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+  })
+
+  const watchLocationId = useWatch({ control, name: 'location_id' })
+  const locationId = Number(watchLocationId) > 0 ? Number(watchLocationId) : locations[0]?.id ?? 0
+  const { data: productsPage } = useProducts({
+    actif: true,
+    per_page: 500,
+    location_id: locationId || undefined,
+  })
+
+const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.data : []
 
   const eligibleProducts = useMemo(
     () => products.filter((product) => getAvailableClassements(product).length > 0),
@@ -93,26 +124,42 @@ export function CommandeForm({ onSuccess }: CommandeFormProps) {
     }
   }, [eligibleProducts])
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    setValue,
-    getValues,
-    formState: { errors },
-  } = useForm<CommandeFormValues>({
-    resolver: zodResolver(commandeSchema) as unknown as Resolver<CommandeFormValues>,
-    defaultValues: {
-      client_id: 0,
-      date: new Date().toISOString().slice(0, 10),
-      date_livraison_prevue: '',
-      location_id: 0,
-      echeance: 30,
-      lignes: [createEmptyLine()],
-    },
-    mode: 'onSubmit',
-    reValidateMode: 'onChange',
-  })
+
+
+  useEffect(() => {
+    if (!eligibleProducts.length) return
+
+    const currentLines = getValues('lignes') ?? []
+
+    currentLines.forEach((line, index) => {
+      const currentProduct = eligibleProducts.find((product) => product.id === Number(line.produit_id))
+
+      if (!currentProduct) {
+        const firstProduct = eligibleProducts[0]
+        const firstClassement = getAvailableClassements(firstProduct)[0]
+
+        setValue(`lignes.${index}.produit_id`, firstProduct?.id ?? 0, {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+        setValue(`lignes.${index}.classement_id`, firstClassement?.value ?? 0, {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+        return
+      }
+
+      const nextClassements = getAvailableClassements(currentProduct)
+      const classementStillValid = nextClassements.some((item) => item.value === Number(line.classement_id))
+
+      if (!classementStillValid) {
+        setValue(`lignes.${index}.classement_id`, nextClassements[0]?.value ?? 0, {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+      }
+    })
+  }, [eligibleProducts, getValues, setValue])
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -397,7 +444,7 @@ function CommandeLineRow({
       <Input
         label="Prix unitaire *"
         type="number"
-        step="100"
+        step="1"
         error={errors.lignes?.[index]?.prix_unitaire?.message}
         {...register(`lignes.${index}.prix_unitaire`, { valueAsNumber: true })}
       />

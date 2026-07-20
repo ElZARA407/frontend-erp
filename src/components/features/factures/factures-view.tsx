@@ -1,10 +1,9 @@
-// src/components/features/factures/factures-view.tsx
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import {  type Resolver } from 'react-hook-form'
+import { type Resolver } from 'react-hook-form'
 import type { PayerFactureSchema } from '@/lib/schemas/facture.schema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertTriangle, CheckCircle2, Eye, Plus, Receipt, XCircle } from 'lucide-react'
@@ -23,7 +22,6 @@ import { useAnnulerFacture, useFactures, usePayerFacture } from '@/lib/hooks/use
 import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
 import { payerFactureSchema } from '@/lib/schemas/facture.schema'
 import type { Facture } from '@/lib/factures.types'
-import { FactureForm } from './facture-form'
 
 type FactureRow = Facture
 
@@ -35,7 +33,6 @@ export function FacturesView() {
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
   const [payingId, setPayingId] = useState<number | null>(null)
-  const [showCreate, setShowCreate] = useState(false)
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 200 })
   const { data, isLoading } = useFactures({
@@ -54,24 +51,48 @@ export function FacturesView() {
   const pagination = data?.data
   const factures = Array.isArray(pagination?.data) ? pagination.data : []
   const clients = Array.isArray(clientsPage?.data?.data) ? clientsPage.data.data : []
+  const selectedFacture = payingId
+    ? factures.find((facture) => facture.id === payingId) ?? null
+    : null
 
   const { register, handleSubmit, reset } = useForm<PayerFactureSchema>({
     resolver: zodResolver(payerFactureSchema) as unknown as Resolver<PayerFactureSchema>,
-    defaultValues: { mode_paiement: 'espece' },
+    defaultValues: {
+      mode_paiement: 'espece',
+      montant_paye: 0,
+    },
   })
+  useEffect(() => {
+    if (!payingId || !selectedFacture) {
+      return
+    }
+
+    reset({
+      mode_paiement: 'espece',
+      montant_paye: selectedFacture.reste_a_payer ?? selectedFacture.total ?? 0,
+    })
+  }, [payingId, selectedFacture, reset])
 
   const onPay = (formData: PayerFactureSchema) => {
-  if (!payingId) return
-  payer(
-    { id: payingId, mode_paiement: formData.mode_paiement },
-    {
-      onSuccess: () => {
-        setPayingId(null)
-        reset({ mode_paiement: 'espece' })
+    if (!payingId) return
+
+    payer(
+      {
+        id: payingId,
+        mode_paiement: formData.mode_paiement,
+        montant_paye: formData.montant_paye,
       },
-    }
-  )
-}
+      {
+        onSuccess: () => {
+          setPayingId(null)
+          reset({
+            mode_paiement: 'espece',
+            montant_paye: 0,
+          })
+        },
+      }
+    )
+  }
 
   const statutOptions = [
     { value: '', label: 'Tous' },
@@ -88,30 +109,15 @@ export function FacturesView() {
         title="Factures"
         subtitle={`${pagination?.total ?? 0} facture${(pagination?.total ?? 0) > 1 ? 's' : ''}`}
         actions={
-          <Button icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowCreate(true)}>
-            Nouvelle facture
-          </Button>
+          <Link href="/factures/nouvelle">
+            <Button icon={<Plus className="h-3.5 w-3.5" />}>
+              Nouvelle facture
+            </Button>
+          </Link>
         }
       />
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
-        <Select
-          label="Client"
-          placeholder="Tous"
-          options={[
-            { value: '', label: 'Tous les clients' },
-            ...clients.map((client) => ({
-              value: client.id,
-              label: `${client.reference} - ${client.nom}`,
-            })),
-          ]}
-          value={clientId}
-          onChange={(e) => {
-            setClientId(e.target.value)
-            setPage(1)
-          }}
-        />
-
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-6">
         <div className="rounded-lg border border-surface-border bg-white p-3 lg:col-span-2">
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-steel-400">
             Statut
@@ -137,6 +143,36 @@ export function FacturesView() {
           </div>
         </div>
 
+        <Select
+          label="Client"
+          placeholder="Tous"
+          options={[
+            { value: '', label: 'Tous les clients' },
+            ...clients.map((client) => ({
+              value: client.id,
+              label: `${client.reference} - ${client.nom}`,
+            })),
+          ]}
+          value={clientId}
+          onChange={(e) => {
+            setClientId(e.target.value)
+            setPage(1)
+          }}
+        />
+        <label className="flex items-center gap-2 rounded-lg border border-surface-border bg-white px-3 py-2 text-sm text-steel-600">
+          <input
+            type="checkbox"
+            checked={enRetard}
+            onChange={(e) => {
+              setEnRetard(e.target.checked)
+              setPage(1)
+            }}
+            className="h-3.5 w-3.5 accent-red-600"
+          />
+          <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+          En retard seulement
+        </label>
+        
         <Input
           label="Du"
           type="date"
@@ -157,19 +193,7 @@ export function FacturesView() {
           }}
         />
 
-        <label className="flex items-center gap-2 rounded-lg border border-surface-border bg-white px-3 py-2 text-sm text-steel-600">
-          <input
-            type="checkbox"
-            checked={enRetard}
-            onChange={(e) => {
-              setEnRetard(e.target.checked)
-              setPage(1)
-            }}
-            className="h-3.5 w-3.5 accent-red-600"
-          />
-          <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
-          En retard seulement
-        </label>
+        
       </div>
 
       <Card>
@@ -305,37 +329,56 @@ export function FacturesView() {
       </Card>
 
       <Dialog
-        open={showCreate}
-        onClose={() => setShowCreate(false)}
-        title="Nouvelle facture"
-        size="lg"
-      >
-        <FactureForm onSuccess={() => setShowCreate(false)} />
-      </Dialog>
-
-      <Dialog
         open={!!payingId}
         onClose={() => {
           setPayingId(null)
-          reset()
+          reset({
+            mode_paiement: 'espece',
+            montant_paye: 0,
+          })
         }}
         title="Enregistrer le paiement"
         size="sm"
       >
         <form onSubmit={handleSubmit(onPay)} className="space-y-4">
+          <div className="rounded-md border border-surface-border bg-surface-subtle/50 px-3 py-2 text-sm text-steel-600">
+            <p className="text-xs uppercase tracking-wide text-steel-400">Facture</p>
+            <p className="mt-1 font-semibold text-steel-900">
+              {selectedFacture?.numero ?? '—'}
+            </p>
+            <p className="mt-1 text-xs text-steel-500">
+              Total : {formatMGA(selectedFacture?.total ?? 0)} • Reste à payer :{' '}
+              <span className="font-semibold text-steel-900">
+                {formatMGA(selectedFacture?.reste_a_payer ?? selectedFacture?.total ?? 0)}
+              </span>
+            </p>
+          </div>
+
+          <Input
+            label="Montant payé *"
+            type="number"
+            step="0.01"
+            min="0.01"        
+            {...register('montant_paye', { valueAsNumber: true })}
+          />
+
           <Select
             label="Mode de paiement *"
             options={MODES_PAIEMENT.map((m) => ({ value: m.value, label: m.label }))}
             placeholder="Choisir…"
             {...register('mode_paiement')}
           />
+
           <div className="flex justify-end gap-2 border-t border-surface-border pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => {
                 setPayingId(null)
-                reset()
+                reset({
+                  mode_paiement: 'espece',
+                  montant_paye: 0,
+                })
               }}
             >
               Annuler
