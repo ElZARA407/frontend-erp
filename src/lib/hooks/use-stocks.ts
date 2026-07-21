@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { stocksApi } from '../api/stocks'
-import type { AjustementStockValues } from '../schemas/stock.schema'
+import type { AjustementStockValues, StockInitialValues  } from '../schemas/stock.schema'
 
 export const STOCKS_KEY = ['stocks'] as const
 
@@ -49,6 +49,19 @@ export function useMouvementStock(id: number) {
   })
 }
 
+export function useCreateInitialStock() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: StockInitialValues) => stocksApi.createInitial(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: STOCKS_KEY })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Stock initial déclaré. Mouvement inventaire créé.')
+    },
+    onError: () => toast.error('Erreur lors de la déclaration du stock initial.'),
+  })
+}
 export function useImportStocks() {
   const qc = useQueryClient()
 

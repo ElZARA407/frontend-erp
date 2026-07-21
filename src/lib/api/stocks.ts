@@ -1,7 +1,7 @@
 import apiClient from './client'
 import type { ApiResponse, PaginatedResponse, Stock, MouvementStock } from '../types'
 import { buildQueryString } from '../utils'
-import type { AjustementStockValues } from '../schemas/stock.schema'
+import type { AjustementStockValues, StockInitialValues } from '../schemas/stock.schema'
 
 const DEFAULT_PER_PAGE = 10
 
@@ -167,6 +167,11 @@ export const stocksApi = {
     const { data } = await apiClient.get<ApiResponse<MouvementStock>>(`/stocks/mouvements/${id}`)
     return data.data
   },
+
+  createInitial: async (payload: StockInitialValues) => {
+    const { data } = await apiClient.post<ApiResponse<MouvementStock>>('/stocks', payload)
+     return data.data
+ },
 
   import: async (formData: FormData) => {
     const { data } = await apiClient.post<ApiResponse<null>>(

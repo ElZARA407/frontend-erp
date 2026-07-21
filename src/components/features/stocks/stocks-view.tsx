@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, ArrowDownUp, Box, Search, SlidersHorizontal, Upload } from 'lucide-react'
+import { AlertTriangle, ArrowDownUp,Plus, Box, Search, SlidersHorizontal, Upload } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,8 @@ import { useImportStocks, useRuptures, useStocks } from '@/lib/hooks/use-stocks'
 import type { Stock } from '@/lib/types'
 import { AjustementDialog } from './ajustement-dialog'
 import { MouvementStockView } from './mouvement-stock-view'
+import { Dialog } from '@/components/ui/dialog'
+import { StockInitialForm } from './stock-initial-form'
 
 type TabKey = 'stock' | 'mouvements'
 type StockMode = 'inventaire' | 'ruptures'
@@ -60,6 +62,7 @@ export function StocksView() {
   const [stockPage, setStockPage] = useState(1)
   const [rupturePage, setRupturePage] = useState(1)
   const [movementPage, setMovementPage] = useState(1)
+  const [stockInitialOpen, setStockInitialOpen] = useState(false)
 
   const [stockLocationId, setStockLocationId] = useState('')
   const [stockEntiteType, setStockEntiteType] = useState('')
@@ -140,15 +143,24 @@ export function StocksView() {
         title="Stock"
         subtitle="Inventaire, ruptures et mouvements avec recherche et pagination"
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<Upload className="h-3.5 w-3.5" />}
-            loading={importStocks.isPending}
-            onClick={() => setImportOpen(true)}
-          >
-            Importer Excel
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Upload className="h-3.5 w-3.5" />}
+              loading={importStocks.isPending}
+              onClick={() => setImportOpen(true)}
+            >
+              Importer Excel
+            </Button>
+            <Button
+              size="sm"
+              icon={<Plus className="h-3.5 w-3.5" />}
+              onClick={() => setStockInitialOpen(true)}
+            >
+              Nouveau stock
+            </Button>
+          </div>
         }
       />
 
@@ -437,6 +449,15 @@ export function StocksView() {
         }}
         stock={selectedStock}
       />
+
+      <Dialog
+        open={stockInitialOpen}
+        onClose={() => setStockInitialOpen(false)}
+        title="Déclarer un stock initial"
+        size="lg"
+      >
+        <StockInitialForm onSuccess={() => setStockInitialOpen(false)} />
+      </Dialog>
 
       <ExcelImportDialog
         open={importOpen}

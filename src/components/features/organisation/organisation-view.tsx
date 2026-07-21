@@ -42,8 +42,29 @@ import {
 
 type TabKey = 'utilisateurs' | 'roles' | 'locations'
 
+const PAGE_SIZE = 10
+
+function localPage<T>(items: T[], page: number) {
+  const total = items.length
+  const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const currentPage = Math.min(Math.max(1, page), lastPage)
+  const start = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE
+  const end = total === 0 ? 0 : Math.min(start + PAGE_SIZE, total)
+
+  return {
+    data: items.slice(start, end),
+    current_page: currentPage,
+    last_page: lastPage,
+    total,
+    from: total === 0 ? 0 : start + 1,
+    to: end,
+  }
+}
+
 export function OrganisationView() {
   const [tab, setTab] = useState<TabKey>('utilisateurs')
+  const [rolePage, setRolePage] = useState(1)
+  const [locationPage, setLocationPage] = useState(1)
 
   const [userPage, setUserPage] = useState(1)
   const [userSearch, setUserSearch] = useState('')
@@ -77,14 +98,17 @@ export function OrganisationView() {
 
   const rolesList = useMemo(() => roles ?? [], [roles])
   const locationsList = useMemo(() => locations ?? [], [locations])
-//   const users = usersPage?.data ?? []
-  const users = usersPage?.data ?? ([] as OrganisationUtilisateur[])
-  const pagination = usersPage
+  const rolesPagination = useMemo(() => localPage(rolesList, rolePage), [rolesList, rolePage])
+  const locationsPagination = useMemo(() => localPage(locationsList, locationPage), [locationsList, locationPage])
 
-  const openCreateUser = () => {
-    setSelectedUser(null)
-    setShowUserDialog(true)
-  }
+//   const users = usersPage?.data ?? []
+  const usersPagination = usersPage?.data
+  const users = Array.isArray(usersPagination?.data) ? usersPagination.data : []
+  const pagination = usersPagination
+    const openCreateUser = () => {
+      setSelectedUser(null)
+      setShowUserDialog(true)
+    }
 
   const openEditUser = (user: OrganisationUtilisateur) => {
     setSelectedUser(user)
@@ -270,14 +294,14 @@ export function OrganisationView() {
 
             {pagination && (
             <Pagination
-                currentPage={userPage}
-                lastPage={(pagination as any)?.last_page || 1}
-                total={(pagination as any)?.total || 0}
-                from={(pagination as any)?.from ?? 0}
-                to={(pagination as any)?.to ?? 0}
-                onPageChange={setUserPage}
+              currentPage={pagination.current_page}
+              lastPage={pagination.last_page}
+              total={pagination.total}
+              from={pagination.from}
+              to={pagination.to}
+              onPageChange={setUserPage}
             />
-            )}
+          )}
           </Card>
         </div>
       )}
@@ -310,7 +334,7 @@ export function OrganisationView() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-border">
-                    {rolesList.map((role) => (
+                    {rolesPagination.data.map((role) => (
                       <tr key={role.id} className="hover:bg-surface-subtle/70">
                         <td className="px-4 py-3 font-medium text-steel-900">{role.nom}</td>
                         <td className="px-4 py-3 text-steel-600">{role.description ?? '—'}</td>
@@ -341,7 +365,16 @@ export function OrganisationView() {
                   </tbody>
                 </table>
               </div>
+              
             )}
+            <Pagination
+              currentPage={rolesPagination.current_page}
+                lastPage={rolesPagination.last_page}
+                total={rolesPagination.total}
+                from={rolesPagination.from}
+                to={rolesPagination.to}
+                onPageChange={setRolePage}
+              />
           </Card>
         </div>
       )}
@@ -374,7 +407,7 @@ export function OrganisationView() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-border">
-                    {locationsList.map((location) => (
+                    {locationsPagination.data.map((location) => (
                       <tr key={location.id} className="hover:bg-surface-subtle/70">
                         <td className="px-4 py-3 font-medium text-steel-900">{location.nom}</td>
                         <td className="px-4 py-3">
@@ -410,6 +443,14 @@ export function OrganisationView() {
                 </table>
               </div>
             )}
+            <Pagination
+              currentPage={locationsPagination.current_page}
+              lastPage={locationsPagination.last_page}
+              total={locationsPagination.total}
+              from={locationsPagination.from}
+              to={locationsPagination.to}
+              onPageChange={setLocationPage}
+            />
           </Card>
         </div>
       )}

@@ -2,6 +2,7 @@
 import apiClient from './client'
 import type { ApiResponse, PaginatedResponse, Client } from '../types'
 import { buildQueryString } from '../utils'
+import { extractPaginatedResponse } from './pagination'
 
 export interface ClientFilters {
   search?: string
@@ -13,10 +14,8 @@ export interface ClientFilters {
 
 export const clientsApi = {
   list: async (filters: ClientFilters = {}) => {
-    const { data } = await apiClient.get<PaginatedResponse<Client>>(
-      `/commercial/clients${buildQueryString(filters)}`
-    )
-    return data
+    const { data } = await apiClient.get(`/commercial/clients${buildQueryString(filters)}`)
+    return extractPaginatedResponse<Client>(data)
   },
 
   get: async (id: number) => {

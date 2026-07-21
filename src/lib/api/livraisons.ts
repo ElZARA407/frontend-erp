@@ -1,6 +1,7 @@
 import apiClient from './client'
 import type { ApiResponse, PaginatedResponse, Livraison } from '../types'
 import { buildQueryString } from '../utils'
+import { extractPaginatedResponse } from './pagination'
 
 export interface LivraisonFilters {
   client_id?: number
@@ -34,10 +35,8 @@ export interface LivraisonCreatePayload {
 
 export const livraisonsApi = {
   list: async (filters: LivraisonFilters = {}) => {
-    const { data } = await apiClient.get<PaginatedResponse<Livraison>>(
-      `/logistique/livraisons${buildQueryString(filters)}`
-    )
-    return data
+    const { data } = await apiClient.get(`/logistique/livraisons${buildQueryString(filters)}`)
+    return extractPaginatedResponse<Livraison>(data)
   },
 
   get: async (id: number) => {

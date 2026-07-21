@@ -179,9 +179,9 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Select
-          label="Location *"
+          label="Localisation *"
           options={locations.map((location) => ({ value: location.id, label: location.nom }))}
-          placeholder="Choisir une location"
+          placeholder="Choisir une localisation"
           error={errors.location_id?.message}
           {...register('location_id', { valueAsNumber: true })}
         />

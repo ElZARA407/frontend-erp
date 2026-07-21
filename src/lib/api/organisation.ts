@@ -1,6 +1,5 @@
 // src/lib/api/organisation.ts
 import apiClient from './client'
-import type { ApiResponse } from '@/lib/types'
 import { buildQueryString } from '@/lib/utils'
 import type {
   OrganisationLocation,
@@ -10,8 +9,10 @@ import type {
   OrganisationUtilisateur,
   OrganisationUtilisateurFilters,
   OrganisationUtilisateurPayload,
-  OrganisationUsersPage,
+
 } from '@/lib/organisation.types'
+import type { ApiResponse } from '@/lib/types'
+import { extractPaginatedResponse } from './pagination'
 
 export const organisationApi = {
   listRoles: async () => {
@@ -65,10 +66,10 @@ export const organisationApi = {
   },
 
   listUsers: async (filters: OrganisationUtilisateurFilters = {}) => {
-    const { data } = await apiClient.get<ApiResponse<OrganisationUsersPage>>(
+    const { data } = await apiClient.get(
       `/organisation/utilisateurs${buildQueryString(filters)}`
     )
-    return data.data
+    return extractPaginatedResponse<OrganisationUtilisateur>(data)
   },
 
   getUser: async (id: number) => {

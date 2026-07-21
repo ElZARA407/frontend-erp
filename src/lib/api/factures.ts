@@ -9,13 +9,12 @@ import type {
   FacturePayerPayload,
 } from '../factures.types'
 import { buildQueryString } from '../utils'
+import { extractPaginatedResponse } from './pagination'
 
 export const facturesApi = {
   list: async (filters: FactureFilters = {}) => {
-    const { data } = await apiClient.get<PaginatedResponse<Facture>>(
-      `/finance/factures${buildQueryString(filters)}`
-    )
-    return data
+    const { data } = await apiClient.get(`/finance/factures${buildQueryString(filters)}`)
+    return extractPaginatedResponse<Facture>(data)
   },
 
   get: async (id: number) => {

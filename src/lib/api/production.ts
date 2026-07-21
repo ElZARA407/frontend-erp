@@ -1,6 +1,7 @@
 import apiClient from './client'
 import type { ApiResponse, PaginatedResponse, BonProduction, BpSession, Machine } from '../types'
 import { buildQueryString } from '../utils'
+import { extractPaginatedResponse } from './pagination'
 
 export interface BpFilters {
   location_id?: number
@@ -87,10 +88,8 @@ export interface MachinePayload {
 
 export const productionApi = {
   list: async (filters: BpFilters = {}) => {
-    const { data } = await apiClient.get<PaginatedResponse<BonProduction>>(
-      `/production/bons-production${buildQueryString(filters)}`
-    )
-    return data
+    const { data } = await apiClient.get(`/production/bons-production${buildQueryString(filters)}`)
+    return extractPaginatedResponse<BonProduction>(data)
   },
 
   get: async (id: number) => {
