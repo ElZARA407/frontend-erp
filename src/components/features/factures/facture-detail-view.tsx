@@ -20,6 +20,7 @@ import { formatDate, formatDateTime, formatMGA, formatQty, getStatutColor } from
 import { payerFactureSchema, type PayerFactureSchema } from '@/lib/schemas/facture.schema'
 import { FileDown } from 'lucide-react'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
+import { useRouter } from 'next/navigation'
 
 interface FactureDetailViewProps {
   factureId: number
@@ -27,6 +28,7 @@ interface FactureDetailViewProps {
 
 export function FactureDetailView({ factureId }: FactureDetailViewProps) {
   const [showPayDialog, setShowPayDialog] = useState(false)
+  const router = useRouter()
 
   const { data: facture, isLoading } = useFacture(factureId)
   const payerFacture = usePayerFacture()
@@ -143,13 +145,13 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
                   Telecharger
                 </Button>
               )}
-            <Link
-              href="/factures"
+            <Button
+              onClick={() => router.back()}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
             >
               <ArrowLeft className="h-4 w-4" />
               Retour liste
-            </Link>
+            </Button>
           </div>
         }
       />

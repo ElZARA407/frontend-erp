@@ -1,57 +1,125 @@
-// src/lib/hooks/use-commercial-details.ts
 import { useQuery } from '@tanstack/react-query'
 import apiClient from '@/lib/api/client'
-import { clientsApi } from '@/lib/api/clients'
-import { lot3Api } from '@/lib/api/lot3'
-import { livraisonsApi } from '@/lib/api/livraisons'
-import type { ApiResponse } from '@/lib/types'
-import type { Contrat, Fournisseur } from '@/lib/lot3.types'
 import { buildQueryString } from '@/lib/utils'
-
-export interface ClientEncoursFacture {
-  numero: string
-  date: string | null
-  total: number
-  echeance: string | null
-  jours_retard: number
-}
-
-export interface ClientEncoursResponse {
-  client_id: number
-  client_nom: string
-  encours_total: number
-  factures: ClientEncoursFacture[]
-}
+import type { Client, Fournisseur, ApiResponse } from '@/lib/types'
+import { lot3Api } from '../api/lot3'
+import { livraisonsApi } from '../api/livraisons'
 
 export interface ClientHistoriqueResponse {
-  client_id: number
-  annee: string
+  annee: number
   ca_annuel: number
+  total_commandes: number
+  total_ventes_directes: number
+  total_facture: number
+  total_paye: number
+  reste_a_payer: number
   nb_commandes: number
+  nb_ventes_directes: number
+  nb_livraisons: number
   nb_factures: number
+  commandes: Array<{
+    id: number
+    numero: string
+    date: string | null
+    statut: unknown
+    total: number
+    location: string | null
+  }>
+  ventes_directes: Array<{
+    id: number
+    numero: string
+    date: string | null
+    statut: unknown
+    total: number
+    location: string | null
+  }>
+  livraisons: Array<{
+    id: number
+    numero: string
+    date_livraison: string | null
+    statut: string
+    source_type: string
+    source_id: number
+    est_facturee: boolean
+  }>
+  factures: Array<{
+    id: number
+    numero: string
+    date_facture: string | null
+    statut: unknown
+    montant_total: number
+    montant_paye: number
+    reste_a_payer: number
+  }>
+}
+
+export interface FournisseurHistoriqueResponse {
+  annee: number
+  total_achats: number
+  total_valide: number
+  total_brouillon: number
+  nb_achats: number
+  nb_valides: number
+  nb_brouillons: number
+  achats: Array<{
+    id: number
+    numero: string
+    date: string | null
+    vehicule: string | null
+    statut: string
+    total: number
+    location: string | null
+    lignes_count: number
+    lignes: Array<{
+      id: number
+      matiere: {
+        id: number
+        reference: string
+        nom: string
+      } | null
+      quantite: number
+      prix_unitaire: number
+      total_ligne: number
+    }>
+  }>
 }
 
 export const COMMERCIAL_DETAIL_KEYS = {
-  clientEncours: ['commercial', 'client-encours'] as const,
-  clientHistorique: ['commercial', 'client-historique'] as const,
+  client: ['commercial', 'client'] as const,
   fournisseur: ['commercial', 'fournisseur'] as const,
+  clientHistorique: ['commercial', 'client-historique'] as const,
+  fournisseurHistorique: ['commercial', 'fournisseur-historique'] as const,
   contrat: ['commercial', 'contrat'] as const,
   livraison: ['commercial', 'livraison'] as const,
 }
 
-export function useClientEncours(clientId?: number) {
+export function useClient(clientId: number) {
   return useQuery({
-    queryKey: [...COMMERCIAL_DETAIL_KEYS.clientEncours, clientId],
+    queryKey: [...COMMERCIAL_DETAIL_KEYS.client, clientId],
     queryFn: async () => {
-      const data = await clientsApi.encours(clientId as number)
-      return data as ClientEncoursResponse
+      const { data } = await apiClient.get<ApiResponse<Client>>(
+        `/commercial/clients/${clientId}`
+      )
+      return data.data
     },
-    enabled: clientId !== undefined && clientId !== null,
-    staleTime: 30_000,
+    enabled: clientId > 0,
   })
 }
 
-export function useClientHistorique(clientId?: number, annee?: string) {
+export function useFournisseur(fournisseurId: number) {
+  return useQuery({
+    queryKey: [...COMMERCIAL_DETAIL_KEYS.fournisseur, fournisseurId],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ApiResponse<Fournisseur>>(
+        `/commercial/fournisseurs/${fournisseurId}`
+      )
+      return data.data
+    },
+    enabled: fournisseurId > 0,
+  })
+}
+
+export function useClientHistorique(clientId: number, annee?: number) {
   return useQuery({
     queryKey: [...COMMERCIAL_DETAIL_KEYS.clientHistorique, clientId, annee],
     queryFn: async () => {
@@ -60,17 +128,20 @@ export function useClientHistorique(clientId?: number, annee?: string) {
       )
       return data.data
     },
-    enabled: clientId !== undefined && clientId !== null && !!annee,
-    staleTime: 30_000,
+    enabled: clientId > 0,
   })
 }
 
-export function useFournisseurDetail(fournisseurId?: number) {
+export function useFournisseurHistorique(fournisseurId: number, annee?: number) {
   return useQuery({
-    queryKey: [...COMMERCIAL_DETAIL_KEYS.fournisseur, fournisseurId],
-    queryFn: () => lot3Api.fournisseurs.get(fournisseurId as number),
-    enabled: fournisseurId !== undefined && fournisseurId !== null,
-    staleTime: 60_000,
+    queryKey: [...COMMERCIAL_DETAIL_KEYS.fournisseurHistorique, fournisseurId, annee],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ApiResponse<FournisseurHistoriqueResponse>>(
+        `/commercial/fournisseurs/${fournisseurId}/historique${buildQueryString({ annee })}`
+      )
+      return data.data
+    },
+    enabled: fournisseurId > 0,
   })
 }
 

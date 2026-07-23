@@ -20,6 +20,7 @@ import type { BonSortie } from '@/lib/bons-sortie.types'
 import { BonSortieForm } from './bon-sortie-form'
 import { FileDown } from 'lucide-react'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
+import { useRouter } from 'next/navigation'
 
 export function BonsSortieView() {
   const [page, setPage] = useState(1)
@@ -30,6 +31,7 @@ export function BonsSortieView() {
   const [dateFin, setDateFin] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const { exportPdf, isExporting } = usePdfExport()
+  const router = useRouter()
 
   const { data: locationsData } = useLocations()
   const { mutate: validerBonSortie, isPending: validating } = useValiderBonSortie()
@@ -162,7 +164,9 @@ export function BonsSortieView() {
               </thead>
               <tbody className="divide-y divide-surface-border">
                 {bons.map((bon: BonSortie) => (
-                  <tr key={bon.id} className="hover:bg-surface-muted/60 transition-colors">
+                  <tr key={bon.id} className="hover:bg-surface-muted/60 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/bons-sortie/${bon.id}`)}
+                  >
                     <td className="px-4 py-3">
                       <span className="ref-code">{bon.numero}</span>
                     </td>
@@ -189,22 +193,21 @@ export function BonsSortieView() {
                             size="sm"
                             icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
                             loading={validating}
-                            onClick={() => validerBonSortie(bon.id)}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              validerBonSortie(bon.id)}}
                           >
                             Valider
                           </Button>
                         )}
-                        <Link href={`/bons-sortie/${bon.id}`}>
-                          <Button variant="ghost" size="sm" icon={<Eye className="h-3.5 w-3.5" />}>
-                            Voir
-                          </Button>
-                        </Link>
                         <Button
                           variant="ghost"
                           size="sm"
                           icon={<FileDown className="h-3.5 w-3.5" />}
                           loading={isExporting('bon_sortie', bon.id)}
-                          onClick={() => exportPdf({ type: 'bon_sortie', document: bon })}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            exportPdf({ type: 'bon_sortie', document: bon })}}
                         >
                           PDF
                         </Button>

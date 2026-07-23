@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, BadgeInfo, CheckCircle2, Clock3, Factory, Plus, Receipt, TrendingUp, XCircle } from 'lucide-react'
+import { ArrowLeft, BadgeInfo, CheckCircle2, Clock3, Factory, Package, Plus, Receipt, TrendingUp, XCircle } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import { BpSessionCreateForm } from './bp-session-form'
 import { useAnnulerBP, useBonProduction, useClotureBP, useValiderSession } from '@/lib/hooks/use-production'
 import { formatDate, formatDateTime, formatDurationHours, formatMGA, formatPercent, formatQty, getStatutColor } from '@/lib/utils'
 import type { BpSession } from '@/lib/types'
+import { useRouter } from 'next/navigation'
 
 interface ProductionDetailViewProps {
   bpId: number
@@ -123,6 +124,7 @@ type SessionRow = BpSession & {
   }
 }
 
+
 function getEventLabel(type: SessionEvenementType | string | undefined): string {
   if (type === 'production') return 'Production'
   if (type === 'pause') return 'Pause'
@@ -198,6 +200,7 @@ function MiniStat({ label, value }: { label: string; value: number }) {
 export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
   const [showSessionDialog, setShowSessionDialog] = useState(false)
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null)
+  const router = useRouter()
 
   const { data: bp, isLoading } = useBonProduction(bpId)
   const validateSession = useValiderSession()
@@ -283,13 +286,13 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
                 Nouvelle session
               </Button>
             )}
-            <Link
-              href="/production"
+            <Button
+              onClick={() => router.back()}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
             >
               <ArrowLeft className="h-4 w-4" />
               Retour liste
-            </Link>
+            </Button>
           </div>
         }
       />
@@ -409,7 +412,7 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
                 accent="success"
               />
             </div>
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
               <SummaryCard
                 label="Coût matières"
                 value={selectedSession.calcul.cout_matieres_total}
@@ -430,6 +433,12 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
                 icon={<TrendingUp className="h-5 w-5" />}
                 accent="success"
                 isMoney
+              />
+              <SummaryCard
+                label="Produit moyen / heure"
+                value={`${formatQty(selectedSession.production_moyenne_heure ?? selectedSession.calcul?.production_moyenne_heure ?? 0)} / h`}
+                icon={<Package className="h-5 w-5" />}
+                accent="primary"
               />
               <SummaryCard
                 label="Coût unitaire"

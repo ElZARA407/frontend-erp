@@ -17,6 +17,7 @@ import {
   useVenteDirecte,
 } from '@/lib/hooks/use-ventes-directes'
 import { LivraisonForm } from '../livraisons/livraison-form'
+import { useRouter } from 'next/navigation'
 
 interface VenteDirecteDetailViewProps {
   venteId: number
@@ -27,6 +28,7 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
   const validerVente = useValiderVenteDirecte()
   const annulerVente = useAnnulerVenteDirecte()
   const [showLivraison, setShowLivraison] = useState(false)
+  const router = useRouter()
 
   const lignes = Array.isArray(vente?.lignes) ? vente.lignes : []
   const livraisons = Array.isArray(vente?.livraisons) ? vente.livraisons : []
@@ -108,13 +110,13 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
                 Annuler
               </Button>
             )}
-            <Link
-              href="/ventes-directes"
+            <Button
+              onClick={() => router.back()}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
             >
               <ArrowLeft className="h-4 w-4" />
               Retour liste
-            </Link>
+            </Button>
           </div>
         }
       />

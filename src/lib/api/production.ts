@@ -1,5 +1,5 @@
 import apiClient from './client'
-import type { ApiResponse, PaginatedResponse, BonProduction, BpSession, Machine } from '../types'
+import type { ApiResponse, BonProduction, BpSession, Machine } from '../types'
 import { buildQueryString } from '../utils'
 import { extractPaginatedResponse } from './pagination'
 
@@ -25,7 +25,7 @@ export interface BpObtenuPayload {
   classement_id: number
   quantite_produite: number
   destination_location_id: number
-} 
+}
 
 export interface BpEmployePayload {
   employe_id: number
@@ -44,8 +44,11 @@ export interface ProductionCostSessionDetail {
   bp_session_numero: string
   date_session: string | null
   quantite: number
+  heures_production?: number
+  production_session?: number
   cout_unitaire: number
   cout_pondere: number
+  temps_effectif?:number
 }
 
 export interface ProductionCostProductResponse {
@@ -56,6 +59,8 @@ export interface ProductionCostProductResponse {
   }
   sessions_count: number
   quantite_totale: number
+  heures_production_total?: number
+  production_moyenne_heure?: number
   cout_moyen_pondere: number
   details: ProductionCostSessionDetail[]
 }
@@ -67,6 +72,9 @@ export interface ProductionCostBpResponse {
   }
   sessions_count: number
   quantite_totale: number
+  production_moyenne_session?:number
+  heures_production_total?: number
+  production_moyenne_heure?: number
   cout_moyen_pondere: number
   details: ProductionCostSessionDetail[]
 }
@@ -88,7 +96,9 @@ export interface MachinePayload {
 
 export const productionApi = {
   list: async (filters: BpFilters = {}) => {
-    const { data } = await apiClient.get(`/production/bons-production${buildQueryString(filters)}`)
+    const { data } = await apiClient.get(
+      `/production/bons-production${buildQueryString(filters)}`
+    )
     return extractPaginatedResponse<BonProduction>(data)
   },
 
@@ -189,7 +199,10 @@ export const productionApi = {
     return data.data
   },
 
-  coutMoyenProduit: async (produitId: number, params: { date_debut?: string; date_fin?: string } = {}) => {
+  coutMoyenProduit: async (
+    produitId: number,
+    params: { date_debut?: string; date_fin?: string } = {}
+  ) => {
     const { data } = await apiClient.get<ApiResponse<ProductionCostProductResponse>>(
       `/production/couts/produits/${produitId}${buildQueryString(params)}`
     )

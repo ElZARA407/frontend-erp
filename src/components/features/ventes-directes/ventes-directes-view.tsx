@@ -22,6 +22,7 @@ import {
 import type { VenteDirecte } from '@/lib/ventes-directes.types'
 import { VenteDirecteForm } from './vente-directe-form'
 import { LivraisonForm } from '../livraisons/livraison-form'
+import { useRouter } from 'next/navigation'
 
 export function VentesDirectesView() {
   const [page, setPage] = useState(1)
@@ -32,6 +33,7 @@ export function VentesDirectesView() {
   const [showCreate, setShowCreate] = useState(false)
   const [showLivraison, setShowLivraison] = useState(false)
   const [selectedVente, setSelectedVente] = useState<VenteDirecte | null>(null)
+  const router = useRouter();
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { mutate: validerVente, isPending: validating } = useValiderVenteDirecte()
@@ -166,7 +168,9 @@ export function VentesDirectesView() {
               </thead>
               <tbody className="divide-y divide-surface-border">
                 {ventes.map((vente: VenteDirecte) => (
-                  <tr key={vente.id} className="hover:bg-surface-muted/60 transition-colors">
+                  <tr key={vente.id} className="cursor-pointer hover:bg-surface-muted/60 transition-colors"
+                    onClick={() => router.push(`/ventes-directes/${vente.id}`)}
+                  >
                     <td className="px-4 py-3">
                       <span className="ref-code">{vente.numero}</span>
                     </td>
@@ -192,7 +196,8 @@ export function VentesDirectesView() {
                             variant="outline"
                             size="sm"
                             icon={<Truck className="h-3.5 w-3.5" />}
-                            onClick={() => {
+                            onClick={(event) => {
+                              event.stopPropagation()
                               setSelectedVente(vente)
                               setShowLivraison(true)
                             }}
@@ -206,7 +211,10 @@ export function VentesDirectesView() {
                             size="sm"
                             icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
                             loading={validating}
-                            onClick={() => validerVente(vente.id)}
+                            onClick={(event) =>{ 
+                              event.stopPropagation()
+                              validerVente(vente.id)
+                            }}
                           >
                             Valider
                           </Button>
@@ -217,16 +225,13 @@ export function VentesDirectesView() {
                             size="sm"
                             icon={<RotateCcw className="h-3.5 w-3.5" />}
                             loading={cancelling}
-                            onClick={() => annulerVente(vente.id)}
+                            onClick={(event) =>{
+                              event.stopPropagation()
+                              annulerVente(vente.id)}}
                           >
                             Annuler
                           </Button>
                         )}
-                        <Link href={`/ventes-directes/${vente.id}`}>
-                          <Button variant="ghost" size="sm" icon={<Eye className="h-3.5 w-3.5" />}>
-                            Voir
-                          </Button>
-                        </Link>
                       </div>
                     </td>
                   </tr>

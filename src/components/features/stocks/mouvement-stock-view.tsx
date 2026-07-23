@@ -13,6 +13,7 @@ import { useLocations } from '@/lib/hooks/use-organisation'
 import { useMouvements } from '@/lib/hooks/use-stocks'
 import { formatDateTime, formatQty } from '@/lib/utils'
 import type { MouvementStock } from '@/lib/types'
+import { useRouter } from 'next/navigation'
 
 type Props = {
   search: string
@@ -78,6 +79,7 @@ export function MouvementStockView({
   const { data, isLoading } = useMouvements(filters)
   const pagination = data?.data
   const mouvements = Array.isArray(pagination?.data) ? pagination.data : []
+  const router = useRouter()
 
   useEffect(() => {
     onPageChange(1)
@@ -113,7 +115,7 @@ export function MouvementStockView({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-border">
-                  {['Date', 'Localisation', 'Type', 'Article', 'Classement', 'Quantite', 'Impact', 'Source', 'Motif', 'Utilisateur', 'Action'].map((label) => (
+                  {['Date', 'Localisation', 'Type', 'Article', 'Classement', 'Quantite', 'Impact', 'Source', 'Motif', 'Utilisateur'].map((label) => (
                     <th
                       key={label}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
@@ -129,7 +131,9 @@ export function MouvementStockView({
                   const typeLabel = getMovementTypeLabel(m.type)
 
                   return (
-                    <tr key={m.id} className="hover:bg-surface-muted/60 transition-colors">
+                    <tr key={m.id} className="hover:bg-surface-muted/60 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/stocks/mouvements/${m.id}`)}
+                    >
                       <td className="px-4 py-3 text-steel-600">{formatDateTime(m.date_mouvement)}</td>
                       <td className="px-4 py-3 text-steel-600">{m.location?.nom ?? '—'}</td>
                       <td className="px-4 py-3">
@@ -159,13 +163,6 @@ export function MouvementStockView({
                       </td>
                       <td className="px-4 py-3 text-steel-600">{m.motif ?? '—'}</td>
                       <td className="px-4 py-3 text-steel-600">{m.utilisateur?.nom ?? '—'}</td>
-                      <td className="px-4 py-3 text-right">
-                        <Link href={`/stocks/mouvements/${m.id}`}>
-                          <Button variant="ghost" size="sm" icon={<Eye className="h-3.5 w-3.5" />}>
-                            Voir
-                          </Button>
-                        </Link>
-                      </td>
                     </tr>
                   )
                 })}

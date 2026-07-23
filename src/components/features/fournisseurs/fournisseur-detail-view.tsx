@@ -1,49 +1,46 @@
-// src/components/features/fournisseurs/fournisseur-detail-view.tsx
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
-import { useFournisseurDetail } from '@/lib/hooks/use-commercial-details'
+import { useMemo, useState } from 'react'
+import { ArrowLeft, CheckCircle2, FileText, ShoppingBasket } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
-import { Dialog } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate } from '@/lib/utils'
-import { ArrowLeft, Building2, Mail, PencilLine, Phone, Tag } from 'lucide-react'
-import { FournisseurForm } from '@/components/features/fournisseurs/fournisseur-form'
-import type { Fournisseur } from '@/lib/lot3.types'
+import { StatCard } from '@/components/ui/stat-card'
+import { useFournisseur, useFournisseurHistorique } from '@/lib/hooks/use-commercial-details'
+import { formatDate, formatMGA, formatQty } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { useRouter } from 'next/navigation'
 
 interface FournisseurDetailViewProps {
   fournisseurId: number
 }
 
 export function FournisseurDetailView({ fournisseurId }: FournisseurDetailViewProps) {
-  const [showEdit, setShowEdit] = useState(false)
-  const { data: fournisseur, isLoading } = useFournisseurDetail(fournisseurId)
+  const [annee, setAnnee] = useState(new Date().getFullYear())
+  const { data: fournisseur, isLoading: loadingFournisseur } = useFournisseur(fournisseurId)
+  const { data: historique, isLoading: loadingHistorique } = useFournisseurHistorique(fournisseurId, annee)
+  const router = useRouter()
+  
+  const achats = useMemo(
+    () => (Array.isArray(historique?.achats) ? historique.achats : []),
+    [historique],
+  )
 
-  if (!isLoading && !fournisseur) {
+  if (!loadingFournisseur && !fournisseur) {
     return (
       <div className="space-y-5">
         <PageHeader
-          title={`Fournisseur #${fournisseurId}`}
-          subtitle="Fiche non trouvée"
+          title="Fournisseur introuvable"
+          subtitle="La fiche demandée n’existe pas."
           actions={
-            <Link
-              href="/fournisseurs"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Retour
+            <Link href="/fournisseurs" className="text-sm font-medium text-primary-700">
+              Retour aux fournisseurs
             </Link>
           }
         />
-        <Card>
-          <CardBody className="py-16 text-center text-steel-500">
-            Fournisseur introuvable.
-          </CardBody>
-        </Card>
       </div>
     )
   }
@@ -51,105 +48,184 @@ export function FournisseurDetailView({ fournisseurId }: FournisseurDetailViewPr
   return (
     <div className="space-y-5">
       <PageHeader
-        title={fournisseur?.nom ?? `Fournisseur #${fournisseurId}`}
-        subtitle={fournisseur ? fournisseur.reference : 'Chargement...'}
+        title={fournisseur?.nom ?? 'Fournisseur'}
+        subtitle={fournisseur?.reference ?? 'Historique achats et réceptions'}
         actions={
-          <>
-            <Link
-              href="/fournisseurs"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Retour liste
-            </Link>
-            {fournisseur && (
-              <Button
-                variant="outline"
-                icon={<PencilLine className="h-3.5 w-3.5" />}
-                onClick={() => setShowEdit(true)}
-              >
-                Modifier
-              </Button>
-            )}
-          </>
+          <Button
+            onClick={() => router.back()}
+            className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Retour liste
+          </Button>
         }
       />
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <div>
+              <h2 className="text-sm font-semibold text-steel-900">Informations</h2>
+              <p className="text-xs text-steel-500">Coordonnées et références</p>
+            </div>
+          </CardHeader>
+          <CardBody>
+            {loadingFournisseur ? (
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-5 w-2/3" />
+              </div>
+            ) : (
+              <div className="space-y-3 text-sm">
+                <Info label="Référence" value={fournisseur?.reference} />
+                <Info label="Contact" value={fournisseur?.contact} />
+                <Info label="Email" value={fournisseur?.email} />
+                <Info label="Adresse" value={fournisseur?.adresse} />
+                <Info label="NIF" value={fournisseur?.NIF} />
+                <div className="pt-2">
+                  <Badge variant={fournisseur?.actif ? 'success' : 'muted'} dot>
+                    {fournisseur?.actif ? 'Actif' : 'Archivé'}
+                  </Badge>
+                </div>
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        <div className="space-y-4 lg:col-span-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <Input
+              className="w-36"
+              label="Année"
+              type="number"
+              value={annee}
+              onChange={(event) => setAnnee(Number(event.target.value) || new Date().getFullYear())}
+            />
+          </div>
+
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <StatCard
+              label="Total achats"
+              value={formatMGA(historique?.total_achats ?? 0)}
+              icon={<ShoppingBasket className="h-5 w-5" />}
+              accent="primary"
+            />
+            <StatCard
+              label="BR validés"
+              value={formatMGA(historique?.total_valide ?? 0)}
+              icon={<CheckCircle2 className="h-5 w-5" />}
+              accent="success"
+            />
+            <StatCard
+              label="Brouillons"
+              value={formatMGA(historique?.total_brouillon ?? 0)}
+              icon={<FileText className="h-5 w-5" />}
+              accent={(historique?.total_brouillon ?? 0) > 0 ? 'warning' : 'success'}
+            />
+          </section>
+        </div>
+      </div>
 
       <Card>
         <CardHeader>
           <div>
-            <h2 className="text-sm font-semibold text-steel-900">Informations fournisseur</h2>
+            <h2 className="text-sm font-semibold text-steel-900">Historique des achats</h2>
             <p className="text-xs text-steel-500">
-              Données de référence utilisées dans les achats.
+              Bons de réception et lignes matières pour l’année sélectionnée.
             </p>
           </div>
-          <Badge variant={fournisseur?.actif ? 'success' : 'muted'} dot>
-            {fournisseur?.actif ? 'Actif' : 'Inactif'}
-          </Badge>
         </CardHeader>
-
         <CardBody>
-          {isLoading ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Skeleton className="h-20" />
-              <Skeleton className="h-20" />
-              <Skeleton className="h-20" />
-              <Skeleton className="h-20" />
+          {loadingHistorique ? (
+            <div className="space-y-2">
+              <Skeleton className="h-14 w-full" />
+              <Skeleton className="h-14 w-full" />
+              <Skeleton className="h-14 w-full" />
             </div>
-          ) : fournisseur ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-surface-border p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Référence</p>
-                <p className="mt-1 font-semibold text-steel-900">{fournisseur.reference}</p>
-              </div>
-              <div className="rounded-lg border border-surface-border p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Créé le</p>
-                <p className="mt-1 font-semibold text-steel-900">{formatDate(fournisseur.created_at)}</p>
-              </div>
-              <div className="rounded-lg border border-surface-border p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">NIF / STAT</p>
-                <p className="mt-1 font-semibold text-steel-900">
-                  {fournisseur.NIF ?? '—'} / {fournisseur.STAT ?? '—'}
-                </p>
-              </div>
-              <div className="rounded-lg border border-surface-border p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Code compta</p>
-                <p className="mt-1 font-semibold text-steel-900">{fournisseur.code_compta ?? '—'}</p>
-              </div>
-              <div className="rounded-lg border border-surface-border p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Adresse</p>
-                <p className="mt-1 font-semibold text-steel-900">{fournisseur.adresse}</p>
-              </div>
-              <div className="rounded-lg border border-surface-border p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Interlocuteur</p>
-                <p className="mt-1 font-semibold text-steel-900">{fournisseur.interlocutaire ?? '—'}</p>
-              </div>
-              <div className="rounded-lg border border-surface-border p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Contact</p>
-                <p className="mt-1 font-semibold text-steel-900">{fournisseur.contact}</p>
-              </div>
-              <div className="rounded-lg border border-surface-border p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Email</p>
-                <p className="mt-1 font-semibold text-steel-900">{fournisseur.email ?? '—'}</p>
-              </div>
+          ) : achats.length === 0 ? (
+            <p className="py-8 text-center text-sm text-steel-500">
+              Aucun achat enregistré pour cette année.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {achats.map((achat) => (
+                <div
+                  key={achat.id}
+                  className="rounded-md border border-surface-border bg-white"
+                >
+                  <Link
+                    href={`/achats/${achat.id}`}
+                    className="flex flex-col gap-2 border-b border-surface-border px-4 py-3 hover:bg-surface-subtle sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="font-semibold text-steel-900">{achat.numero}</p>
+                      <p className="text-xs text-steel-500">
+                        {formatDate(achat.date)} • {achat.location ?? '—'} • {achat.lignes_count} ligne(s)
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant={achat.statut === 'valide' ? 'success' : 'warning'} dot>
+                        {achat.statut}
+                      </Badge>
+                      <span className="min-w-32 text-right text-sm font-semibold text-steel-900">
+                        {formatMGA(achat.total)}
+                      </span>
+                    </div>
+                  </Link>
+
+                  {achat.lignes.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-surface-border bg-surface-subtle text-left uppercase text-steel-400">
+                            <th className="px-4 py-2">Matière</th>
+                            <th className="px-4 py-2">Quantité</th>
+                            <th className="px-4 py-2">PU</th>
+                            <th className="px-4 py-2">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-surface-border">
+                          {achat.lignes.map((ligne) => (
+                            <tr key={ligne.id}>
+                              <td className="px-4 py-2">
+                                <span className="font-medium text-steel-800">
+                                  {ligne.matiere?.nom ?? '—'}
+                                </span>
+                                <span className="ml-2 text-steel-400">
+                                  {ligne.matiere?.reference ?? ''}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-steel-600">
+                                {formatQty(ligne.quantite)}
+                              </td>
+                              <td className="px-4 py-2 text-steel-600">
+                                {formatMGA(ligne.prix_unitaire)}
+                              </td>
+                              <td className="px-4 py-2 font-medium text-steel-900">
+                                {formatMGA(ligne.total_ligne)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          ) : null}
+          )}
         </CardBody>
       </Card>
+    </div>
+  )
+}
 
-      <Dialog
-        open={showEdit}
-        onClose={() => setShowEdit(false)}
-        title="Modifier le fournisseur"
-        size="lg"
-      >
-        {fournisseur && (
-          <FournisseurForm
-            defaultValues={fournisseur as Partial<Fournisseur> & { id: number }}
-            onSuccess={() => setShowEdit(false)}
-          />
-        )}
-      </Dialog>
+function Info({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-steel-400">{label}</p>
+      <p className="mt-0.5 font-medium text-steel-800">{value || '—'}</p>
     </div>
   )
 }

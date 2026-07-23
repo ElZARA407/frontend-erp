@@ -24,6 +24,7 @@ import { payerFactureSchema } from '@/lib/schemas/facture.schema'
 import type { Facture } from '@/lib/factures.types'
 import { FileDown } from 'lucide-react'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
+import { useRouter } from 'next/navigation'
 
 
 type FactureRow = Facture
@@ -37,6 +38,7 @@ export function FacturesView() {
   const [dateFin, setDateFin] = useState('')
   const [payingId, setPayingId] = useState<number | null>(null)
   const { exportPdf, isExporting } = usePdfExport()
+  const router = useRouter()
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 200 })
   const { data, isLoading } = useFactures({
@@ -239,9 +241,10 @@ export function FacturesView() {
                 {factures.map((f: FactureRow) => (
                   <tr
                     key={f.id}
-                    className={`transition-colors hover:bg-surface-muted/60 ${
+                    className={`cursor-pointer transition-colors hover:bg-surface-muted/60 ${
                       f.en_retard ? 'bg-red-50/30' : ''
                     }`}
+                    onClick={() => router.push(`/factures/${f.id}`)}
                   >
                     <td className="px-4 py-3">
                       <span className="ref-code">{f.numero}</span>
@@ -284,19 +287,14 @@ export function FacturesView() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Link
-                          href={`/factures/${f.id}`}
-                          className="inline-flex h-7 items-center gap-1.5 rounded-md border border-surface-border bg-white px-2.5 text-xs font-medium text-steel-700 hover:bg-surface-subtle"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          Voir
-                        </Link>
                         <Button
                           variant="ghost"
                           size="sm"
                           icon={<FileDown className="h-3.5 w-3.5" />}
                           loading={isExporting('facture', f.id)}
-                          onClick={() => exportPdf({ type: 'facture', document: f })}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            exportPdf({ type: 'facture', document: f })}}
                         >
                           PDF
                         </Button>
@@ -305,7 +303,9 @@ export function FacturesView() {
                             variant="ghost"
                             size="sm"
                             icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
-                            onClick={() => setPayingId(f.id)}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              setPayingId(f.id)}}
                           >
                             Payer
                           </Button>
@@ -315,7 +315,9 @@ export function FacturesView() {
                             variant="ghost"
                             size="sm"
                             icon={<XCircle className="h-3.5 w-3.5 text-red-500" />}
-                            onClick={() => annuler(f.id)}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              annuler(f.id)}}
                           >
                             Annuler
                           </Button>

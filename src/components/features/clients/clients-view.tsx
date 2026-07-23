@@ -14,6 +14,7 @@ import { TableSkeleton } from '@/components/ui/skeleton'
 import { Dialog } from '@/components/ui/dialog'
 import { ClientForm } from './client-form'
 import type { Client } from '@/lib/types'
+import { useRouter } from 'next/navigation'
 
 const PAGE_SIZE = 10
 
@@ -24,6 +25,7 @@ export function ClientsView() {
   const [showForm, setShowForm] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
 
+  const router = useRouter()
   const { data, isLoading } = useClients({ search, actif, page, per_page: PAGE_SIZE })
   const deleteClient = useDeleteClient()
 
@@ -122,7 +124,9 @@ export function ClientsView() {
 
               <tbody className="divide-y divide-surface-border">
                 {clients.map((client: Client) => (
-                  <tr key={client.id} className="transition-colors hover:bg-surface-muted/60">
+                  <tr key={client.id} className="cursor-pointer hover:bg-surface-muted/60" 
+                    onClick={() => router.push(`/clients/${client.id}`)}
+                  >
                     <td className="px-4 py-3">
                       <span className="ref-code">{client.reference}</span>
                     </td>
@@ -141,17 +145,14 @@ export function ClientsView() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Link href={`/clients/${client.id}`}>
-                          <Button variant="ghost" size="sm" icon={<Eye className="h-3.5 w-3.5" />}>
-                            Voir
-                          </Button>
-                        </Link>
-
                         <Button
                           variant="ghost"
                           size="sm"
                           icon={<PencilLine className="h-3.5 w-3.5" />}
-                          onClick={() => openEdit(client)}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            openEdit(client)
+                          }}
                         >
                           Modifier
                         </Button>
@@ -162,7 +163,10 @@ export function ClientsView() {
                             size="sm"
                             icon={<Trash2 className="h-3.5 w-3.5" />}
                             loading={deleteClient.isPending}
-                            onClick={() => deleteClient.mutate(client.id)}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              deleteClient.mutate(client.id)
+                            }}
                           >
                             Archiver
                           </Button>

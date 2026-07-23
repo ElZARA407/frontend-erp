@@ -263,6 +263,9 @@ export interface BpSession {
   cout_electricite: number
   cout_total: number
   statut: 'ouverte' | 'validee'
+  heures_production?: number
+  quantite_totale_produite?: number
+  production_moyenne_heure?: number
   machine?: Machine
   calcul?: BpSessionCalcul
 }
@@ -274,11 +277,13 @@ export interface BpSessionCalcul {
   temps_panne: number
   temps_effectif: number
   quantite_totale_produite: number
+  production_moyenne_heure?: number
   cout_matieres_total: number
   cout_main_oeuvre_total: number
   cout_electricite: number
   cout_global: number
   cout_unitaire: number
+  heures_production?: number
   details_json?: {
     matieres?: Array<{
       matiere_id: number

@@ -15,6 +15,7 @@ import { useCommandes, useDuplicateCommande } from '@/lib/hooks/use-commandes'
 import type { Commande } from '@/lib/types'
 import { CommandeForm } from './commande-form'
 import { LivraisonForm } from '../livraisons/livraison-form'
+import { useRouter } from 'next/navigation'
 
 export function CommandesView() {
   const [page, setPage] = useState(1)
@@ -23,6 +24,7 @@ export function CommandesView() {
   const [showCreate, setShowCreate] = useState(false)
   const [showLivraison, setShowLivraison] = useState(false)
   const [selectedCommande, setSelectedCommande] = useState<Commande | null>(null)
+  const router = useRouter()
 
   const { data, isLoading } = useCommandes({
     statut: statut || undefined,
@@ -120,7 +122,10 @@ export function CommandesView() {
                 const canDeliverCommande = canDeliver(cmd)
 
                 return (
-                  <tr key={cmd.id} className={`transition-colors hover:bg-surface-muted/60 ${cmd.en_retard ? 'bg-red-50/40' : ''}`}>
+                  <tr key={cmd.id} 
+                    className={`transition-colors cursor-pointer hover:bg-surface-muted/60 ${cmd.en_retard ? 'bg-red-50/40' : ''}`}
+                    onClick={() => router.push(`/commandes/${cmd.id}`)}
+                  >
                     <td className="px-4 py-3">
                       <span className="ref-code">{cmd.numero}</span>
                       {cmd.en_retard && <AlertTriangle className="ml-1.5 inline h-3 w-3 text-red-500" />}
@@ -143,7 +148,8 @@ export function CommandesView() {
                             variant="outline"
                             size="sm"
                             icon={<Truck className="h-3.5 w-3.5" />}
-                            onClick={() => {
+                            onClick={(event) => {
+                              event.stopPropagation()
                               setSelectedCommande(cmd)
                               setShowLivraison(true)
                             }}
@@ -155,13 +161,11 @@ export function CommandesView() {
                           variant="ghost"
                           size="sm"
                           icon={<Copy className="h-3.5 w-3.5" />}
-                          onClick={() => duplicate(cmd.id)}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            duplicate(cmd.id)
+                          }}
                         />
-                        <Link href={`/commandes/${cmd.id}`}>
-                          <Button variant="ghost" size="sm" icon={<Eye className="h-3.5 w-3.5" />}>
-                            Voir
-                          </Button>
-                        </Link>
                       </div>
                     </td>
                   </tr>

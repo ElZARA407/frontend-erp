@@ -14,11 +14,13 @@ import { Dialog } from '@/components/ui/dialog'
 import { BpForm } from './bp-form'
 import { formatDate, formatMGA, formatPercent, formatQty, getStatutColor } from '@/lib/utils'
 import type { BonProduction } from '@/lib/types'
+import { useRouter } from 'next/navigation'
 
 export function ProductionView() {
   const [page, setPage] = useState(1)
   const [statut, setStatut] = useState<string>('')
   const [showCreate, setShowCreate] = useState(false)
+  const router = useRouter()
 
   const { data, isLoading } = useBonsProduction({
     statut: statut || undefined,
@@ -116,7 +118,9 @@ export function ProductionView() {
               </thead>
               <tbody className="divide-y divide-surface-border">
                 {bps.map((bp: BonProduction) => (
-                  <tr key={bp.id} className="transition-colors hover:bg-surface-muted/60">
+                  <tr key={bp.id} className="transition-colors hover:bg-surface-muted/60 cursor-pointer"
+                    onClick={() => router.push(`/production/${bp.id}`)}
+                  >
                     <td className="px-4 py-3">
                       <span className="ref-code">{bp.numero}</span>
                     </td>
@@ -160,7 +164,9 @@ export function ProductionView() {
                             size="sm"
                             loading={cancelling}
                             icon={<XCircle className="h-3.5 w-3.5" />}
-                            onClick={() => annulerBP(bp.id)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              annulerBP(bp.id)}}
                           >
                             Annuler
                           </Button>
@@ -171,16 +177,13 @@ export function ProductionView() {
                             size="sm"
                             loading={closing}
                             icon={<CheckCircle className="h-3.5 w-3.5 text-emerald-600" />}
-                            onClick={() => clotureBP(bp.id)}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              clotureBP(bp.id)}}
                           >
                             Clôturer
                           </Button>
                         )}
-                        <Link href={`/production/${bp.id}`}>
-                          <Button variant="ghost" size="sm" icon={<Eye className="h-3.5 w-3.5" />}>
-                            Voir
-                          </Button>
-                        </Link>
                       </div>
                     </td>
                   </tr>

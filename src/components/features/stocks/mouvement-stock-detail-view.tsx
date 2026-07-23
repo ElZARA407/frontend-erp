@@ -10,6 +10,8 @@ import { StatCard } from '@/components/ui/stat-card'
 import { useMouvementStock } from '@/lib/hooks/use-stocks'
 import { formatDateTime, formatQty } from '@/lib/utils'
 import type { MouvementStock } from '@/lib/types'
+import { Button } from '@/components/ui/button'
+import { useRouter } from 'next/navigation'
 
 interface MouvementStockDetailViewProps {
   mouvementId: number
@@ -40,6 +42,7 @@ export function MouvementStockDetailView({ mouvementId }: MouvementStockDetailVi
 
   const typeValue = getMovementTypeValue(mouvement?.type)
   const typeLabel = getMovementTypeLabel(mouvement?.type)
+  const router = useRouter()
 
   if (!isLoading && !mouvement) {
     return (
@@ -72,13 +75,13 @@ export function MouvementStockDetailView({ mouvementId }: MouvementStockDetailVi
         title={`Mouvement #${mouvementId}`}
         subtitle="Journal de tracabilite immuable"
         actions={
-          <Link
-            href="/stocks"
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
+          <Button
+              onClick={() => router.back()}
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Retour journal
-          </Link>
+              <ArrowLeft className="h-4 w-4" />
+                  Retour
+          </Button>
         }
       />
 

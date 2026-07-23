@@ -17,12 +17,14 @@ import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
 import type { JournalAchat } from '@/lib/types'
 import { FileDown } from 'lucide-react'
 import {  usePdfExport } from '@/lib/hooks/use-pdf-export'
+import { useRouter } from 'next/navigation'
 
 export function AchatsView() {
   const [page, setPage] = useState(1)
   const [statut, setStatut] = useState<string>('')
   const [showCreate, setShowCreate] = useState(false)
   const {exportPdf, isExporting} = usePdfExport()
+  const router = useRouter()
 
   const { data, isLoading } = useAchats({
     statut: statut || undefined,
@@ -95,7 +97,9 @@ export function AchatsView() {
             </thead>
             <tbody className="divide-y divide-surface-border">
               {brs.map((br: JournalAchat) => (
-                <tr key={br.id} className="transition-colors hover:bg-surface-muted/60">
+                <tr key={br.id} className="cursor-pointer transition-colors hover:bg-surface-muted/60"
+                  onClick={() => router.push(`/achats/${br.id}`)}
+                >
                   <td className="px-4 py-3">
                     <span className="ref-code">{br.numero}</span>
                   </td>
@@ -124,7 +128,9 @@ export function AchatsView() {
                       size="sm"
                       icon={<FileDown className="h-3.5 w-3.5" />}
                       loading={isExporting('br', br.id)}
-                      onClick={() => exportPdf({ type: 'br', document: br })}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        exportPdf({ type: 'br', document: br })}}
                     >
                       PDF
                     </Button>
@@ -134,17 +140,13 @@ export function AchatsView() {
                           size="sm"
                           icon={<CheckCircle className="h-3.5 w-3.5 text-emerald-600" />}
                           loading={isPending}
-                          onClick={() => valider(br.id)}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            valider(br.id)}}
                         >
                           Valider
                         </Button>
                       )}
-
-                      <Link href={`/achats/${br.id}`}>
-                        <Button variant="ghost" size="sm" icon={<Eye className="h-3.5 w-3.5" />}>
-                          Voir
-                        </Button>
-                      </Link>
                     </div>
                   </td>
                 </tr>

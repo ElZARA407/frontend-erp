@@ -16,6 +16,7 @@ import { formatDate, formatDateTime, formatQty, getStatutColor } from '@/lib/uti
 import { FactureForm } from '../factures/facture-form'
 import { FileDown } from 'lucide-react'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
+import { useRouter } from 'next/navigation'
 
 type LivraisonDetail = {
   id: number
@@ -57,6 +58,7 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
   const annulerLivraison = useAnnulerLivraison()
   const { exportPdf, isExporting } = usePdfExport()
   const [showFacture, setShowFacture] = useState(false)
+  const router = useRouter()
 
   const livraison = data as LivraisonDetail | undefined
   const lignes = Array.isArray(livraison?.lignes) ? livraison.lignes : []
@@ -119,13 +121,13 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
                   Telecharger BL
                 </Button>
               )}
-            <Link
-              href="/livraisons"
+            <Button
+              onClick={() => router.back()}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
             >
               <ArrowLeft className="h-4 w-4" />
               Retour liste
-            </Link>
+            </Button>
           </div>
         }
       />

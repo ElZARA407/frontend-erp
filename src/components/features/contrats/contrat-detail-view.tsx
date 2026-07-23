@@ -12,6 +12,7 @@ import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { StatCard } from '@/components/ui/stat-card'
 import { formatDateTime, formatMGA } from '@/lib/utils'
 import { ArrowLeft, Repeat, ShieldCheck, ShieldOff } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 interface ContratDetailViewProps {
   contratId: number
@@ -20,6 +21,7 @@ interface ContratDetailViewProps {
 export function ContratDetailView({ contratId }: ContratDetailViewProps) {
   const { data: contrat, isLoading } = useContratDetail(contratId)
   const toggleContratActif = useToggleContratActif()
+  const router = useRouter()
 
   const lignes = Array.isArray(contrat?.lignes) ? contrat.lignes : []
 
@@ -54,13 +56,13 @@ export function ContratDetailView({ contratId }: ContratDetailViewProps) {
         title={contrat?.numero ?? `Contrat #${contratId}`}
         subtitle={contrat ? `Client ${contrat.client?.nom ?? '—'}` : 'Chargement...'}
         actions={
-          <Link
-            href="/contrats"
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Retour liste
-          </Link>
+          <Button
+              onClick={() => router.back()}
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Retour liste
+            </Button>
         }
       />
 
