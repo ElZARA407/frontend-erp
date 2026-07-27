@@ -200,7 +200,7 @@ export function BpForm({ onSuccess }: BpFormProps) {
 
       <section className="space-y-4 rounded-lg border border-surface-border bg-white p-4">
         <div>
-          <h3 className="text-sm font-semibold text-steel-900">Création du bon de production</h3>
+          <h3 className="text-sm font-semibold text-steel-900">Création d'Ordre des Fabrications</h3>
           <p className="text-xs text-steel-500">
             Le formulaire est conçu pour rester lisible en paysage et éviter les débordements.
           </p>
@@ -208,7 +208,7 @@ export function BpForm({ onSuccess }: BpFormProps) {
 
         {formBlocked && (
           <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-            Il faut au moins un site, un produit et une machine pour créer un BP.
+            Il faut au moins un site, un produit et une machine pour créer un OF.
           </div>
         )}
 
@@ -221,7 +221,7 @@ export function BpForm({ onSuccess }: BpFormProps) {
               {...register('date')}
             />
             <Select
-              label="Site *"
+              label="Lieu de stockages *"
               options={locationOptions}
               placeholder={locations.length ? 'Choisir un site' : 'Aucun site disponible'}
               error={bpErrors.location_id?.message}
@@ -231,7 +231,7 @@ export function BpForm({ onSuccess }: BpFormProps) {
           </div>
 
           <Select
-            label="Produit *"
+            label="Produit a produire *"
             options={productOptions}
             placeholder={products.length ? 'Choisir un produit' : 'Aucun produit disponible'}
             error={bpErrors.produit_id?.message}
@@ -259,7 +259,7 @@ export function BpForm({ onSuccess }: BpFormProps) {
 
           <div className="flex justify-end border-t border-surface-border pt-4">
             <Button type="submit" loading={isPending} disabled={formBlocked}>
-              Créer le BP
+              Créer OF
             </Button>
           </div>
         </form>
