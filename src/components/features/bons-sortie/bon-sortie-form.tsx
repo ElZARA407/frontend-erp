@@ -17,16 +17,16 @@ import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import { useClients } from '@/lib/hooks/use-clients'
-import { useProducts } from '@/lib/hooks/use-catalogue'
+import { useStocks } from '@/lib/hooks/use-stocks'
 import { useCreateBonSortie } from '@/lib/hooks/use-bons-sortie'
 import { MOTIFS_SORTIE } from '@/lib/constants'
 import { formatQty } from '@/lib/utils'
 import { bonSortieSchema, type BonSortieSchema } from '@/lib/schemas/bons-sortie.schema'
 import type { BonSortieMotif } from '@/lib/bons-sortie.types'
-import type { CatalogueProduct } from '@/lib/catalogue.types'
-import { SearchableSelect } from '@/components/ui/searchable-select'
+import type { Stock } from '@/lib/types'
 
 interface BonSortieFormProps {
   onSuccess?: () => void
@@ -40,23 +40,23 @@ type BonSortieLineFormValues = {
 
 type BonSortieFormValues = {
   location_id: number
+  destination_location_id?: number
   date: string
   motif: BonSortieMotif
   client_id?: number
+  motif_detail?: string
   observations?: string
   lignes: BonSortieLineFormValues[]
 }
 
-function getAvailableClassements(product?: CatalogueProduct | null) {
-  const stockList = Array.isArray(product?.stocks_par_qualite) ? product.stocks_par_qualite : []
-
-  return stockList
-    .filter((item) => Number(item.stock_total) > 0 && Number(item.classement_id) > 0)
-    .map((item) => ({
-      value: Number(item.classement_id),
-      label: item.libelle ?? item.qualite ?? `Classement #${item.classement_id}`,
-      stock_total: Number(item.stock_total) || 0,
-    }))
+type StockProductOption = {
+  id: number
+  label: string
+  classements: Array<{
+    value: number
+    label: string
+    stock_total: number
+  }>
 }
 
 function createEmptyLine(): BonSortieLineFormValues {
@@ -67,30 +67,69 @@ function createEmptyLine(): BonSortieLineFormValues {
   }
 }
 
+function buildProductOptionsFromStocks(stocks: Stock[]): StockProductOption[] {
+  const grouped = new Map<number, StockProductOption>()
+
+  for (const stock of stocks) {
+    if (stock.entite_type !== 'produit') continue
+    if (!stock.entite_id || Number(stock.stock_total) <= 0) continue
+    if (!stock.classement?.id) continue
+
+    const productId = Number(stock.entite_id)
+    const designation = stock.entite?.designation ?? stock.entite?.nom ?? `Produit #${productId}`
+    const code = stock.entite?.nomencla ?? stock.entite?.reference ?? `#${productId}`
+    const existing = grouped.get(productId)
+
+    const classementOption = {
+      value: Number(stock.classement.id),
+      label:
+        stock.classement.libelle ??
+        stock.classement.designation ??
+        stock.classement.qualite ??
+        `Classement #${stock.classement.id}`,
+      stock_total: Number(stock.stock_total) || 0,
+    }
+
+    if (existing) {
+      const alreadyExists = existing.classements.some(
+        (option) => option.value === classementOption.value,
+      )
+
+      if (!alreadyExists) {
+        existing.classements.push(classementOption)
+      }
+
+      continue
+    }
+
+    grouped.set(productId, {
+      id: productId,
+      label: `${designation} (${code})`,
+      classements: [classementOption],
+    })
+  }
+
+  return Array.from(grouped.values()).sort((a, b) => a.label.localeCompare(b.label))
+}
+
+function detailLabelForMotif(motif: BonSortieMotif): string {
+  if (motif === 'perte') return 'Motif de perte *'
+  if (motif === 'casse') return 'Description casse *'
+  if (motif === 'destruction') return 'Motif de destruction *'
+  if (motif === 'consommation_interne') return 'Détail consommation interne'
+  if (motif === 'don') return 'Bénéficiaire / commentaire'
+  if (motif === 'autre') return 'Commentaire *'
+  return 'Détail'
+}
+
 export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
   const createBonSortie = useCreateBonSortie()
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { data: locationsData } = useLocations()
-  const { data: productsPage } = useProducts({ actif: true, per_page: 500 })
 
   const clients = Array.isArray(clientsPage?.data?.data) ? clientsPage.data.data : []
   const locations = Array.isArray(locationsData) ? locationsData : []
-  const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.data : []
-
-  const eligibleProducts = useMemo(
-    () => products.filter((product) => getAvailableClassements(product).length > 0),
-    [products],
-  )
-
-  const productOptions = useMemo(
-    () =>
-      eligibleProducts.map((product) => ({
-        value: product.id,
-        label: `${product.designation} (${product.nomencla})`,
-      })),
-    [eligibleProducts],
-  )
 
   const {
     register,
@@ -103,15 +142,36 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
     resolver: zodResolver(bonSortieSchema) as unknown as Resolver<BonSortieFormValues>,
     defaultValues: {
       location_id: 0,
+      destination_location_id: undefined,
       date: new Date().toISOString().slice(0, 10),
-      motif: 'usage_interne',
+      motif: 'consommation_interne',
       client_id: undefined,
+      motif_detail: '',
       observations: '',
       lignes: [createEmptyLine()],
     },
     mode: 'onSubmit',
     reValidateMode: 'onChange',
   })
+
+  const locationId = useWatch({ control, name: 'location_id' })
+  const motif = useWatch({ control, name: 'motif' })
+  const lignes = useWatch({ control, name: 'lignes' }) ?? []
+
+  const { data: stocksPage } = useStocks({
+    location_id: Number(locationId) > 0 ? Number(locationId) : undefined,
+    entite_type: 'produit',
+    per_page: 500,
+    page: 1,
+  })
+
+  const stocks = Array.isArray(stocksPage?.data?.data) ? stocksPage.data.data : []
+  const stockProductOptions = useMemo(() => buildProductOptionsFromStocks(stocks), [stocks])
+
+  const productOptions = useMemo(
+    () => stockProductOptions.map((product) => ({ value: product.id, label: product.label })),
+    [stockProductOptions],
+  )
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -122,49 +182,66 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
 
   useEffect(() => {
     if (initializedRef.current) return
-    if (!locations.length || !eligibleProducts.length) return
+    if (!locations.length) return
 
     const currentLocationId = getValues('location_id')
-    const currentLine = getValues('lignes.0')
 
-    if (
-      currentLocationId > 0 &&
-      (currentLine?.produit_id ?? 0) > 0 &&
-      (currentLine?.classement_id ?? 0) > 0
-    ) {
+    if (currentLocationId > 0) {
       initializedRef.current = true
       return
     }
 
     setValue('location_id', locations[0]?.id ?? 0, { shouldValidate: true })
+    initializedRef.current = true
+  }, [getValues, locations, setValue])
 
-    const defaultProduct = eligibleProducts[0]
-    const defaultClassement = getAvailableClassements(defaultProduct)[0]
+  useEffect(() => {
+    if (!stockProductOptions.length) return
 
-    if (defaultProduct) {
-      setValue('lignes.0.produit_id', defaultProduct.id, {
-        shouldValidate: true,
-        shouldDirty: false,
-      })
-      setValue('lignes.0.classement_id', defaultClassement?.value ?? 0, {
-        shouldValidate: true,
-        shouldDirty: false,
-      })
+    const currentLines = getValues('lignes') ?? []
+    const firstLine = currentLines[0]
+
+    if ((firstLine?.produit_id ?? 0) > 0 && (firstLine?.classement_id ?? 0) > 0) {
+      return
     }
 
-    initializedRef.current = true
-  }, [eligibleProducts, getValues, locations, setValue])
+    const defaultProduct = stockProductOptions[0]
+    const defaultClassement = defaultProduct?.classements[0]
 
-  const lignes = useWatch({ control, name: 'lignes' }) ?? []
+    if (!defaultProduct || !defaultClassement) return
+
+    setValue('lignes.0.produit_id', defaultProduct.id, {
+      shouldValidate: true,
+      shouldDirty: false,
+    })
+    setValue('lignes.0.classement_id', defaultClassement.value, {
+      shouldValidate: true,
+      shouldDirty: false,
+    })
+  }, [getValues, setValue, stockProductOptions])
+
+  useEffect(() => {
+    if (motif !== 'transfert') {
+      setValue('destination_location_id', undefined, { shouldValidate: true })
+    }
+
+    if (motif !== 'echantillon') {
+      setValue('client_id', undefined, { shouldValidate: true })
+    }
+  }, [motif, setValue])
+
   const totalQuantite = lignes.reduce((sum, ligne) => sum + (Number(ligne.quantite) || 0), 0)
 
   const onSubmit = (values: BonSortieFormValues) => {
     const payload: BonSortieSchema = {
-      location_id: values.location_id,
+      location_id: Number(values.location_id),
+      destination_location_id:
+        values.motif === 'transfert' ? values.destination_location_id : undefined,
       date: values.date,
       motif: values.motif,
-      client_id: values.client_id ?? undefined,
-      observations: values.observations ?? undefined,
+      client_id: values.motif === 'echantillon' ? values.client_id : undefined,
+      motif_detail: values.motif_detail?.trim() || undefined,
+      observations: values.observations?.trim() || undefined,
       lignes: values.lignes.map((ligne) => ({
         produit_id: Number(ligne.produit_id),
         classement_id: Number(ligne.classement_id),
@@ -179,7 +256,7 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Select
-          label="Localisation *"
+          label="Localisation source *"
           options={locations.map((location) => ({ value: location.id, label: location.nom }))}
           placeholder="Choisir une localisation"
           error={errors.location_id?.message}
@@ -190,26 +267,71 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Select
-          label="Motif *"
-          options={MOTIFS_SORTIE.map((motif) => ({ value: motif.value, label: motif.label }))}
+          label="Raison de sortie *"
+          options={MOTIFS_SORTIE.map((item) => ({ value: item.value, label: item.label }))}
           error={errors.motif?.message}
           {...register('motif')}
         />
-        <Select
-          label="Client"
-          options={clients.map((client) => ({ value: client.id, label: client.nom }))}
-          placeholder="Aucun client"
-          {...register('client_id', {
-            setValueAs: (value) => (value === '' ? undefined : Number(value)),
-          })}
-        />
+
+        {motif === 'transfert' && (
+          <Select
+            label="Destination *"
+            options={locations
+              .filter((location) => Number(location.id) !== Number(locationId))
+              .map((location) => ({ value: location.id, label: location.nom }))}
+            placeholder="Choisir la destination"
+            error={errors.destination_location_id?.message}
+            {...register('destination_location_id', {
+              setValueAs: (value) => (value === '' ? undefined : Number(value)),
+            })}
+          />
+        )}
+
+        {motif === 'echantillon' && (
+          <SearchableSelect
+            label="Client *"
+            options={clients.map((client) => ({ value: client.id, label: client.nom }))}
+            value={getValues('client_id') ?? null}
+            onValueChange={(value) =>
+              setValue('client_id', Number(value) || undefined, {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }
+            placeholder="Choisir un client"
+            searchPlaceholder="Rechercher un client..."
+            noOptionsMessage="Aucun client trouvé."
+            error={errors.client_id?.message}
+          />
+        )}
+
+        {['perte', 'casse', 'consommation_interne', 'don', 'destruction', 'autre'].includes(motif) && (
+          <Input
+            label={detailLabelForMotif(motif)}
+            placeholder="Préciser le contexte"
+            error={errors.motif_detail?.message}
+            {...register('motif_detail')}
+          />
+        )}
       </div>
+
+      <Input
+        label="Observation"
+        placeholder="Observation générale facultative"
+        error={errors.observations?.message}
+        {...register('observations')}
+      />
 
       <div className="rounded-lg border border-surface-border">
         <div className="flex items-center justify-between border-b border-surface-border px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-steel-500">
-            Lignes de sortie
-          </p>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-steel-500">
+              Lignes de sortie
+            </p>
+            <p className="text-xs text-steel-400">
+              Les produits affichés dépendent du stock disponible dans la localisation source.
+            </p>
+          </div>
           <Button
             type="button"
             variant="ghost"
@@ -230,18 +352,22 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
               setValue={setValue}
               register={register}
               remove={() => remove(index)}
-              products={eligibleProducts}
+              products={stockProductOptions}
               productOptions={productOptions}
               errors={errors}
             />
           ))}
         </div>
 
-        {errors.lignes && <p className="px-4 py-3 text-xs text-red-600">{errors.lignes.message}</p>}
+        {errors.lignes && (
+          <p className="px-4 py-3 text-xs text-red-600">{errors.lignes.message}</p>
+        )}
       </div>
 
       <div className="rounded-lg border border-surface-border bg-surface-subtle px-4 py-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Total quantités</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-steel-400">
+          Total quantités
+        </p>
         <p className="mt-1 text-lg font-semibold text-steel-900">{formatQty(totalQuantite)}</p>
       </div>
 
@@ -269,7 +395,7 @@ function BonSortieLineRow({
   setValue: UseFormSetValue<BonSortieFormValues>
   register: UseFormRegister<BonSortieFormValues>
   remove: () => void
-  products: CatalogueProduct[]
+  products: StockProductOption[]
   productOptions: Array<{ value: number; label: string }>
   errors: FieldErrors<BonSortieFormValues>
 }) {
@@ -288,10 +414,7 @@ function BonSortieLineRow({
     [produitId, products],
   )
 
-  const classementOptions = useMemo(
-    () => getAvailableClassements(selectedProduct),
-    [selectedProduct],
-  )
+  const classementOptions = selectedProduct?.classements ?? []
 
   useEffect(() => {
     if (!classementOptions.length) {
@@ -316,65 +439,36 @@ function BonSortieLineRow({
   }, [classementId, classementOptions, index, setValue])
 
   return (
-    <div className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 md:grid-cols-4">
-      {/* <Controller
-        control={control}
-        name={`lignes.${index}.produit_id`}
-        render={({ field }) => (
-          <Select
-            label="Produit *"
-            options={productOptions}
-            placeholder={productOptions.length ? 'Choisir un produit' : 'Aucun produit disponible'}
-            error={errors.lignes?.[index]?.produit_id?.message}
-            value={String(field.value ?? '')}
-            onChange={(e) => {
-              const nextProduitId = Number(e.target.value)
-              field.onChange(nextProduitId)
-
-              const nextProduct = products.find((product) => product.id === nextProduitId)
-              const nextClassements = getAvailableClassements(nextProduct)
-
-              setValue(`lignes.${index}.classement_id`, nextClassements[0]?.value ?? 0, {
-                shouldValidate: true,
-                shouldDirty: true,
-              })
-            }}
-            onBlur={field.onBlur}
-            name={field.name}
-            ref={field.ref}
-          />
-        )}
-      /> */}
-
+    <div className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 lg:grid-cols-6">
       <Controller
         control={control}
         name={`lignes.${index}.produit_id`}
         render={({ field }) => (
-        <SearchableSelect
-          label="Produit *"
-          options={productOptions}
-          placeholder={productOptions.length ? 'Choisir un produit' : 'Aucun produit disponible'}
-          searchPlaceholder="Rechercher une désignation ou une nomencla..."
-          noOptionsMessage="Aucun produit trouvé."
-          error={errors.lignes?.[index]?.produit_id?.message}
-          disabled={!productOptions.length}
+          <SearchableSelect
+            label="Produit *"
+            options={productOptions}
+            placeholder={productOptions.length ? 'Choisir un produit' : 'Aucun produit disponible'}
+            searchPlaceholder="Rechercher une désignation ou une nomencla..."
+            noOptionsMessage="Aucun produit trouvé."
+            error={errors.lignes?.[index]?.produit_id?.message}
+            disabled={!productOptions.length}
             value={field.value}
             onValueChange={(nextValue) => {
-            const nextProduitId = Number(nextValue)
+              const nextProduitId = Number(nextValue)
               field.onChange(nextProduitId)
-      
-                const nextProduct = products.find((product) => product.id === nextProduitId)
-                    const nextClassements = getAvailableClassements(nextProduct)
-      
-                    setValue(`lignes.${index}.classement_id`, nextClassements[0]?.value ?? 0, {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                    })
-                  }}
-                  className="lg:col-span-2"
-                />
-              )}
-            />
+
+              const nextProduct = products.find((product) => product.id === nextProduitId)
+              const nextClassement = nextProduct?.classements[0]
+
+              setValue(`lignes.${index}.classement_id`, nextClassement?.value ?? 0, {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }}
+            className="lg:col-span-2"
+          />
+        )}
+      />
 
       <Controller
         control={control}
@@ -384,7 +478,7 @@ function BonSortieLineRow({
             label="Classement *"
             options={classementOptions.map((option) => ({
               value: option.value,
-              label: `${option.label}${option.stock_total > 0 ? ` (${formatQty(option.stock_total)})` : ''}`,
+              label: `${option.label} (${formatQty(option.stock_total)})`,
             }))}
             placeholder={
               classementOptions.length
@@ -394,10 +488,11 @@ function BonSortieLineRow({
             error={errors.lignes?.[index]?.classement_id?.message}
             disabled={!classementOptions.length}
             value={String(field.value ?? '')}
-            onChange={(e) => field.onChange(Number(e.target.value))}
+            onChange={(event) => field.onChange(Number(event.target.value))}
             onBlur={field.onBlur}
             name={field.name}
             ref={field.ref}
+            className="lg:col-span-3"
           />
         )}
       />
@@ -405,12 +500,14 @@ function BonSortieLineRow({
       <Input
         label="Quantité *"
         type="number"
-        step="1"
+        step="0.001"
+        min="0"
         error={errors.lignes?.[index]?.quantite?.message}
+        className="lg:col-span-2"
         {...register(`lignes.${index}.quantite`, { valueAsNumber: true })}
       />
 
-      <div className="flex items-end justify-end">
+      <div className="flex items-end justify-end lg:col-span-2">
         <Button
           type="button"
           variant="ghost"

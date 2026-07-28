@@ -29,19 +29,70 @@ export interface FournisseurPayload {
   actif: boolean
 }
 
+export type ContratFrequence =
+  | 'quotidienne'
+  | 'hebdomadaire'
+  | 'bimensuel'
+  | 'mensuel'
+  | 'tous_x_jours'
+  | 'personnalisee'
+
 export interface LigneContrat {
   id: number
+  produit_id: number
+  classement_id: number
   quantite_contractuelle: number
   quantite_livree_ytd: number
   quantite_restante: number
   est_solde: boolean
-  frequence: 'hebdomadaire' | 'bimensuel' | 'mensuel'
+  frequence: ContratFrequence
+  frequence_libelle?: string
+  frequence_jours?: number | null
+  date_debut?: string | null
+  date_fin?: string | null
   statut: 'disponible' | 'indisponible' | 'en_cours'
   prix_unitaire: number
+  total_ligne?: number
+  produit?: {
+    id: number
+    nomencla: string
+    designation: string
+  } | null
   classement?: {
     id: number
-    designation: string
-  }
+    qualite?: string | null
+    libelle?: string | null
+    designation?: string | null
+  } | null
+}
+
+export interface ContratPayload {
+  client_id: number
+  mois: string
+  actif?: boolean
+  lignes: Array<{
+    produit_id: number
+    classement_id: number
+    quantite_contractuelle: number
+    frequence: ContratFrequence
+    frequence_jours?: number | null
+    date_debut?: string | null
+    date_fin?: string | null
+    prix_unitaire: number
+  }>
+}
+
+export interface ContratFilters {
+  search?: string
+  client_id?: number
+  mois?: string
+  actif?: boolean
+  frequence?: ContratFrequence
+  date_debut?: string
+  date_fin?: string
+  page?: number
+  per_page?: number
+  [key: string]: unknown
 }
 
 export interface Contrat {
@@ -58,17 +109,6 @@ export interface Contrat {
   }
   lignes?: LigneContrat[]
   created_at?: string
-}
-
-export interface ContratPayload {
-  client_id: number
-  mois: string
-  lignes: Array<{
-    classement_id: number
-    quantite_contractuelle: number
-    frequence: 'hebdomadaire' | 'bimensuel' | 'mensuel'
-    prix_unitaire: number
-  }>
 }
 
 export interface LigneDemandeAchat {
@@ -117,14 +157,6 @@ export interface FournisseurFilters {
   [key: string]: unknown
 }
 
-export interface ContratFilters {
-  client_id?: number
-  mois?: string
-  actif?: boolean
-  page?: number
-  per_page?: number
-  [key: string]: unknown
-}
 
 export interface DemandeAchatFilters {
   statut?: string

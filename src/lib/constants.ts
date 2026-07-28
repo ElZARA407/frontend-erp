@@ -50,11 +50,15 @@ export const QUALITES_PRODUIT = [
 ] as const
 
 export const MOTIFS_SORTIE = [
+  { value: 'transfert', label: 'Transfert' },
+  { value: 'echantillon', label: 'Échantillon' },
+  { value: 'perte', label: 'Perte' },
+  { value: 'casse', label: 'Casse' },
+  { value: 'consommation_interne', label: 'Consommation interne' },
+  { value: 'don', label: 'Don' },
+  { value: 'destruction', label: 'Destruction' },
+  { value: 'autre', label: 'Autre' },
   { value: 'usage_interne', label: 'Usage interne' },
-  { value: 'perte',         label: 'Perte'         },
-  { value: 'echantillon',   label: 'Échantillon'   },
-  { value: 'don',           label: 'Don'           },
-  { value: 'autre',         label: 'Autre'         },
 ] as const
 
 export const DEFAULT_PAGE_SIZE = 20

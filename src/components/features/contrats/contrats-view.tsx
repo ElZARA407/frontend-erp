@@ -197,7 +197,7 @@ export function ContratsView() {
         open={showDialog}
         onClose={() => setShowDialog(false)}
         title="Nouveau contrat"
-        size="xl"
+        size="wide"
       >
         <ContratForm
           clients={clients}
