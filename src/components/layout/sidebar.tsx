@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   ShoppingCart,
   Truck,
+  FileText,
   Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -41,6 +42,7 @@ const navItems = [
   { href: '/fournisseurs', label: 'Fournisseurs', icon: Truck, group: 'commercial' },
   { href: '/contrats', label: 'Contrats', icon: ShieldCheck, group: 'commercial' },
   { href: '/rh', label: 'RH', icon: Users, group: 'main' },
+  { href: '/rapports', label: 'États / Rapports', icon: FileText, group: 'main' },
 ]
 
 const groups = [

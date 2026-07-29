@@ -212,7 +212,7 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
           <Input
             label="Coût électricité"
             type="number"
-            step="100"
+            step="1"
             placeholder="0"
             error={errors.cout_electricite?.message}
             {...register('cout_electricite')}

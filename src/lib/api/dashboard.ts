@@ -1,6 +1,6 @@
 // src/lib/api/dashboard.ts
 import apiClient from './client'
-import type { ApiResponse, DashboardKpi } from '../types'
+import type { ApiResponse, DashboardAlerte, DashboardKpi, LegacyDashboardKpi } from '../types'
 
 export const dashboardApi = {
   index: async () => {
@@ -9,22 +9,29 @@ export const dashboardApi = {
   },
 
   production: async () => {
-    const { data } = await apiClient.get<ApiResponse<DashboardKpi['production']>>('/dashboard/production')
+    const { data } = await apiClient.get<ApiResponse<LegacyDashboardKpi['production']>>('/dashboard/production')
     return data.data
   },
 
   stock: async () => {
-    const { data } = await apiClient.get<ApiResponse<DashboardKpi['stock']>>('/dashboard/stock')
+    const { data } = await apiClient.get<ApiResponse<LegacyDashboardKpi['stock']>>('/dashboard/stock')
     return data.data
   },
 
   commercial: async () => {
-    const { data } = await apiClient.get<ApiResponse<DashboardKpi['commercial']>>('/dashboard/commercial')
+    const { data } = await apiClient.get<ApiResponse<LegacyDashboardKpi['commercial']>>('/dashboard/commercial')
     return data.data
   },
 
   finance: async () => {
-    const { data } = await apiClient.get<ApiResponse<DashboardKpi['finance']>>('/dashboard/finance')
+    const { data } = await apiClient.get<ApiResponse<LegacyDashboardKpi['finance']>>('/dashboard/finance')
+    return data.data
+  },
+
+  pilotage: async () => {
+    const { data } = await apiClient.get<ApiResponse<{ alertes: DashboardAlerte[]; generated_at: string }>>(
+      '/dashboard/pilotage'
+    )
     return data.data
   },
 }

@@ -38,6 +38,7 @@ const ROUTE_PREFIXES: Record<AppRole, string[]> = {
     '/dashboard',
     '/organisation',
     '/rh',
+    '/rapports',
     '/catalogue',
     '/stocks',
     '/achats',
@@ -53,7 +54,7 @@ const ROUTE_PREFIXES: Record<AppRole, string[]> = {
     '/factures',
     '/bons-sortie',
   ],
-  responsable_prod: ['/dashboard', '/catalogue', '/stocks', '/production', '/recyclage'],
+  responsable_prod: ['/dashboard', '/catalogue', '/stocks', '/production', '/recyclage','/rapports'],
   operateur_saisie: ['/dashboard', '/catalogue', '/stocks', '/production', '/recyclage'],
   commercial: [
     '/dashboard',
@@ -64,11 +65,12 @@ const ROUTE_PREFIXES: Record<AppRole, string[]> = {
     '/livraisons',
     '/ventes-directes',
     '/fournisseurs',
+    '/rapports',
     '/contrats',
   ],
-  logistique: ['/dashboard', '/stocks', '/commandes', '/livraisons', '/bons-sortie'],
-  finance: ['/dashboard', '/factures', '/clients', '/commandes'],
-  responsable_achat: ['/dashboard', '/catalogue', '/stocks', '/fournisseurs', '/achats', '/demandes-achat'],
+  logistique: ['/dashboard', '/stocks', '/commandes', '/livraisons','/rapports', '/bons-sortie'],
+  finance: ['/dashboard', '/factures', '/clients', '/rapports','/commandes'],
+  responsable_achat: ['/dashboard', '/catalogue', '/rapports','/stocks', '/fournisseurs', '/achats', '/demandes-achat'],
 }
 
 const ACTION_MATRIX: Record<AppRole, Partial<Record<PermissionAction, boolean>>> = {
