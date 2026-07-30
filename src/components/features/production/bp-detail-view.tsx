@@ -14,6 +14,7 @@ import { useAnnulerBP, useBonProduction, useClotureBP, useValiderSession } from 
 import { formatDate, formatDateTime, formatDurationHours, formatMGA, formatPercent, formatQty, getStatutColor } from '@/lib/utils'
 import type { BpSession } from '@/lib/types'
 import { useRouter } from 'next/navigation'
+import { usePermissions } from '@/lib/hooks/use-permissions'
 
 interface ProductionDetailViewProps {
   bpId: number
@@ -206,6 +207,7 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
   const validateSession = useValiderSession()
   const clotureBP = useClotureBP()
   const annulerBP = useAnnulerBP()
+  const permissions = usePermissions()
 
   const sessions = Array.isArray(bp?.sessions) ? (bp.sessions as SessionRow[]) : []
 
@@ -530,7 +532,8 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
                           >
                             Détails
                           </Button>
-                          {session.statut === 'ouverte' && (
+                          {permissions.can('validate') && (
+                          session.statut === 'ouverte' && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -540,7 +543,7 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
                             >
                               Valider
                             </Button>
-                          )}
+                          ))}
                         </div>
                       </td>
                     </tr>

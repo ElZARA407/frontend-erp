@@ -271,7 +271,7 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
                   <Input
                     label="Quantité utilisée *"
                     type="number"
-                    step="100"
+                    step="1"
                     error={errors.matieres?.[index]?.quantite_utilisee?.message}
                     {...register(`matieres.${index}.quantite_utilisee` as const, { valueAsNumber: true })}
                   />
@@ -575,7 +575,7 @@ function ObtenuRow({
       <Input
         label="Quantité produite *"
         type="number"
-        step="0.001"
+        step="1"
         error={errors.obtenus?.[index]?.quantite_produite?.message}
         {...register(`obtenus.${index}.quantite_produite` as const, { valueAsNumber: true })}
       />

@@ -15,12 +15,14 @@ import { BpForm } from './bp-form'
 import { formatDate, formatMGA, formatPercent, formatQty, getStatutColor } from '@/lib/utils'
 import type { BonProduction } from '@/lib/types'
 import { useRouter } from 'next/navigation'
+import { usePermissions } from '@/lib/hooks/use-permissions'
 
 export function ProductionView() {
   const [page, setPage] = useState(1)
   const [statut, setStatut] = useState<string>('')
   const [showCreate, setShowCreate] = useState(false)
   const router = useRouter()
+  const permissions = usePermissions()
 
   const { data, isLoading } = useBonsProduction({
     statut: statut || undefined,
@@ -47,7 +49,9 @@ export function ProductionView() {
         title="Ordre de fabrication"
         subtitle={`${pagination?.total ?? 0} ordre${(pagination?.total ?? 0) > 1 ? 's' : ''} de fabrication`}
         actions={
+          permissions.can('validate') && (
           <div className="flex flex-wrap gap-2">
+            
             <Link
               href="/production/cout-moyen-produit"
               className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
@@ -67,7 +71,9 @@ export function ProductionView() {
             <Button onClick={() => setShowCreate(true)} icon={<Plus className="h-3.5 w-3.5" />}>
               Nouveau BP
             </Button>
+            
           </div>
+          )
         }
       />
 

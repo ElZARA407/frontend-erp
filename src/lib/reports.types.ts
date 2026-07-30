@@ -31,6 +31,33 @@ export interface ReportCommandeNonLivree {
   quantite_restante: number
 }
 
+export interface ReportCommercialDocument {
+  id: number
+  numero: string
+  date: string
+  date_livraison_prevue?: string | null
+  statut: string
+  client: string
+  quantite_commandee: number
+  quantite_livree: number
+  quantite_restante: number
+  total: number
+}
+
+export interface ReportCommercialLivraison {
+  id: number
+  numero: string
+  source_type: 'commande' | 'vente_directe'
+  source_id: number
+  date_livraison: string | null
+  statut: string
+  client: string
+  reference_bc: string | null
+  reference_facture: string | null
+  lignes_count: number
+  quantite_livree: number
+}
+
 export interface ReportStockItem {
   id: number
   reference?: string | null
@@ -58,6 +85,9 @@ export interface ReportsOverview {
     ventes_par_periode: ReportAmountPoint[]
     ventes_par_produit: ReportItem[]
     ventes_par_client: ReportItem[]
+    commandes_detaillees: ReportCommercialDocument[]
+    ventes_directes_detaillees: ReportCommercialDocument[]
+    livraisons_detaillees: ReportCommercialLivraison[]
     commandes_non_livrees: ReportCommandeNonLivree[]
   }
   stock: {

@@ -38,19 +38,19 @@ export function Topbar() {
         onClick={handleSidebarToggle}
       />
 
-      <div className="relative flex-1 max-w-xs">
+      {/* <div className="relative flex-1 max-w-xs">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-steel-400" />
         <input
           type="search"
           placeholder="Rechercher…"
           className="h-8 w-full rounded-md border border-surface-border bg-surface-subtle pl-8 pr-3 text-sm focus:border-steel-400 focus:outline-none focus:ring-1 focus:ring-steel-400/20"
         />
-      </div>
+      </div> */}
 
       <div className="ml-auto flex items-center gap-3">
-        <button className="relative rounded-md p-1.5 text-steel-500 transition-colors hover:bg-surface-subtle">
+        {/* <button className="relative rounded-md p-1.5 text-steel-500 transition-colors hover:bg-surface-subtle">
           <Bell className="h-4 w-4" />
-        </button>
+        </button> */}
 
         <div className="hidden h-7 w-px bg-surface-border sm:block" />
 

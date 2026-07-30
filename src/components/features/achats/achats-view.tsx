@@ -1,9 +1,8 @@
 // src/components/features/achats/achats-view.tsx
 'use client'
 
-import Link from 'next/link'
 import { useState } from 'react'
-import { CheckCircle, Eye, Package, Plus } from 'lucide-react'
+import { CheckCircle,  Package, Plus } from 'lucide-react'
 import { useAchats, useValiderAchat } from '@/lib/hooks/use-achats'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
@@ -18,6 +17,7 @@ import type { JournalAchat } from '@/lib/types'
 import { FileDown } from 'lucide-react'
 import {  usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { useRouter } from 'next/navigation'
+import { usePermissions } from '@/lib/hooks/use-permissions'
 
 export function AchatsView() {
   const [page, setPage] = useState(1)
@@ -25,6 +25,7 @@ export function AchatsView() {
   const [showCreate, setShowCreate] = useState(false)
   const {exportPdf, isExporting} = usePdfExport()
   const router = useRouter()
+  const permissions = usePermissions()
 
   const { data, isLoading } = useAchats({
     statut: statut || undefined,
@@ -134,7 +135,8 @@ export function AchatsView() {
                     >
                       PDF
                     </Button>
-                      {br.statut === 'brouillon' && (
+                    {permissions.can('validate') && (
+                      br.statut === 'brouillon' && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -146,7 +148,7 @@ export function AchatsView() {
                         >
                           Valider
                         </Button>
-                      )}
+                      ))}
                     </div>
                   </td>
                 </tr>

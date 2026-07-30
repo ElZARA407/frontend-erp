@@ -217,7 +217,7 @@ export function ClientDetailView({ clientId }: ClientDetailViewProps) {
           </section>
 
           {/* Barre de progression des paiements : lecture financière immédiate. */}
-          <Card>
+          {/* <Card>
             <CardBody>
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium text-steel-700">Paiements encaissés</span>
@@ -239,7 +239,7 @@ export function ClientDetailView({ clientId }: ClientDetailViewProps) {
                 {formatMGA(totalPaye)} encaissés sur {formatMGA(totalFacture)} facturés
               </p>
             </CardBody>
-          </Card>
+          </Card> */}
         </div>
       </div>
 

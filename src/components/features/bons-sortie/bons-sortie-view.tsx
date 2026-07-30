@@ -23,6 +23,7 @@ import { MOTIFS_SORTIE } from '@/lib/constants'
 import { formatDate, getStatutColor } from '@/lib/utils'
 import type { BonSortie } from '@/lib/bons-sortie.types'
 import { BonSortieForm } from './bon-sortie-form'
+import { usePermissions } from '@/lib/hooks/use-permissions'
 
 const PAGE_SIZE = 10
 
@@ -45,6 +46,7 @@ export function BonsSortieView() {
 
   const { data: locationsData } = useLocations()
   const locations = Array.isArray(locationsData) ? locationsData : []
+  const permissions = usePermissions()
 
   const filters = useMemo(
     () => ({
@@ -204,7 +206,9 @@ export function BonsSortieView() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {bon.statut === 'brouillon' && (
+                        
+                        {permissions.can('validate') && (
+                          bon.statut === 'brouillon' && (
                           <>
                             <Button
                               variant="ghost"
@@ -229,7 +233,7 @@ export function BonsSortieView() {
                               }}
                             />
                           </>
-                        )}
+                        ))}
 
                         <Button
                           variant="ghost"

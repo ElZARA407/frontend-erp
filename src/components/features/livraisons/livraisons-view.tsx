@@ -1,8 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { useState } from 'react'
-import { CheckCircle, Eye, FileText, RotateCcw, Truck } from 'lucide-react'
+import { CheckCircle, FileText, RotateCcw, Truck } from 'lucide-react'
 import { useAnnulerLivraison, useConfirmerLivraison, useLivraisons } from '@/lib/hooks/use-livraisons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
@@ -17,6 +16,7 @@ import { FactureForm } from '../factures/facture-form'
 import { FileDown } from 'lucide-react'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { useRouter } from 'next/navigation'
+import { usePermissions } from '@/lib/hooks/use-permissions'
 
 export function LivraisonsView() {
   const [page, setPage] = useState(1)
@@ -24,6 +24,7 @@ export function LivraisonsView() {
   const [selectedLivraison, setSelectedLivraison] = useState<Livraison | null>(null)
   const { exportPdf, isExporting } = usePdfExport()
   const router = useRouter()
+  const permissions = usePermissions()
 
   const { data, isLoading } = useLivraisons({
     statut: statut || undefined,
@@ -133,7 +134,8 @@ export function LivraisonsView() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {livraison.statut === 'prepare' && (
+                        {permissions.can('approve') && (
+                        livraison.statut === 'prepare' && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -145,7 +147,7 @@ export function LivraisonsView() {
                           >
                             Confirmer
                           </Button>
-                        )}
+                        ))}
                         {canFacturer && (
                           <Button
                             variant="outline"

@@ -21,11 +21,14 @@ import { StatCard } from '@/components/ui/stat-card'
 import { useDashboard } from '@/lib/hooks/use-dashboard'
 import type { DashboardAlerte, DashboardPoint, DashboardTopItem } from '@/lib/types'
 import { cn, formatMGA, formatQty } from '@/lib/utils'
+import { usePermissions } from '@/lib/hooks/use-permissions'
 
 type AlertBadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'muted' | 'default'
 
 export function DashboardView() {
   const { data: dashboard, isLoading } = useDashboard()
+  const permissions = usePermissions()
+const canWidget = permissions.canDashboardWidget
 
   if (isLoading && !dashboard) {
     return (
@@ -59,91 +62,125 @@ export function DashboardView() {
       <section>
         <p className="section-title mb-3">Indicateurs prioritaires</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Commandes en attente"
-            value={kpi?.commandes_en_attente ?? 0}
-            icon={<ShoppingCart className="h-5 w-5" />}
-            accent={(kpi?.commandes_en_attente ?? 0) > 0 ? 'warning' : 'success'}
-          />
-          <StatCard
-            label="BP en cours"
-            value={kpi?.bons_production_en_cours ?? 0}
-            icon={<Factory className="h-5 w-5" />}
-            accent="primary"
-          />
-          <StatCard
-            label="BT en cours"
-            value={kpi?.bons_transformation_en_cours ?? 0}
-            icon={<Boxes className="h-5 w-5" />}
-            accent="primary"
-          />
-          <StatCard
-            label="Livraisons du jour"
-            value={kpi?.livraisons_du_jour ?? 0}
-            icon={<Truck className="h-5 w-5" />}
-            accent="success"
-          />
-          <StatCard
-            label="Factures en attente"
-            value={kpi?.factures_en_attente ?? 0}
-            icon={<Receipt className="h-5 w-5" />}
-            accent={(kpi?.factures_en_attente ?? 0) > 0 ? 'warning' : 'success'}
-          />
-          <StatCard
-            label="Valeur totale stock"
-            value={kpi?.valeur_totale_stock ?? 0}
-            isMoney
-            icon={<Package className="h-5 w-5" />}
-            accent="primary"
-          />
-          <StatCard
-            label="Produits sous minimum"
-            value={kpi?.produits_sous_minimum ?? 0}
-            icon={<AlertTriangle className="h-5 w-5" />}
-            accent={(kpi?.produits_sous_minimum ?? 0) > 0 ? 'danger' : 'success'}
-          />
-          <StatCard
-            label="Matières sous minimum"
-            value={kpi?.matieres_sous_minimum ?? 0}
-            icon={<FileWarning className="h-5 w-5" />}
-            accent={(kpi?.matieres_sous_minimum ?? 0) > 0 ? 'danger' : 'success'}
-          />
+          {canWidget('commandes_en_attente') && (
+            <StatCard
+              label="Commandes en attente"
+              value={kpi?.commandes_en_attente ?? 0}
+              icon={<ShoppingCart className="h-5 w-5" />}
+              accent={(kpi?.commandes_en_attente ?? 0) > 0 ? 'warning' : 'success'}
+            />
+          )}
+
+          {canWidget('bons_production_en_cours') && (
+            <StatCard
+              label="BP en cours"
+              value={kpi?.bons_production_en_cours ?? 0}
+              icon={<Factory className="h-5 w-5" />}
+              accent="primary"
+            />
+          )}
+
+          {canWidget('bons_transformation_en_cours') && (
+            <StatCard
+              label="BT en cours"
+              value={kpi?.bons_transformation_en_cours ?? 0}
+              icon={<Boxes className="h-5 w-5" />}
+              accent="primary"
+            />
+          )}
+
+          {canWidget('livraisons_du_jour') && (
+            <StatCard
+              label="Livraisons du jour"
+              value={kpi?.livraisons_du_jour ?? 0}
+              icon={<Truck className="h-5 w-5" />}
+              accent="success"
+            />
+          )}
+
+          {canWidget('factures_en_attente') && (
+            <StatCard
+              label="Factures en attente"
+              value={kpi?.factures_en_attente ?? 0}
+              icon={<Receipt className="h-5 w-5" />}
+              accent={(kpi?.factures_en_attente ?? 0) > 0 ? 'warning' : 'success'}
+            />
+          )}
+
+          {canWidget('valeur_totale_stock') && (
+            <StatCard
+              label="Valeur totale stock"
+              value={kpi?.valeur_totale_stock ?? 0}
+              isMoney
+              icon={<Package className="h-5 w-5" />}
+              accent="primary"
+            />
+          )}
+
+          {canWidget('produits_sous_minimum') && (
+            <StatCard
+              label="Produits sous minimum"
+              value={kpi?.produits_sous_minimum ?? 0}
+              icon={<AlertTriangle className="h-5 w-5" />}
+              accent={(kpi?.produits_sous_minimum ?? 0) > 0 ? 'danger' : 'success'}
+            />
+          )}
+
+          {canWidget('matieres_sous_minimum') && (
+            <StatCard
+              label="Matières sous minimum"
+              value={kpi?.matieres_sous_minimum ?? 0}
+              icon={<FileWarning className="h-5 w-5" />}
+              accent={(kpi?.matieres_sous_minimum ?? 0) > 0 ? 'danger' : 'success'}
+            />
+          )}
         </div>
       </section>
 
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <ChartCard title="Évolution des ventes" subtitle="30 derniers jours">
-          <LineChart points={charts?.ventes_30_jours ?? []} valueKey="total" />
-        </ChartCard>
+        {canWidget('ventes_30_jours') && (
+          <ChartCard title="Évolution des ventes" subtitle="30 derniers jours">
+            <LineChart points={charts?.ventes_30_jours ?? []} valueKey="total" />
+          </ChartCard>
+        )}
 
-        <ChartCard title="Entrées vs sorties stock" subtitle="30 derniers jours">
-          <DualBarChart points={charts?.stock_entrees_sorties ?? []} />
-        </ChartCard>
+        {canWidget('stock_entrees_sorties') && (
+          <ChartCard title="Entrées vs sorties stock" subtitle="30 derniers jours">
+            <DualBarChart points={charts?.stock_entrees_sorties ?? []} />
+          </ChartCard>
+        )}
 
-        <ChartCard title="Production" subtitle="Objectif vs réalisé du mois">
-          <ProductionProgress
-            objectif={charts?.production_objectif_realise.objectif ?? 0}
-            realise={charts?.production_objectif_realise.realise ?? 0}
-            taux={charts?.production_objectif_realise.taux ?? 0}
-          />
-        </ChartCard>
+        {canWidget('production_objectif_realise') && (
+          <ChartCard title="Production" subtitle="Objectif vs réalisé du mois">
+            <ProductionProgress
+              objectif={charts?.production_objectif_realise.objectif ?? 0}
+              realise={charts?.production_objectif_realise.realise ?? 0}
+              taux={charts?.production_objectif_realise.taux ?? 0}
+            />
+          </ChartCard>
+        )}
 
-        <AlertesCard alertes={alertes} />
+        {canWidget('alertes') && <AlertesCard alertes={alertes} />}
       </section>
 
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <TopListCard
-          title="Top 5 produits vendus"
-          subtitle="Basé sur les lignes de facture"
-          items={charts?.top_produits ?? []}
-          valueMode="money"
-        />
-        <TopListCard
-          title="Top 5 clients"
-          subtitle="Basé sur les factures"
-          items={charts?.top_clients ?? []}
-          valueMode="money"
-        />
+        {canWidget('top_produits') && (
+          <TopListCard
+            title="Top 5 produits vendus"
+            subtitle="Basé sur les lignes de facture"
+            items={charts?.top_produits ?? []}
+            valueMode="money"
+          />
+        )}
+
+        {canWidget('top_clients') && (
+          <TopListCard
+            title="Top 5 clients"
+            subtitle="Basé sur les factures"
+            items={charts?.top_clients ?? []}
+            valueMode="money"
+          />
+        )}
       </section>
     </div>
   )

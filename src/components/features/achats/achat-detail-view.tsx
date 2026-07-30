@@ -14,6 +14,7 @@ import { formatDate, formatDateTime, formatMGA, formatQty, getStatutColor } from
 import { FileDown } from 'lucide-react'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { useRouter } from 'next/navigation'
+import { usePermissions } from '@/lib/hooks/use-permissions'
 
 interface AchatDetailViewProps {
   achatId: number
@@ -24,6 +25,7 @@ export function AchatDetailView({ achatId }: AchatDetailViewProps) {
   const validerAchat = useValiderAchat()
   const { exportPdf, isExporting } = usePdfExport()
   const router = useRouter()
+  const permissions = usePermissions()
   
 
   const lignes = Array.isArray(achat?.lignes) ? achat.lignes : []
@@ -61,7 +63,8 @@ export function AchatDetailView({ achatId }: AchatDetailViewProps) {
         subtitle={achat ? `Fournisseur ${achat.fournisseur?.nom ?? '—'}` : 'Chargement...'}
         actions={
           <div className="flex flex-wrap gap-2">
-            {achat?.statut === 'brouillon' && (
+            {permissions.can('validate') && (
+            achat?.statut === 'brouillon' && (
               <Button
                 icon={<CheckCircle2 className="h-3.5 w-3.5" />}
                 loading={validerAchat.isPending}
@@ -69,7 +72,7 @@ export function AchatDetailView({ achatId }: AchatDetailViewProps) {
               >
                 Valider le BR
               </Button>
-            )}
+            ))}
             {achat && (
                 <Button
                   variant="outline"

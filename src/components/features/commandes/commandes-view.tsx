@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
-import { AlertTriangle, Copy, Eye, Plus, ShoppingCart, Truck } from 'lucide-react'
+import { AlertTriangle, Copy, Plus, ShoppingCart, Truck } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'

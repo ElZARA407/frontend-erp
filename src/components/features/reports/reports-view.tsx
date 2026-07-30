@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState,useEffect } from 'react'
 import {
   AlertTriangle,
   BarChart3,
@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button'
 import { useReports } from '@/lib/hooks/use-reports'
 import { formatDate, formatMGA, formatQty } from '@/lib/utils'
 import type { ReportItem, ReportStockItem } from '@/lib/reports.types'
+import { usePermissions } from '@/lib/hooks/use-permissions'
 
 type ReportTab = 'commercial' | 'stock' | 'production' | 'recyclage' | 'finance' | 'mouvements'
 
@@ -57,6 +58,12 @@ export function ReportsView() {
     const [tab, setTab] = useState<ReportTab>('commercial')
     const [dateDebut, setDateDebut] = useState(defaultStartDate())
     const [dateFin, setDateFin] = useState(today())
+    const permissions = usePermissions()
+
+    const visibleTabs = useMemo(
+      () => TABS.filter((item) => permissions.canReportTab(item.key)),
+      [permissions]
+    )
 
     const [mouvementEntiteType, setMouvementEntiteType] = useState<'produit' | 'matiere'>('produit')
     const [mouvementEntiteId, setMouvementEntiteId] = useState<number | null>(null)
@@ -82,11 +89,34 @@ export function ReportsView() {
 
   const { data, isLoading } = useReports(filters)
 
+  useEffect(() => {
+    if (visibleTabs.length > 0 && !visibleTabs.some((item) => item.key === tab)) {
+      setTab(visibleTabs[0].key)
+    }
+  }, [tab, visibleTabs])
+
   return (
     <div className="space-y-5">
       <PageHeader
         title="États & Rapports"
         subtitle="Synthèses utiles pour le pilotage commercial, stock, production et finance"
+        actions={
+            <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            icon={<Download className="h-3.5 w-3.5" />}
+            loading={exportReport.isPending}
+            onClick={() =>
+                exportReport.mutate({
+                section: tab as ReportExportSection,
+                filters,
+                })
+            }
+            >
+            Export Excel
+        </Button>
+        }
       />
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[220px_220px_auto] md:items-end">
@@ -104,7 +134,7 @@ export function ReportsView() {
         />
         
         <div className="flex flex-wrap gap-2">
-          {TABS.map(({ key, label, icon: Icon }) => (
+          {visibleTabs.map(({ key, label, icon: Icon }) => (
             <Button
               key={key}
               type="button"
@@ -117,7 +147,7 @@ export function ReportsView() {
             </Button>
           ))}
         </div>
-        <Button
+        {/* <Button
             type="button"
             size="sm"
             variant="outline"
@@ -131,7 +161,7 @@ export function ReportsView() {
             }
             >
             Export Excel
-        </Button>
+        </Button> */}
       </div>
 
       {isLoading && !data ? (
@@ -174,34 +204,37 @@ export function ReportsView() {
 
 function CommercialReport({ data }: { data: Awaited<ReturnType<typeof useReports>>['data'] }) {
   const commercial = data?.commercial
+  const commandes = commercial?.commandes_detaillees ?? []
+  const ventesDirectes = commercial?.ventes_directes_detaillees ?? []
+  const livraisons = commercial?.livraisons_detaillees ?? []
 
   return (
     <div className="space-y-4">
       <SummaryGrid>
         <StatCard
-          label="CA période"
+          label="CA facturé"
           value={(commercial?.ventes_par_periode ?? []).reduce((sum, row) => sum + row.total, 0)}
           isMoney
           icon={<BarChart3 className="h-5 w-5" />}
           accent="success"
         />
         <StatCard
-          label="Produits vendus"
-          value={commercial?.ventes_par_produit.length ?? 0}
-          icon={<Package className="h-5 w-5" />}
-          accent="primary"
-        />
-        <StatCard
-          label="Clients facturés"
-          value={commercial?.ventes_par_client.length ?? 0}
+          label="Commandes"
+          value={commandes.length}
           icon={<ShoppingCart className="h-5 w-5" />}
           accent="primary"
         />
         <StatCard
-          label="Commandes non livrées"
-          value={commercial?.commandes_non_livrees.length ?? 0}
-          icon={<AlertTriangle className="h-5 w-5" />}
-          accent={(commercial?.commandes_non_livrees.length ?? 0) > 0 ? 'warning' : 'success'}
+          label="Ventes directes"
+          value={ventesDirectes.length}
+          icon={<Receipt className="h-5 w-5" />}
+          accent="primary"
+        />
+        <StatCard
+          label="BL"
+          value={livraisons.length}
+          icon={<Package className="h-5 w-5" />}
+          accent="success"
         />
       </SummaryGrid>
 
@@ -210,37 +243,56 @@ function CommercialReport({ data }: { data: Awaited<ReturnType<typeof useReports
         <ItemsCard title="Ventes par client" items={commercial?.ventes_par_client ?? []} mode="money" />
       </div>
 
+      <CommercialDocumentsTable
+        title="Commandes détaillées"
+        subtitle="Commandes avec quantités commandées, livrées et restantes"
+        rows={commandes}
+        showExpectedDate
+      />
+
+      <CommercialDocumentsTable
+        title="Ventes directes détaillées"
+        subtitle="Ventes directes avec quantités livrées et restantes"
+        rows={ventesDirectes}
+      />
+
       <Card>
         <CardHeader>
           <div>
-            <h2 className="text-sm font-semibold text-steel-900">Commandes non livrées</h2>
-            <p className="text-xs text-steel-500">Commandes ouvertes ou partiellement livrées</p>
+            <h2 className="text-sm font-semibold text-steel-900">Livraisons / BL</h2>
+            <p className="text-xs text-steel-500">BL issus des commandes ou ventes directes visibles par l’utilisateur</p>
           </div>
         </CardHeader>
         <CardBody>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[900px] text-sm">
               <thead>
                 <tr className="border-b border-surface-border text-left text-xs uppercase tracking-wide text-steel-400">
-                  <th className="px-3 py-2">Commande</th>
+                  <th className="px-3 py-2">BL</th>
+                  <th className="px-3 py-2">Date</th>
                   <th className="px-3 py-2">Client</th>
-                  <th className="px-3 py-2">Prévue</th>
+                  <th className="px-3 py-2">Source</th>
                   <th className="px-3 py-2">Statut</th>
-                  <th className="px-3 py-2 text-right">Qté restante</th>
+                  <th className="px-3 py-2 text-right">Lignes</th>
+                  <th className="px-3 py-2 text-right">Qté livrée</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border">
-                {(commercial?.commandes_non_livrees ?? []).map((row) => (
+                {livraisons.map((row) => (
                   <tr key={row.id}>
                     <td className="px-3 py-2 font-medium text-steel-900">{row.numero}</td>
+                    <td className="px-3 py-2 text-steel-600">{formatDate(row.date_livraison)}</td>
                     <td className="px-3 py-2 text-steel-600">{row.client}</td>
-                    <td className="px-3 py-2 text-steel-600">{formatDate(row.date_livraison_prevue)}</td>
+                    <td className="px-3 py-2 text-steel-600">
+                      {row.source_type === 'commande' ? 'Commande' : 'Vente directe'} #{row.source_id}
+                    </td>
                     <td className="px-3 py-2">
-                      <Badge variant={row.statut === 'partielle' ? 'info' : 'warning'} dot>
+                      <Badge variant={row.statut === 'livre' ? 'success' : 'warning'} dot>
                         {row.statut}
                       </Badge>
                     </td>
-                    <td className="px-3 py-2 text-right font-medium">{formatQty(row.quantite_restante)}</td>
+                    <td className="px-3 py-2 text-right">{row.lignes_count}</td>
+                    <td className="px-3 py-2 text-right font-medium">{formatQty(row.quantite_livree)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -249,6 +301,80 @@ function CommercialReport({ data }: { data: Awaited<ReturnType<typeof useReports
         </CardBody>
       </Card>
     </div>
+  )
+}
+
+function CommercialDocumentsTable({
+  title,
+  subtitle,
+  rows,
+  showExpectedDate = false,
+}: {
+  title: string
+  subtitle: string
+  rows: Array<{
+    id: number
+    numero: string
+    date: string
+    date_livraison_prevue?: string | null
+    statut: string
+    client: string
+    quantite_commandee: number
+    quantite_livree: number
+    quantite_restante: number
+    total: number
+  }>
+  showExpectedDate?: boolean
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <div>
+          <h2 className="text-sm font-semibold text-steel-900">{title}</h2>
+          <p className="text-xs text-steel-500">{subtitle}</p>
+        </div>
+      </CardHeader>
+      <CardBody>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[980px] text-sm">
+            <thead>
+              <tr className="border-b border-surface-border text-left text-xs uppercase tracking-wide text-steel-400">
+                <th className="px-3 py-2">Référence</th>
+                <th className="px-3 py-2">Date</th>
+                {showExpectedDate && <th className="px-3 py-2">Prévue</th>}
+                <th className="px-3 py-2">Client</th>
+                <th className="px-3 py-2">Statut</th>
+                <th className="px-3 py-2 text-right">Commandée</th>
+                <th className="px-3 py-2 text-right">Livrée</th>
+                <th className="px-3 py-2 text-right">Restante</th>
+                <th className="px-3 py-2 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-border">
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td className="px-3 py-2 font-medium text-steel-900">{row.numero}</td>
+                  <td className="px-3 py-2 text-steel-600">{formatDate(row.date)}</td>
+                  {showExpectedDate && (
+                    <td className="px-3 py-2 text-steel-600">{formatDate(row.date_livraison_prevue)}</td>
+                  )}
+                  <td className="px-3 py-2 text-steel-600">{row.client}</td>
+                  <td className="px-3 py-2">
+                    <Badge variant={row.quantite_restante <= 0 ? 'success' : 'warning'} dot>
+                      {row.statut}
+                    </Badge>
+                  </td>
+                  <td className="px-3 py-2 text-right">{formatQty(row.quantite_commandee)}</td>
+                  <td className="px-3 py-2 text-right text-emerald-600">{formatQty(row.quantite_livree)}</td>
+                  <td className="px-3 py-2 text-right text-amber-600">{formatQty(row.quantite_restante)}</td>
+                  <td className="px-3 py-2 text-right font-medium">{formatMGA(row.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardBody>
+    </Card>
   )
 }
 
