@@ -2,33 +2,71 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle,  Package, Plus } from 'lucide-react'
+import { CheckCircle, FileDown, Package, Plus } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useAchats, useValiderAchat } from '@/lib/hooks/use-achats'
+import { useFournisseurs } from '@/lib/hooks/use-lot3'
+import { useLocations } from '@/lib/hooks/use-organisation'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Pagination } from '@/components/ui/pagination'
+import { Select } from '@/components/ui/select'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { Dialog } from '@/components/ui/dialog'
+import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { AchatForm } from './achat-form'
 import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
-import type { JournalAchat } from '@/lib/types'
-import { FileDown } from 'lucide-react'
-import {  usePdfExport } from '@/lib/hooks/use-pdf-export'
-import { useRouter } from 'next/navigation'
+import type { JournalAchat, Location } from '@/lib/types'
+import type { Fournisseur } from '@/lib/lot3.types'
+import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { usePermissions } from '@/lib/hooks/use-permissions'
+
+function normalizeArray<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[]
+
+  if (value && typeof value === 'object') {
+    const root = value as { data?: unknown }
+
+    if (Array.isArray(root.data)) return root.data as T[]
+
+    if (root.data && typeof root.data === 'object') {
+      const nested = root.data as { data?: unknown }
+
+      if (Array.isArray(nested.data)) return nested.data as T[]
+    }
+  }
+
+  return []
+}
 
 export function AchatsView() {
   const [page, setPage] = useState(1)
   const [statut, setStatut] = useState<string>('')
   const [showCreate, setShowCreate] = useState(false)
+  const [search, setSearch] = useState('')
+  const [fournisseurId, setFournisseurId] = useState('')
+  const [locationId, setLocationId] = useState('')
+  const [dateDebut, setDateDebut] = useState('')
+  const [dateFin, setDateFin] = useState('')
   const {exportPdf, isExporting} = usePdfExport()
   const router = useRouter()
   const permissions = usePermissions()
 
+  const { data: fournisseursPage } = useFournisseurs({ actif: true, per_page: 200 })
+  const { data: locationsData } = useLocations()
+
+  const fournisseurs = normalizeArray<Fournisseur>(fournisseursPage)
+  const locations = normalizeArray<Location>(locationsData)
   const { data, isLoading } = useAchats({
+    search: search.trim() || undefined,
+    fournisseur_id: fournisseurId ? Number(fournisseurId) : undefined,
+    location_id: locationId ? Number(locationId) : undefined,
     statut: statut || undefined,
+    date_debut: dateDebut || undefined,
+    date_fin: dateFin || undefined,
     page,
     per_page: 20,
   })
@@ -55,23 +93,82 @@ export function AchatsView() {
         }
       />
 
-      <div className="flex w-fit overflow-hidden rounded-md border border-surface-border text-xs">
-        {statutOptions.map(({ value, label }) => (
-          <button
-            key={value}
-            onClick={() => {
-              setStatut(value)
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <Input
+            className="w-full md:w-72"
+            label="Recherche"
+            placeholder="Numéro BR, véhicule, observation..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
               setPage(1)
             }}
-            className={
-              statut === value
-                ? 'bg-steel-700 px-3 py-1.5 font-medium text-white'
-                : 'bg-white px-3 py-1.5 text-steel-600 hover:bg-surface-subtle'
-            }
-          >
-            {label}
-          </button>
-        ))}
+          />
+
+          <Select
+            className="w-full md:w-56"
+            label="Fournisseur"
+            placeholder="Tous"
+            options={fournisseurs.map((fournisseur) => ({
+              value: fournisseur.id,
+              label: fournisseur.nom,
+            }))}
+            value={fournisseurId}
+            onChange={(e) => {
+              setFournisseurId(e.target.value)
+              setPage(1)
+            }}
+          />
+
+          <Select
+            className="w-full md:w-56"
+            label="Location"
+            placeholder="Toutes"
+            options={locations.map((location) => ({
+              value: location.id,
+              label: location.nom,
+            }))}
+            value={locationId}
+            onChange={(e) => {
+              setLocationId(e.target.value)
+              setPage(1)
+            }}
+          />
+
+          <DateRangeFilter
+            className="w-full md:w-[28rem]"
+            dateDebut={dateDebut}
+            dateFin={dateFin}
+            onDateDebutChange={(value) => {
+              setDateDebut(value)
+              setPage(1)
+            }}
+            onDateFinChange={(value) => {
+              setDateFin(value)
+              setPage(1)
+            }}
+          />
+        </div>
+
+        <div className="flex w-fit overflow-hidden rounded-md border border-surface-border text-xs">
+          {statutOptions.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => {
+                setStatut(value)
+                setPage(1)
+              }}
+              className={
+                statut === value
+                  ? 'bg-steel-700 px-3 py-1.5 font-medium text-white'
+                  : 'bg-white px-3 py-1.5 text-steel-600 hover:bg-surface-subtle'
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <Card>

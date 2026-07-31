@@ -2,20 +2,44 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Calculator, CheckCircle, Eye, Factory, Plus, XCircle } from 'lucide-react'
-import { useAnnulerBP, useBonsProduction, useClotureBP } from '@/lib/hooks/use-production'
+import { Calculator, CheckCircle, Factory, Plus, XCircle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useAnnulerBP, useBonsProduction, useClotureBP, useMachines } from '@/lib/hooks/use-production'
+import { useLocations } from '@/lib/hooks/use-organisation'
+import { useProducts } from '@/lib/hooks/use-catalogue'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardBody } from '@/components/ui/card'
-import { Pagination } from '@/components/ui/pagination'
-import { TableSkeleton } from '@/components/ui/skeleton'
 import { Dialog } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Pagination } from '@/components/ui/pagination'
+import { Select } from '@/components/ui/select'
+import { TableSkeleton } from '@/components/ui/skeleton'
+import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { BpForm } from './bp-form'
 import { formatDate, formatMGA, formatPercent, formatQty, getStatutColor } from '@/lib/utils'
-import type { BonProduction } from '@/lib/types'
-import { useRouter } from 'next/navigation'
+import type { BonProduction, Location, Machine } from '@/lib/types'
+import type { CatalogueProduct } from '@/lib/catalogue.types'
 import { usePermissions } from '@/lib/hooks/use-permissions'
+
+function normalizeArray<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[]
+
+  if (value && typeof value === 'object') {
+    const root = value as { data?: unknown }
+
+    if (Array.isArray(root.data)) return root.data as T[]
+
+    if (root.data && typeof root.data === 'object') {
+      const nested = root.data as { data?: unknown }
+
+      if (Array.isArray(nested.data)) return nested.data as T[]
+    }
+  }
+
+  return []
+}
 
 export function ProductionView() {
   const [page, setPage] = useState(1)
@@ -23,9 +47,29 @@ export function ProductionView() {
   const [showCreate, setShowCreate] = useState(false)
   const router = useRouter()
   const permissions = usePermissions()
+  const [search, setSearch] = useState('')
+  const [produitId, setProduitId] = useState('')
+  const [machineId, setMachineId] = useState('')
+  const [locationId, setLocationId] = useState('')
+  const [dateDebut, setDateDebut] = useState('')
+  const [dateFin, setDateFin] = useState('')
+
+  const { data: productsPage } = useProducts({ actif: true, per_page: 300 })
+  const { data: machinesData } = useMachines({ actif: true })
+  const { data: locationsData } = useLocations()
+
+  const produits = normalizeArray<CatalogueProduct>(productsPage)
+  const machines = normalizeArray<Machine>(machinesData)
+  const locations = normalizeArray<Location>(locationsData)
 
   const { data, isLoading } = useBonsProduction({
+    search: search.trim() || undefined,
     statut: statut || undefined,
+    produit_id: produitId ? Number(produitId) : undefined,
+    machine_id: machineId ? Number(machineId) : undefined,
+    location_id: locationId ? Number(locationId) : undefined,
+    date_debut: dateDebut || undefined,
+    date_fin: dateFin || undefined,
     page,
     per_page: 10,
   })
@@ -77,24 +121,98 @@ export function ProductionView() {
         }
       />
 
-      <div className="flex w-fit overflow-hidden rounded-md border border-surface-border text-xs">
-        {statutOptions.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => {
-              setStatut(value)
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <Input
+            className="w-full md:w-72"
+            label="Recherche"
+            placeholder="Numéro OF, produit..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
               setPage(1)
             }}
-            className={
-              statut === value
-                ? 'bg-steel-700 px-3 py-1.5 font-medium text-white'
-                : 'bg-white px-3 py-1.5 text-steel-600 hover:bg-surface-subtle'
-            }
-          >
-            {label}
-          </button>
-        ))}
+          />
+
+          <Select
+            className="w-full md:w-64"
+            label="Produit"
+            placeholder="Tous"
+            options={produits.map((produit) => ({
+              value: produit.id,
+              label: produit.designation,
+            }))}
+            value={produitId}
+            onChange={(e) => {
+              setProduitId(e.target.value)
+              setPage(1)
+            }}
+          />
+
+          <Select
+            className="w-full md:w-56"
+            label="Machine"
+            placeholder="Toutes"
+            options={machines.map((machine) => ({
+              value: machine.id,
+              label: machine.nom,
+            }))}
+            value={machineId}
+            onChange={(e) => {
+              setMachineId(e.target.value)
+              setPage(1)
+            }}
+          />
+
+          <Select
+            className="w-full md:w-56"
+            label="Location"
+            placeholder="Toutes"
+            options={locations.map((location) => ({
+              value: location.id,
+              label: location.nom,
+            }))}
+            value={locationId}
+            onChange={(e) => {
+              setLocationId(e.target.value)
+              setPage(1)
+            }}
+          />
+
+          <DateRangeFilter
+            className="w-full md:w-[28rem]"
+            dateDebut={dateDebut}
+            dateFin={dateFin}
+            onDateDebutChange={(value) => {
+              setDateDebut(value)
+              setPage(1)
+            }}
+            onDateFinChange={(value) => {
+              setDateFin(value)
+              setPage(1)
+            }}
+          />
+        </div>
+
+        <div className="flex w-fit overflow-hidden rounded-md border border-surface-border text-xs">
+          {statutOptions.map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => {
+                setStatut(value)
+                setPage(1)
+              }}
+              className={
+                statut === value
+                  ? 'bg-steel-700 px-3 py-1.5 font-medium text-white'
+                  : 'bg-white px-3 py-1.5 text-steel-600 hover:bg-surface-subtle'
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <Card>

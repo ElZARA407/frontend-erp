@@ -2,18 +2,14 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { ArrowLeft, CheckCircle2, Plus, Factory } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Factory, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { StatCard } from '@/components/ui/stat-card'
-import { Select } from '@/components/ui/select'
 import { formatDate, formatDateTime, formatPercent, formatQty, getStatutColor } from '@/lib/utils'
 import {
   useBonTransformation,
@@ -22,8 +18,8 @@ import {
   useValidateBtSession,
   useClotureBonTransformation,
 } from '@/lib/hooks/use-recyclage'
-import { btSessionSchema, type BtSessionSchema } from '@/lib/schemas/recyclage.schema'
 import type { RecyclageSession } from '@/lib/recyclage.types'
+import { BtSessionForm } from './bt-session-form'
 
 interface BtDetailViewProps {
   btId: number
@@ -39,31 +35,6 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
   const clotureBt = useClotureBonTransformation()
 
   const sessions = Array.isArray(sessionsData) ? sessionsData : []
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<BtSessionSchema>({
-    resolver: zodResolver(btSessionSchema),
-    defaultValues: {
-      date_session: new Date().toISOString().slice(0, 10),
-      machine_broyage: bt?.machine_broyage ?? '',
-    },
-  })
-
-  const onSubmit = (data: BtSessionSchema) => {
-    createSession.mutate(
-      { btId, payload: data },
-      {
-        onSuccess: () => {
-          reset()
-          setShowSessionDialog(false)
-        },
-      }
-    )
-  }
 
   if (!isLoading && !bt) {
     return (
@@ -89,6 +60,12 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
       </div>
     )
   }
+
+  const quantitePrevue = bt?.quantite_entree ?? 0
+  const quantiteConsommee = bt?.quantite_nette_consomme ?? 0
+  const quantiteBroyee = bt?.quantite_broyee ?? 0
+  const tauxRendement = bt?.taux_rendement ?? 0
+  const tauxPerte = bt?.taux_perte ?? 0
 
   return (
     <div className="space-y-5">
@@ -125,28 +102,28 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
         ) : (
           <>
             <StatCard
-              label="Quantité entrée"
-              value={bt?.quantite_entree ?? 0}
+              label="Quantité prévue"
+              value={quantitePrevue}
               icon={<Factory className="h-5 w-5" />}
               accent="primary"
             />
             <StatCard
-              label="Quantité broyée"
-              value={bt?.quantite_broyee ?? 0}
+              label="Consommée"
+              value={quantiteConsommee}
+              icon={<Factory className="h-5 w-5" />}
+              accent="warning"
+            />
+            <StatCard
+              label="Broyée produite"
+              value={quantiteBroyee}
               icon={<Factory className="h-5 w-5" />}
               accent="success"
             />
             <StatCard
               label="Rendement"
-              value={formatPercent(bt?.taux_rendement ?? 0)}
+              value={formatPercent(tauxRendement)}
               icon={<Factory className="h-5 w-5" />}
-              accent="warning"
-            />
-            <StatCard
-              label="Perte"
-              value={formatPercent(bt?.taux_perte ?? 0)}
-              icon={<Factory className="h-5 w-5" />}
-              accent={bt && bt.taux_perte > 10 ? 'danger' : 'success'}
+              accent={tauxRendement >= 90 ? 'success' : 'warning'}
             />
           </>
         )}
@@ -157,7 +134,7 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
           <div>
             <h2 className="text-sm font-semibold text-steel-900">Informations BT</h2>
             <p className="text-xs text-steel-500">
-              Le backend expose le BT et ses sessions de transformation.
+              Détail du bon de transformation et des sessions associées.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -198,19 +175,21 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
               </div>
               <div className="rounded-lg border border-surface-border p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Matière brute</p>
-                <p className="mt-1 font-semibold text-steel-900">{bt.matiere_brute?.nom ?? '—'}</p>
-              </div>
-              <div className="rounded-lg border border-surface-border p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Matière broyée</p>
-                <p className="mt-1 font-semibold text-steel-900">{bt.matiere_broyee?.nom ?? '—'}</p>
+                <p className="mt-1 font-semibold text-steel-900">
+                  {bt.matiere_brute?.reference ?? '—'} - {bt.matiere_brute?.nom ?? '—'}
+                </p>
               </div>
               <div className="rounded-lg border border-surface-border p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Machine</p>
-                <p className="mt-1 font-semibold text-steel-900">{bt.machine_broyage}</p>
+                <p className="mt-1 font-semibold text-steel-900">{bt.machine?.nom ?? bt.machine_broyage ?? '—'}</p>
               </div>
               <div className="rounded-lg border border-surface-border p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Créé le</p>
-                <p className="mt-1 font-semibold text-steel-900">{formatDateTime(bt.created_at)}</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Prévu</p>
+                <p className="mt-1 font-semibold text-steel-900">{formatQty(bt.quantite_entree)}</p>
+              </div>
+              <div className="rounded-lg border border-surface-border p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Observations</p>
+                <p className="mt-1 font-semibold text-steel-900">{bt.observations ?? '—'}</p>
               </div>
             </div>
           ) : null}
@@ -220,10 +199,46 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
       <Card>
         <CardHeader>
           <div>
+            <h2 className="text-sm font-semibold text-steel-900">Progression</h2>
+            <p className="text-xs text-steel-500">Quantité consommée, broyée et pertes.</p>
+          </div>
+          <Badge variant="info" dot>
+            {formatPercent(bt?.taux_avancement ?? 0)} atteint
+          </Badge>
+        </CardHeader>
+        <CardBody>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div className="rounded-lg border border-surface-border p-4">
+              <p className="text-xs uppercase tracking-wide text-steel-400">Prévu</p>
+              <p className="mt-1 text-lg font-semibold text-steel-900">{formatQty(quantitePrevue)}</p>
+            </div>
+            <div className="rounded-lg border border-surface-border p-4">
+              <p className="text-xs uppercase tracking-wide text-steel-400">Nette consommée</p>
+              <p className="mt-1 text-lg font-semibold text-steel-900">{formatQty(quantiteConsommee)}</p>
+            </div>
+            <div className="rounded-lg border border-surface-border p-4">
+              <p className="text-xs uppercase tracking-wide text-steel-400">Broyée obtenue</p>
+              <p className="mt-1 text-lg font-semibold text-steel-900">{formatQty(quantiteBroyee)}</p>
+            </div>
+            <div className="rounded-lg border border-surface-border p-4">
+              <p className="text-xs uppercase tracking-wide text-steel-400">Perte</p>
+              <p className="mt-1 text-lg font-semibold text-steel-900">{formatQty(bt?.perte ?? 0)}</p>
+            </div>
+          </div>
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface-subtle">
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-all"
+              style={{ width: `${Math.min(100, bt?.taux_avancement ?? 0)}%` }}
+            />
+          </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div>
             <h2 className="text-sm font-semibold text-steel-900">Sessions BT</h2>
-            <p className="text-xs text-steel-500">
-              Phase 2 et validation de transformation.
-            </p>
+            <p className="text-xs text-steel-500">Saisie, validation et calculs de transformation.</p>
           </div>
           <Badge variant="info" dot>
             {sessions.length} session(s)
@@ -232,7 +247,7 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
 
         <CardBody>
           {loadingSessions ? (
-            <TableSkeleton rows={5} cols={8} />
+            <TableSkeleton rows={5} cols={9} />
           ) : sessions.length === 0 ? (
             <div className="py-10 text-center text-steel-500">Aucune session enregistrée.</div>
           ) : (
@@ -240,7 +255,7 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-surface-border">
-                    {['N°', 'Date', 'Machine', 'Entrée', 'Sortie', 'Matières', 'Employés', 'Statut'].map((h) => (
+                    {['N°', 'Date', 'Machine', 'Consommée', 'Broyée', 'Perte', 'Rendement', 'Statut', 'Actions'].map((h) => (
                       <th
                         key={h}
                         className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
@@ -248,23 +263,22 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
                         {h}
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-steel-400">
-                      Actions
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-border">
                   {sessions.map((session: RecyclageSession) => (
                     <tr key={session.id} className="hover:bg-surface-muted/60 transition-colors">
                       <td className="px-4 py-3 font-medium text-steel-900">
-                        #{session.session_numero}
+                        {session.session_numero}
                       </td>
                       <td className="px-4 py-3 text-steel-600">{formatDate(session.date_session)}</td>
-                      <td className="px-4 py-3 text-steel-600">{session.machine_broyage}</td>
+                      <td className="px-4 py-3 text-steel-600">
+                        {session.machine?.nom ?? session.machine_broyage ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-steel-600">{formatQty(session.quantite_nette_consomme)}</td>
                       <td className="px-4 py-3 text-steel-600">{formatQty(session.quantite_entree)}</td>
-                      <td className="px-4 py-3 text-steel-600">{formatQty(session.quantite_sortie)}</td>
-                      <td className="px-4 py-3 text-steel-600">{session.matieres?.length ?? 0}</td>
-                      <td className="px-4 py-3 text-steel-600">{session.employes?.length ?? 0}</td>
+                      <td className="px-4 py-3 text-steel-600">{formatQty(session.calcul?.perte ?? 0)}</td>
+                      <td className="px-4 py-3 text-steel-600">{formatPercent(session.calcul?.rendement ?? 0)}</td>
                       <td className="px-4 py-3">
                         <Badge variant={session.statut === 'validee' ? 'success' : 'warning'} dot>
                           {session.statut}
@@ -296,37 +310,14 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
         open={showSessionDialog}
         onClose={() => setShowSessionDialog(false)}
         title="Nouvelle session BT"
-        size="md"
+        size="xl"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input
-              label="Date session *"
-              type="date"
-              error={errors.date_session?.message}
-              {...register('date_session')}
-            />
-            <Input
-              label="Machine *"
-              placeholder="Machine BT-01"
-              error={errors.machine_broyage?.message}
-              {...register('machine_broyage')}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 border-t border-surface-border pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowSessionDialog(false)}
-            >
-              Annuler
-            </Button>
-            <Button type="submit" loading={createSession.isPending}>
-              Créer la session
-            </Button>
-          </div>
-        </form>
+        {bt && (
+          <BtSessionForm
+            bt={bt}
+            onSuccess={() => setShowSessionDialog(false)}
+          />
+        )}
       </Dialog>
     </div>
   )

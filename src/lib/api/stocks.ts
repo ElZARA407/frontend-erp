@@ -100,6 +100,8 @@ export const stocksApi = {
   list: async (filters: {
     location_id?: number
     entite_type?: string
+    entite_id?: number
+    include_zero?: boolean
     search?: string
     per_page?: number
     page?: number
@@ -118,6 +120,7 @@ export const stocksApi = {
   ruptures: async (filters: {
     location_id?: number
     entite_type?: string
+    entite_id?: number
     search?: string
     per_page?: number
     page?: number

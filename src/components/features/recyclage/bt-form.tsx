@@ -1,55 +1,80 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { useMemo } from 'react'
+import { useForm, type Resolver } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { useLocations } from '@/lib/hooks/use-organisation'
+import { useMachines } from '@/lib/hooks/use-production'
 import { useMatieres } from '@/lib/hooks/use-catalogue'
 import { useCreateBonTransformation } from '@/lib/hooks/use-recyclage'
 import {
   bonTransformationSchema,
   type BonTransformationSchema,
 } from '@/lib/schemas/recyclage.schema'
+import type { CatalogueMatiere } from '@/lib/catalogue.types'
+import type { Location, Machine } from '@/lib/types'
 
 interface BtFormProps {
   onSuccess?: () => void
+}
+
+function normalizeArray<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[]
+
+  if (value && typeof value === 'object') {
+    const root = value as { data?: unknown }
+
+    if (Array.isArray(root.data)) return root.data as T[]
+
+    if (root.data && typeof root.data === 'object') {
+      const nested = root.data as { data?: unknown }
+
+      if (Array.isArray(nested.data)) return nested.data as T[]
+    }
+  }
+
+  return []
 }
 
 export function BtForm({ onSuccess }: BtFormProps) {
   const { mutate: createBt, isPending } = useCreateBonTransformation()
 
   const { data: locationsData } = useLocations()
+  const { data: machinesData } = useMachines({ actif: true })
   const { data: matieresBrutesPage } = useMatieres({ type: 'brute', per_page: 200 })
-  const { data: matieresBroyeesPage } = useMatieres({ type: 'broyee', per_page: 200 })
 
-  const locations = Array.isArray(locationsData) ? locationsData : []
+  const locations = normalizeArray<Location>(locationsData)
+  const machines = normalizeArray<Machine>(machinesData)
   const matieresBrutes = Array.isArray(matieresBrutesPage?.data?.data) ? matieresBrutesPage.data.data : []
-  const matieresBroyees = Array.isArray(matieresBroyeesPage?.data?.data) ? matieresBroyeesPage.data.data : []
 
   const locationOptions = useMemo(
-    () => locations.map((location) => ({ value: location.id, label: `${location.nom} (${location.type})` })),
+    () =>
+      locations.map((location) => ({
+        value: location.id,
+        label: `${location.nom} (${location.type})`,
+      })),
     [locations]
+  )
+
+  const machineOptions = useMemo(
+    () =>
+      machines.map((machine) => ({
+        value: machine.id,
+        label: machine.nom,
+      })),
+    [machines]
   )
 
   const matiereBruteOptions = useMemo(
     () =>
-      matieresBrutes.map((matiere) => ({
+      matieresBrutes.map((matiere: CatalogueMatiere) => ({
         value: matiere.id,
         label: `${matiere.reference} - ${matiere.nom}`,
       })),
     [matieresBrutes]
-  )
-
-  const matiereBroyeeOptions = useMemo(
-    () =>
-      matieresBroyees.map((matiere) => ({
-        value: matiere.id,
-        label: `${matiere.reference} - ${matiere.nom}`,
-      })),
-    [matieresBroyees]
   )
 
   const {
@@ -57,9 +82,10 @@ export function BtForm({ onSuccess }: BtFormProps) {
     handleSubmit,
     formState: { errors },
   } = useForm<BonTransformationSchema>({
-    resolver: zodResolver(bonTransformationSchema) as any,
+    resolver: zodResolver(bonTransformationSchema) as unknown as Resolver<BonTransformationSchema>,
     defaultValues: {
       date: new Date().toISOString().slice(0, 10),
+      quantite_entree: 0,
     },
   })
 
@@ -76,6 +102,7 @@ export function BtForm({ onSuccess }: BtFormProps) {
           error={errors.date?.message}
           {...register('date')}
         />
+
         <Select
           label="Site *"
           placeholder="Choisir un site"
@@ -93,29 +120,31 @@ export function BtForm({ onSuccess }: BtFormProps) {
           error={errors.matiere_brute_id?.message}
           {...register('matiere_brute_id')}
         />
+
         <Select
-          label="Matière broyée *"
-          placeholder="Choisir la matière broyée"
-          options={matiereBroyeeOptions}
-          error={errors.matiere_broyee_id?.message}
-          {...register('matiere_broyee_id')}
+          label="Machine *"
+          placeholder="Choisir une machine"
+          options={machineOptions}
+          error={errors.machine_id?.message}
+          {...register('machine_id')}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Input
-          label="Machine de broyage *"
-          placeholder="Machine BT-01"
-          error={errors.machine_broyage?.message}
-          {...register('machine_broyage')}
-        />
-        <Input
-          label="Quantité entrée *"
+          label="Quantité prévue *"
           type="number"
           step="0.001"
           placeholder="1000"
           error={errors.quantite_entree?.message}
           {...register('quantite_entree')}
+        />
+
+        <Input
+          label="Observations"
+          placeholder="Remarque facultative"
+          error={errors.observations?.message}
+          {...register('observations')}
         />
       </div>
 

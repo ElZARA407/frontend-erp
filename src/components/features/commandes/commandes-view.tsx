@@ -2,19 +2,42 @@
 
 import { useState } from 'react'
 import { AlertTriangle, Copy, Plus, ShoppingCart, Truck } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { Pagination } from '@/components/ui/pagination'
+import { Select } from '@/components/ui/select'
 import { TableSkeleton } from '@/components/ui/skeleton'
+import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
 import { useCommandes, useDuplicateCommande } from '@/lib/hooks/use-commandes'
-import type { Commande } from '@/lib/types'
+import { useClients } from '@/lib/hooks/use-clients'
+import { useLocations } from '@/lib/hooks/use-organisation'
+import type { Client, Commande, Location } from '@/lib/types'
 import { CommandeForm } from './commande-form'
 import { LivraisonForm } from '../livraisons/livraison-form'
-import { useRouter } from 'next/navigation'
+
+function normalizeArray<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[]
+
+  if (value && typeof value === 'object') {
+    const root = value as { data?: unknown }
+
+    if (Array.isArray(root.data)) return root.data as T[]
+
+    if (root.data && typeof root.data === 'object') {
+      const nested = root.data as { data?: unknown }
+
+      if (Array.isArray(nested.data)) return nested.data as T[]
+    }
+  }
+
+  return []
+}
 
 export function CommandesView() {
   const [page, setPage] = useState(1)
@@ -24,10 +47,26 @@ export function CommandesView() {
   const [showLivraison, setShowLivraison] = useState(false)
   const [selectedCommande, setSelectedCommande] = useState<Commande | null>(null)
   const router = useRouter()
+  const [search, setSearch] = useState('')
+  const [clientId, setClientId] = useState('')
+  const [locationId, setLocationId] = useState('')
+  const [dateDebut, setDateDebut] = useState('')
+  const [dateFin, setDateFin] = useState('')
+
+  const { data: clientsPage } = useClients({ actif: true, per_page: 200 })
+  const { data: locationsData } = useLocations()
+
+  const clients = normalizeArray<Client>(clientsPage)
+  const locations = normalizeArray<Location>(locationsData)
 
   const { data, isLoading } = useCommandes({
+    search: search.trim() || undefined,
     statut: statut || undefined,
     en_retard: enRetard || undefined,
+    client_id: clientId ? Number(clientId) : undefined,
+    location_id: locationId ? Number(locationId) : undefined,
+    date_debut: dateDebut || undefined,
+    date_fin: dateFin || undefined,
     page,
     per_page: 20,
   })
@@ -60,39 +99,101 @@ export function CommandesView() {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex overflow-hidden rounded-md border border-surface-border text-xs">
-          {statutOptions.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => {
-                setStatut(value)
+      {/* <div className="flex flex-wrap items-center gap-3"> */}
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <Input
+              className="w-full md:w-72"
+              label="Recherche"
+              placeholder="Numéro, client..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
                 setPage(1)
               }}
-              className={
-                statut === value
-                  ? 'bg-steel-700 px-3 py-1.5 font-medium text-white'
-                  : 'bg-white px-3 py-1.5 text-steel-600 hover:bg-surface-subtle'
-              }
-            >
-              {label}
-            </button>
-          ))}
+            />
+
+            <Select
+              className="w-full md:w-56"
+              label="Client"
+              placeholder="Tous"
+              options={clients.map((client) => ({
+                value: client.id,
+                label: client.nom,
+              }))}
+              value={clientId}
+              onChange={(e) => {
+                setClientId(e.target.value)
+                setPage(1)
+              }}
+            />
+
+            <Select
+              className="w-full md:w-56"
+              label="Location"
+              placeholder="Toutes"
+              options={locations.map((location) => ({
+                value: location.id,
+                label: location.nom,
+              }))}
+              value={locationId}
+              onChange={(e) => {
+                setLocationId(e.target.value)
+                setPage(1)
+              }}
+            />
+
+            <DateRangeFilter
+              className="w-full md:w-[28rem]"
+              dateDebut={dateDebut}
+              dateFin={dateFin}
+              onDateDebutChange={(value) => {
+                setDateDebut(value)
+                setPage(1)
+              }}
+              onDateFinChange={(value) => {
+                setDateFin(value)
+                setPage(1)
+              }}
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex overflow-hidden rounded-md border border-surface-border text-xs">
+              {statutOptions.map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => {
+                    setStatut(value)
+                    setPage(1)
+                  }}
+                  className={
+                    statut === value
+                      ? 'bg-steel-700 px-3 py-1.5 font-medium text-white'
+                      : 'bg-white px-3 py-1.5 text-steel-600 hover:bg-surface-subtle'
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-steel-600">
+              <input
+                type="checkbox"
+                checked={enRetard}
+                onChange={(e) => {
+                  setEnRetard(e.target.checked)
+                  setPage(1)
+                }}
+                className="h-3.5 w-3.5 accent-red-600"
+              />
+              <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+              En retard seulement
+            </label>
+          </div>
         </div>
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-steel-600">
-          <input
-            type="checkbox"
-            checked={enRetard}
-            onChange={(e) => {
-              setEnRetard(e.target.checked)
-              setPage(1)
-            }}
-            className="h-3.5 w-3.5 accent-red-600"
-          />
-          <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
-          En retard seulement
-        </label>
-      </div>
+      {/* </div> */}
 
       <Card>
         {isLoading ? (

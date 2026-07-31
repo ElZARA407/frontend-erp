@@ -17,12 +17,18 @@ import type { Fournisseur } from '@/lib/lot3.types'
 import { FournisseurForm } from './fournisseur-form'
 import { Plus, PencilLine, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { DateRangeFilter } from '@/components/ui/date-range-filter'
+
+const PAGE_SIZE = 10
 
 export function FournisseursView() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [actif, setActif] = useState<string>('')
   const router = useRouter()
+  const [estDivers, setEstDivers] = useState('')
+  const [dateDebut, setDateDebut] = useState('')
+  const [dateFin, setDateFin] = useState('')
 
   const [showDialog, setShowDialog] = useState(false)
   const [selectedFournisseur, setSelectedFournisseur] = useState<Fournisseur | null>(null)
@@ -30,8 +36,11 @@ export function FournisseursView() {
   const { data: fournisseursPage, isLoading } = useFournisseurs({
     search: search || undefined,
     actif: actif === '' ? undefined : actif === 'true',
+    est_divers: estDivers === '' ? undefined : estDivers === 'true',
+    date_debut: dateDebut || undefined,
+    date_fin: dateFin || undefined,
     page,
-    per_page: 20,
+    per_page: PAGE_SIZE,
   })
 
   const deleteFournisseur = useDeleteFournisseur()
@@ -86,6 +95,34 @@ export function FournisseursView() {
           value={actif}
           onChange={(e) => {
             setActif(e.target.value)
+            setPage(1)
+          }}
+        />
+
+        <Select
+          label="Type Fournisseur  "
+          placeholder="Tous"
+          options={[
+            { value: 'false', label: 'Fournisseurs normaux' },
+            { value: 'true', label: 'Fournisseur divers' },
+          ]}
+          value={estDivers}
+          onChange={(e) => {
+            setEstDivers(e.target.value)
+            setPage(1)
+          }}
+        />
+
+        <DateRangeFilter
+          className="w-full md:w-[28rem]"
+          dateDebut={dateDebut}
+          dateFin={dateFin}
+          onDateDebutChange={(value) => {
+            setDateDebut(value)
+            setPage(1)
+          }}
+          onDateFinChange={(value) => {
+            setDateFin(value)
             setPage(1)
           }}
         />

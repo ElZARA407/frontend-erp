@@ -3,6 +3,7 @@ import type { ApiResponse, PaginatedResponse, Commande } from '../types'
 import { buildQueryString } from '../utils'
 
 export interface CommandeFilters {
+  search?: string
   client_id?: number
   statut?: string
   location_id?: number

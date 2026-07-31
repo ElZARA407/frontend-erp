@@ -15,6 +15,8 @@ import { Dialog } from '@/components/ui/dialog'
 import { ClientForm } from './client-form'
 import type { Client } from '@/lib/types'
 import { useRouter } from 'next/navigation'
+import { DateRangeFilter } from '@/components/ui/date-range-filter'
+import { Select } from '@/components/ui/select'
 
 const PAGE_SIZE = 10
 
@@ -24,9 +26,20 @@ export function ClientsView() {
   const [actif, setActif] = useState<boolean | undefined>(true)
   const [showForm, setShowForm] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [estDivers, setEstDivers] = useState('')
+  const [dateDebut, setDateDebut] = useState('')
+  const [dateFin, setDateFin] = useState('')
 
   const router = useRouter()
-  const { data, isLoading } = useClients({ search, actif, page, per_page: PAGE_SIZE })
+  const { data, isLoading } = useClients({
+    search: search || undefined,
+    actif,
+    est_divers: estDivers === '' ? undefined : estDivers === 'true',
+    date_debut: dateDebut || undefined,
+    date_fin: dateFin || undefined,
+    page,
+    per_page: PAGE_SIZE,
+  })
   const deleteClient = useDeleteClient()
 
   const clients = Array.isArray(data?.data?.data) ? data.data.data : []
@@ -96,6 +109,34 @@ export function ClientsView() {
             </button>
           ))}
         </div>
+
+        <Select
+          label="Type client"
+          placeholder="Tous"
+          options={[
+            { value: 'false', label: 'Clients normaux' },
+            { value: 'true', label: 'Clients divers' },
+          ]}
+          value={estDivers}
+          onChange={(e) => {
+            setEstDivers(e.target.value)
+            setPage(1)
+          }}
+        />
+
+        <DateRangeFilter
+          className="w-full md:w-[28rem]"
+          dateDebut={dateDebut}
+          dateFin={dateFin}
+          onDateDebutChange={(value) => {
+            setDateDebut(value)
+            setPage(1)
+          }}
+          onDateFinChange={(value) => {
+            setDateFin(value)
+            setPage(1)
+          }}
+        />
       </div>
 
       <Card>

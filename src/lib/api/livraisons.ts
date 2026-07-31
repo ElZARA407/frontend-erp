@@ -4,10 +4,13 @@ import { buildQueryString } from '../utils'
 import { extractPaginatedResponse } from './pagination'
 
 export interface LivraisonFilters {
+  search?: string
   client_id?: number
   statut?: string
   source_type?: string
   est_facturee?: boolean
+  date_debut?: string
+  date_fin?: string
   per_page?: number
   page?: number
   [key: string]: unknown

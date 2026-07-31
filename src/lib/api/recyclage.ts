@@ -1,12 +1,10 @@
 import apiClient from './client'
+import type { ApiResponse } from '@/lib/types'
 import { buildQueryString } from '@/lib/utils'
-import type { ApiResponse, PaginatedResponse } from '@/lib/types'
+import { extractPaginatedResponse } from './pagination'
 import type {
   BonTransformation,
   BonTransformationPayload,
-  BtEmployePayload,
-  BtEvenementPayload,
-  BtMatierePayload,
   BtSessionPayload,
   RecyclageFilters,
   RecyclagePage,
@@ -14,11 +12,11 @@ import type {
 } from '@/lib/recyclage.types'
 
 export const recyclageApi = {
-  list: async (filters: RecyclageFilters = {}) => {
-    const { data } = await apiClient.get<RecyclagePage>(
+  list: async (filters: RecyclageFilters = {}): Promise<RecyclagePage> => {
+    const { data } = await apiClient.get(
       `/recyclage/bons-transformation${buildQueryString(filters)}`
     )
-    return data
+    return extractPaginatedResponse<BonTransformation>(data)
   },
 
   get: async (id: number) => {
@@ -70,30 +68,6 @@ export const recyclageApi = {
     validate: async (sessionId: number) => {
       const { data } = await apiClient.post<ApiResponse<RecyclageSession>>(
         `/recyclage/bt-sessions/${sessionId}/valider`
-      )
-      return data.data
-    },
-
-    addMatiere: async (sessionId: number, payload: BtMatierePayload) => {
-      const { data } = await apiClient.post<ApiResponse<unknown>>(
-        `/recyclage/bt-sessions/${sessionId}/matieres`,
-        payload
-      )
-      return data.data
-    },
-
-    addEmploye: async (sessionId: number, payload: BtEmployePayload) => {
-      const { data } = await apiClient.post<ApiResponse<unknown>>(
-        `/recyclage/bt-sessions/${sessionId}/employes`,
-        payload
-      )
-      return data.data
-    },
-
-    addEvenement: async (sessionId: number, payload: BtEvenementPayload) => {
-      const { data } = await apiClient.post<ApiResponse<unknown>>(
-        `/recyclage/bt-sessions/${sessionId}/evenements`,
-        payload
       )
       return data.data
     },

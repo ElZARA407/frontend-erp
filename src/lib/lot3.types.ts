@@ -152,6 +152,9 @@ export interface DemandeAchatUpdatePayload {
 export interface FournisseurFilters {
   search?: string
   actif?: boolean
+  est_divers?: boolean
+  date_debut?: string
+  date_fin?: string
   page?: number
   per_page?: number
   [key: string]: unknown

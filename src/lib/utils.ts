@@ -129,3 +129,5 @@ export function formatMoney(value: number | null | undefined, fractionDigits = 0
     maximumFractionDigits: fractionDigits,
   }).format(value)} Ar`
 }
+
+

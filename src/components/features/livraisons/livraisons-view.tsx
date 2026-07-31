@@ -1,33 +1,69 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle, FileText, RotateCcw, Truck } from 'lucide-react'
+import { CheckCircle, FileDown, FileText, RotateCcw, Truck } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useAnnulerLivraison, useConfirmerLivraison, useLivraisons } from '@/lib/hooks/use-livraisons'
+import { useClients } from '@/lib/hooks/use-clients'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { Pagination } from '@/components/ui/pagination'
+import { Select } from '@/components/ui/select'
 import { TableSkeleton } from '@/components/ui/skeleton'
+import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { formatDate, getStatutColor } from '@/lib/utils'
-import type { Livraison } from '@/lib/types'
+import type { Client, Livraison } from '@/lib/types'
 import { FactureForm } from '../factures/facture-form'
-import { FileDown } from 'lucide-react'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
-import { useRouter } from 'next/navigation'
 import { usePermissions } from '@/lib/hooks/use-permissions'
+
+function normalizeArray<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[]
+
+  if (value && typeof value === 'object') {
+    const root = value as { data?: unknown }
+
+    if (Array.isArray(root.data)) return root.data as T[]
+
+    if (root.data && typeof root.data === 'object') {
+      const nested = root.data as { data?: unknown }
+
+      if (Array.isArray(nested.data)) return nested.data as T[]
+    }
+  }
+
+  return []
+}
 
 export function LivraisonsView() {
   const [page, setPage] = useState(1)
   const [statut, setStatut] = useState<string>('')
   const [selectedLivraison, setSelectedLivraison] = useState<Livraison | null>(null)
+  const [search, setSearch] = useState('')
+  const [clientId, setClientId] = useState('')
+  const [sourceType, setSourceType] = useState('')
+  const [facturee, setFacturee] = useState('')
+  const [dateDebut, setDateDebut] = useState('')
+  const [dateFin, setDateFin] = useState('')
   const { exportPdf, isExporting } = usePdfExport()
   const router = useRouter()
   const permissions = usePermissions()
 
+  const { data: clientsPage } = useClients({ actif: true, per_page: 200 })
+  const clients = normalizeArray<Client>(clientsPage)
+
   const { data, isLoading } = useLivraisons({
+    search: search.trim() || undefined,
+    client_id: clientId ? Number(clientId) : undefined,
     statut: statut || undefined,
+    source_type: sourceType || undefined,
+    est_facturee: facturee === '' ? undefined : facturee === 'true',
+    date_debut: dateDebut || undefined,
+    date_fin: dateFin || undefined,
     page,
     per_page: 20,
   })
@@ -51,23 +87,97 @@ export function LivraisonsView() {
         subtitle={`${paginate?.total ?? 0} livraison${(paginate?.total ?? 0) > 1 ? 's' : ''}`}
       />
 
-      <div className="flex w-fit overflow-hidden rounded-md border border-surface-border text-xs">
-        {statutOptions.map(({ value, label }) => (
-          <button
-            key={value}
-            onClick={() => {
-              setStatut(value)
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <Input
+            className="w-full md:w-72"
+            label="Recherche"
+            placeholder="Numéro BL, chauffeur, véhicule..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
               setPage(1)
             }}
-            className={
-              statut === value
-                ? 'bg-steel-700 px-3 py-1.5 font-medium text-white'
-                : 'bg-white px-3 py-1.5 text-steel-600 hover:bg-surface-subtle'
-            }
-          >
-            {label}
-          </button>
-        ))}
+          />
+
+          <Select
+            className="w-full md:w-56"
+            label="Client"
+            placeholder="Tous"
+            options={clients.map((client) => ({
+              value: client.id,
+              label: client.nom,
+            }))}
+            value={clientId}
+            onChange={(e) => {
+              setClientId(e.target.value)
+              setPage(1)
+            }}
+          />
+
+          <Select
+            className="w-full md:w-48"
+            label="Source"
+            placeholder="Toutes"
+            options={[
+              { value: 'commande', label: 'Commande' },
+              { value: 'vente_directe', label: 'Vente directe' },
+            ]}
+            value={sourceType}
+            onChange={(e) => {
+              setSourceType(e.target.value)
+              setPage(1)
+            }}
+          />
+
+          <Select
+            className="w-full md:w-44"
+            label="Facturation"
+            placeholder="Toutes"
+            options={[
+              { value: 'false', label: 'Non facturées' },
+              { value: 'true', label: 'Facturées' },
+            ]}
+            value={facturee}
+            onChange={(e) => {
+              setFacturee(e.target.value)
+              setPage(1)
+            }}
+          />
+
+          <DateRangeFilter
+            className="w-full md:w-[28rem]"
+            dateDebut={dateDebut}
+            dateFin={dateFin}
+            onDateDebutChange={(value) => {
+              setDateDebut(value)
+              setPage(1)
+            }}
+            onDateFinChange={(value) => {
+              setDateFin(value)
+              setPage(1)
+            }}
+          />
+        </div>
+
+        <div className="flex w-fit overflow-hidden rounded-md border border-surface-border text-xs">
+          {statutOptions.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => {
+                setStatut(value)
+                setPage(1)
+              }}
+              className={
+                statut === value
+                  ? 'bg-steel-700 px-3 py-1.5 font-medium text-white'
+                  : 'bg-white px-3 py-1.5 text-steel-600 hover:bg-surface-subtle'
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <Card>

@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { FlaskConical, Layers3, Package, PencilLine, Plus, Trash2, Upload } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
@@ -11,7 +12,9 @@ import { Pagination } from '@/components/ui/pagination'
 import { Select } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ExcelImportDialog } from '@/components/ui/excel-import-dialog'
-import { formatDate, formatDateTime, formatMGA, formatQty } from '@/lib/utils'
+import { formatDate, formatMGA, formatQty } from '@/lib/utils'
+import { DateRangeFilter } from '@/components/ui/date-range-filter'
+import { useLocations } from '@/lib/hooks/use-organisation'
 import {
   useCategories,
   useCreateCategory,
@@ -37,7 +40,17 @@ type CatalogueTab = 'categories' | 'produits' | 'matieres'
 const PAGE_SIZE = 10
 
 export function CatalogueView() {
+  const router = useRouter()
   const [tab, setTab] = useState<CatalogueTab>('categories')
+  const [productLocationId, setProductLocationId] = useState('')
+  const [productStockState, setProductStockState] = useState<'all' | 'available' | 'rupture'>('all')
+  const [productDateDebut, setProductDateDebut] = useState('')
+  const [productDateFin, setProductDateFin] = useState('')
+
+const [matiereLocationId, setMatiereLocationId] = useState('')
+const [matiereStockState, setMatiereStockState] = useState<'all' | 'available' | 'rupture'>('all')
+const [matiereDateDebut, setMatiereDateDebut] = useState('')
+const [matiereDateFin, setMatiereDateFin] = useState('')
 
   const [categoryPage, setCategoryPage] = useState(1)
 
@@ -61,10 +74,16 @@ export function CatalogueView() {
   const [selectedMatiere, setSelectedMatiere] = useState<CatalogueMatiere | null>(null)
 
   const { data: categories, isLoading: categoriesLoading } = useCategories()
+  const { data: locationsData } = useLocations()
+  const locations = Array.isArray(locationsData) ? locationsData : []
   const { data: productsPage, isLoading: productsLoading } = useProducts({
     search: productSearch || undefined,
     categorie_id: productCategoryId ? Number(productCategoryId) : undefined,
     actif: productActive === '' ? undefined : productActive === 'true',
+    location_id: productLocationId ? Number(productLocationId) : undefined,
+    stock_state: productStockState === 'all' ? undefined : productStockState,
+    date_debut: productDateDebut || undefined,
+    date_fin: productDateFin || undefined,
     page: productPage,
     per_page: PAGE_SIZE,
   })
@@ -72,6 +91,10 @@ export function CatalogueView() {
     search: matiereSearch || undefined,
     type: matiereType || undefined,
     actif: matiereActive === '' ? undefined : matiereActive === 'true',
+    location_id: matiereLocationId ? Number(matiereLocationId) : undefined,
+    stock_state: matiereStockState === 'all' ? undefined : matiereStockState,
+    date_debut: matiereDateDebut || undefined,
+    date_fin: matiereDateFin || undefined,
     page: matierePage,
     per_page: PAGE_SIZE,
   })
@@ -109,11 +132,27 @@ export function CatalogueView() {
 
   useEffect(() => {
     setProductPage(1)
-  }, [productSearch, productCategoryId, productActive])
+  }, [
+    productSearch,
+    productCategoryId,
+    productActive,
+    productLocationId,
+    productStockState,
+    productDateDebut,
+    productDateFin,
+  ])
 
   useEffect(() => {
     setMatierePage(1)
-  }, [matiereSearch, matiereType, matiereActive])
+  }, [
+    matiereSearch,
+    matiereType,
+    matiereActive,
+    matiereLocationId,
+    matiereStockState,
+    matiereDateDebut,
+    matiereDateFin,
+  ])
 
   const headerActions =
     tab === 'categories' ? (
@@ -337,6 +376,50 @@ export function CatalogueView() {
                 setProductPage(1)
               }}
             />
+
+            <Select
+              className="w-full md:w-56"
+              label="Location"
+              placeholder="Toutes"
+              options={locations.map((location) => ({
+                value: location.id,
+                label: location.nom,
+              }))}
+              value={productLocationId}
+              onChange={(e) => {
+                setProductLocationId(e.target.value)
+                setProductPage(1)
+              }}
+            />
+
+            <Select
+              className="w-full md:w-44"
+              label="Stock"
+              options={[
+                { value: 'all', label: 'Tous' },
+                { value: 'available', label: 'Disponible' },
+                { value: 'rupture', label: 'Rupture' },
+              ]}
+              value={productStockState}
+              onChange={(e) => {
+                setProductStockState(e.target.value as 'all' | 'available' | 'rupture')
+                setProductPage(1)
+              }}
+            />
+
+            <DateRangeFilter
+              className="w-full md:w-[28rem]"
+              dateDebut={productDateDebut}
+              dateFin={productDateFin}
+              onDateDebutChange={(value) => {
+                setProductDateDebut(value)
+                setProductPage(1)
+              }}
+              onDateFinChange={(value) => {
+                setProductDateFin(value)
+                setProductPage(1)
+              }}
+            />
           </div>
 
           <Card>
@@ -364,7 +447,11 @@ export function CatalogueView() {
                     </thead>
                     <tbody className="divide-y divide-surface-border">
                       {products.map((product: CatalogueProduct) => (
-                        <tr key={product.id} className="hover:bg-surface-subtle/70">
+                        <tr
+                          key={product.id}
+                          className="cursor-pointer hover:bg-surface-subtle/70"
+                          onClick={() => router.push(`/catalogue/produits/${product.id}`)}
+                        >
                           <td className="px-4 py-3 font-medium text-steel-900">{product.nomencla}</td>
                           <td className="px-4 py-3 text-steel-600">{product.designation}</td>
                           <td className="px-4 py-3">
@@ -387,7 +474,8 @@ export function CatalogueView() {
                                 variant="ghost"
                                 size="sm"
                                 icon={<PencilLine className="h-3.5 w-3.5" />}
-                                onClick={() => {
+                                onClick={(event) => {
+                                  event.stopPropagation()
                                   setSelectedProduct(product)
                                   setShowProductDialog(true)
                                 }}
@@ -396,7 +484,10 @@ export function CatalogueView() {
                                 variant="ghost"
                                 size="sm"
                                 icon={<Trash2 className="h-3.5 w-3.5" />}
-                                onClick={() => deleteProduct.mutate(product.id)}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  deleteProduct.mutate(product.id)
+                                }}
                               />
                             </div>
                           </td>
@@ -467,6 +558,50 @@ export function CatalogueView() {
                 setMatierePage(1)
               }}
             />
+
+            <Select
+              className="w-full md:w-56"
+              label="Location"
+              placeholder="Toutes"
+              options={locations.map((location) => ({
+                value: location.id,
+                label: location.nom,
+              }))}
+              value={matiereLocationId}
+              onChange={(e) => {
+                setMatiereLocationId(e.target.value)
+                setMatierePage(1)
+              }}
+            />
+
+            <Select
+              className="w-full md:w-44"
+              label="Stock"
+              options={[
+                { value: 'all', label: 'Tous' },
+                { value: 'available', label: 'Disponible' },
+                { value: 'rupture', label: 'Rupture' },
+              ]}
+              value={matiereStockState}
+              onChange={(e) => {
+                setMatiereStockState(e.target.value as 'all' | 'available' | 'rupture')
+                setMatierePage(1)
+              }}
+            />
+
+            <DateRangeFilter
+              className="w-full md:w-[28rem]"
+              dateDebut={matiereDateDebut}
+              dateFin={matiereDateFin}
+              onDateDebutChange={(value) => {
+                setMatiereDateDebut(value)
+                setMatierePage(1)
+              }}
+              onDateFinChange={(value) => {
+                setMatiereDateFin(value)
+                setMatierePage(1)
+              }}
+            />
           </div>
 
           <Card>
@@ -495,7 +630,11 @@ export function CatalogueView() {
                     </thead>
                     <tbody className="divide-y divide-surface-border">
                       {matieres.map((matiere: CatalogueMatiere) => (
-                        <tr key={matiere.id} className="hover:bg-surface-subtle/70">
+                        <tr
+                          key={matiere.id}
+                          className="cursor-pointer hover:bg-surface-subtle/70"
+                          onClick={() => router.push(`/catalogue/matieres/${matiere.id}`)}
+                        >
                           <td className="px-4 py-3 font-medium text-steel-900">{matiere.reference}</td>
                           <td className="px-4 py-3 text-steel-600">{matiere.nom}</td>
                           <td className="px-4 py-3">
@@ -525,7 +664,8 @@ export function CatalogueView() {
                                 variant="ghost"
                                 size="sm"
                                 icon={<PencilLine className="h-3.5 w-3.5" />}
-                                onClick={() => {
+                                onClick={(event) => {
+                                  event.stopPropagation()
                                   setSelectedMatiere(matiere)
                                   setShowMatiereDialog(true)
                                 }}
@@ -534,7 +674,10 @@ export function CatalogueView() {
                                 variant="ghost"
                                 size="sm"
                                 icon={<Trash2 className="h-3.5 w-3.5" />}
-                                onClick={() => deleteMatiere.mutate(matiere.id)}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  deleteMatiere.mutate(matiere.id)
+                                }}
                               />
                             </div>
                           </td>
