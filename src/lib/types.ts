@@ -310,6 +310,7 @@ export interface BpSessionCalcul {
       heure_fin?: string | null
       description?: string | null
       duree: number
+      total?: number
     }>
   } | null
   calcule_le?: string | null

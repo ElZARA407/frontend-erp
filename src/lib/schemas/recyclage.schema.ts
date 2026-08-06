@@ -24,10 +24,18 @@ export const bonTransformationSchema = z.object({
 export const btSessionSchema = z.object({
   date_session: z.string().min(1, 'La date est requise'),
   machine_id: z.coerce.number().int().positive('La machine est requise'),
-  sortie: z.object({
-    quantite_utilisee: z.coerce.number().positive('La quantité utilisée est requise'),
-    quantite_restituee: z.coerce.number().min(0).optional(),
-  }),
+  sorties: z.array(
+    z.object({
+      quantite_utilisee: z.coerce.number().positive('La quantité utilisée est requise'),
+      quantite_restituee: z.coerce.number().min(0).optional(),
+    }).refine(
+      (value) => (value.quantite_restituee ?? 0) <= value.quantite_utilisee,
+      {
+        message: 'La quantité restituée ne peut pas dépasser la quantité utilisée',
+        path: ['quantite_restituee'],
+      }
+    )
+  ).min(1, 'Ajoute au moins une sortie de matière brute'),
   entrees: z.array(
     z.object({
       matiere_id: z.coerce.number().int().positive('La matière broyée est requise'),

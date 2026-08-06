@@ -77,6 +77,7 @@ type SessionEvenementRow = {
   heure_debut: string
   heure_fin?: string | null
   description?: string | null
+  total?: number
   operateur?: {
     id: number
     nom: string
@@ -725,14 +726,15 @@ function SessionDetailsPanel({ session }: { session: SessionRow }) {
                   </p>
                   <p className="text-xs text-steel-500">
                     {line.heure_debut}
-                    {line.heure_fin ? ` - ${line.heure_fin}` : ''}
+                    {line.heure_fin ? ` - ${line.heure_fin}` : ''} 
+                    {line.total ? ` : ${line.total}` : '—'}
                     {line.operateur?.nom ? ` • ${line.operateur.nom}` : ''}
                   </p>
                   {line.description && (
                     <p className="mt-1 text-xs text-steel-600">{line.description}</p>
                   )}
                 </div>
-                <Badge variant="warning">{getEventLabel(line.type_evenement)}</Badge>
+                <Badge variant="warning">{getEventLabel(line.type_evenement)}: {line.total ?? '—'}</Badge>
               </div>
             )}
           />

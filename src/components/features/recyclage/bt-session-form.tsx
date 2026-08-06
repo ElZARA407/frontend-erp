@@ -48,10 +48,12 @@ function buildDefaultValues(bt: BonTransformation): BtSessionSchema {
   return {
     date_session: new Date().toISOString().slice(0, 10),
     machine_id: bt.machine_id ?? 0,
-    sortie: {
-      quantite_utilisee: bt.quantite_entree ?? 0,
-      quantite_restituee: 0,
-    },
+    sorties: [
+      {
+        quantite_utilisee: bt.quantite_entree ?? 0,
+        quantite_restituee: 0,
+      },
+    ],
     entrees: [
       {
         matiere_id: 0,
@@ -78,7 +80,9 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
   const { data: employesPage } = useEmployes({ actif: true, per_page: 200 })
 
   const machines = normalizeArray<Machine>(machinesData)
-  const matieresBroyees = Array.isArray(matieresBroyeesPage?.data?.data) ? matieresBroyeesPage.data.data : []
+  const matieresBroyees = Array.isArray(matieresBroyeesPage?.data?.data)
+    ? matieresBroyeesPage.data.data
+    : []
   const employes = Array.isArray(employesPage?.data?.data) ? employesPage.data.data : []
 
   const machineOptions = useMemo(
@@ -95,18 +99,18 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
     [matieresBroyees]
   )
 
-    const employeOptions = useMemo(
+  const employeOptions = useMemo(
     () =>
-        employes.map((employe: RhEmploye) => {
+      employes.map((employe: RhEmploye) => {
         const fullName = `${employe.prenom ?? ''} ${employe.nom ?? ''}`.trim()
 
         return {
-            value: employe.id,
-            label: employe.nom_complet?.trim() || fullName || `Employé #${employe.id}`,
+          value: employe.id,
+          label: employe.nom_complet?.trim() || fullName || `Employé #${employe.id}`,
         }
-        }),
+      }),
     [employes]
-    )
+  )
 
   const {
     register,
@@ -119,6 +123,7 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
     defaultValues: buildDefaultValues(bt),
   })
 
+  const sortiesArray = useFieldArray({ control, name: 'sorties' })
   const entreesArray = useFieldArray({ control, name: 'entrees' })
   const employesArray = useFieldArray({ control, name: 'employes' })
   const evenementsArray = useFieldArray({ control, name: 'evenements' })
@@ -164,7 +169,7 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
           </div>
 
           <div className="rounded-lg border border-surface-border bg-surface-subtle/40 p-4 text-sm text-steel-700">
-            <p className="font-semibold text-steel-900">Matière brute du BT</p>
+            <p className="font-semibold text-steel-900">Matière brute du bon de transformation</p>
             <p className="mt-1">
               {bt.matiere_brute?.reference ?? '—'} - {bt.matiere_brute?.nom ?? '—'}
             </p>
@@ -177,13 +182,87 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
 
       <Card>
         <CardBody className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-steel-900">Matières de transformation</h3>
+              <h3 className="text-sm font-semibold text-steel-900">Sorties matière brute</h3>
               <p className="text-xs text-steel-500">
-                Une sortie est créée pour la matière brute du BT. Ajoute ici la matière broyée obtenue.
+                La matière est automatiquement celle du bon. Seules les quantités changent.
               </p>
             </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              icon={<Plus className="h-3.5 w-3.5" />}
+              onClick={() =>
+                sortiesArray.append({
+                  quantite_utilisee: 0,
+                  quantite_restituee: 0,
+                })
+              }
+            >
+              Ajouter une sortie
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            {sortiesArray.fields.map((field, index) => (
+              <div
+                key={field.id}
+                className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 lg:grid-cols-[1fr_180px_180px_40px]"
+              >
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-steel-500">
+                    Matière brute
+                  </label>
+                  <div className="flex h-10 items-center rounded-md border border-surface-border bg-surface-subtle px-3 text-sm font-medium text-steel-800">
+                    {bt.matiere_brute?.reference ?? '—'} - {bt.matiere_brute?.nom ?? '—'}
+                  </div>
+                </div>
+
+                <Input
+                  label="Quantité utilisée *"
+                  type="number"
+                  step="0.001"
+                  error={errors.sorties?.[index]?.quantite_utilisee?.message}
+                  {...register(`sorties.${index}.quantite_utilisee` as const)}
+                />
+
+                <Input
+                  label="Quantité restituée"
+                  type="number"
+                  step="0.001"
+                  error={errors.sorties?.[index]?.quantite_restituee?.message}
+                  {...register(`sorties.${index}.quantite_restituee` as const)}
+                />
+
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    icon={<Trash2 className="h-3.5 w-3.5" />}
+                    onClick={() => sortiesArray.remove(index)}
+                    disabled={sortiesArray.fields.length === 1}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardBody className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-steel-900">Entrées matière broyée</h3>
+              <p className="text-xs text-steel-500">
+                Ajoute les matières broyées obtenues pendant cette session.
+              </p>
+            </div>
+
             <Button
               type="button"
               variant="outline"
@@ -213,6 +292,7 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
                   error={errors.entrees?.[index]?.matiere_id?.message}
                   {...register(`entrees.${index}.matiere_id` as const)}
                 />
+
                 <Input
                   label="Quantité produite *"
                   type="number"
@@ -220,6 +300,7 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
                   error={errors.entrees?.[index]?.quantite?.message}
                   {...register(`entrees.${index}.quantite` as const)}
                 />
+
                 <div className="flex items-end">
                   <Button
                     type="button"
@@ -238,13 +319,14 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
 
       <Card>
         <CardBody className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold text-steel-900">Employés</h3>
               <p className="text-xs text-steel-500">
                 Saisie des participants à la session de transformation.
               </p>
             </div>
+
             <Button
               type="button"
               variant="outline"
@@ -274,6 +356,7 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
                   error={errors.employes?.[index]?.employe_id?.message}
                   {...register(`employes.${index}.employe_id` as const)}
                 />
+
                 <Input
                   label="Heures brutes"
                   type="number"
@@ -281,6 +364,7 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
                   error={errors.employes?.[index]?.heures_brutes?.message}
                   {...register(`employes.${index}.heures_brutes` as const)}
                 />
+
                 <div className="flex items-end">
                   <Button
                     type="button"
@@ -288,7 +372,6 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
                     size="sm"
                     icon={<Trash2 className="h-3.5 w-3.5" />}
                     onClick={() => employesArray.remove(index)}
-                    disabled={employesArray.fields.length === 0}
                   />
                 </div>
               </div>
@@ -299,13 +382,14 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
 
       <Card>
         <CardBody className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold text-steel-900">Événements</h3>
               <p className="text-xs text-steel-500">
-                Début, pause, panne, autre.
+                Broyage, pause, panne ou autre événement de la session.
               </p>
             </div>
+
             <Button
               type="button"
               variant="outline"
@@ -341,24 +425,28 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
                   error={errors.evenements?.[index]?.type_evenement?.message}
                   {...register(`evenements.${index}.type_evenement` as const)}
                 />
+
                 <Input
                   label="Début"
                   type="time"
                   error={errors.evenements?.[index]?.heure_debut?.message}
                   {...register(`evenements.${index}.heure_debut` as const)}
                 />
+
                 <Input
                   label="Fin"
                   type="time"
                   error={errors.evenements?.[index]?.heure_fin?.message}
                   {...register(`evenements.${index}.heure_fin` as const)}
                 />
+
                 <Input
                   label="Description"
                   placeholder="Remarque facultative"
                   error={errors.evenements?.[index]?.description?.message}
                   {...register(`evenements.${index}.description` as const)}
                 />
+
                 <div className="flex items-end">
                   <Button
                     type="button"
@@ -366,7 +454,6 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
                     size="sm"
                     icon={<Trash2 className="h-3.5 w-3.5" />}
                     onClick={() => evenementsArray.remove(index)}
-                    disabled={evenementsArray.fields.length === 0}
                   />
                 </div>
               </div>

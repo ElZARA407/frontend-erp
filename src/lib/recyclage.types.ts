@@ -128,10 +128,10 @@ export interface BonTransformationPayload {
 export interface BtSessionPayload {
   date_session: string
   machine_id: number
-  sortie: {
+  sorties: Array<{
     quantite_utilisee: number
     quantite_restituee?: number
-  }
+  }>
   entrees: Array<{
     matiere_id: number
     quantite: number
