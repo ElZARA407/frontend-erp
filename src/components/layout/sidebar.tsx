@@ -84,7 +84,7 @@ export function Sidebar() {
         <div className="flex h-14 items-center gap-2.5 border-b border-steel-800 px-4">
           <div className="flex h-11 w-16 items-center justify-center rounded-lg bg-white px-2 shadow-sm">
             <Image
-              src="/images/logo-cmp.png"
+              src="/images/logo-cmp.PNG"
               alt="Logo CMP"
               width={96}
               height={56}
