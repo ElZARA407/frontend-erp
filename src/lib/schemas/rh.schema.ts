@@ -33,6 +33,7 @@ export const rhEmployeSchema = z.object({
   date_embauche: z.string().min(1, 'La date d’embauche est requise'),
   date_depart: optionalDate,
   actif: z.coerce.boolean(),
+  salaire_mensuel: optionalNumber,
 })
 
 export const rhEmployeUpdateSchema = z.object({
@@ -42,6 +43,7 @@ export const rhEmployeUpdateSchema = z.object({
   date_embauche: z.string().min(1, 'La date d’embauche est requise'),
   date_depart: optionalDate,
   actif: z.coerce.boolean(),
+  salaire_mensuel: optionalNumber,
 })
 
 export type RhPosteSchema = z.infer<typeof rhPosteSchema>

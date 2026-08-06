@@ -21,6 +21,7 @@ export interface RhEmploye {
   date_depart: string | null
   actif: boolean
   anciennete?: string
+  salaire_mensuel?: number
   poste?: {
     id: number
     nom: string
@@ -43,6 +44,7 @@ export interface RhEmployePayload {
   date_embauche: string
   date_depart?: string | null
   actif: boolean
+  salaire_mensuel?: number | null
 }
 
 export interface RhPosteFilters {

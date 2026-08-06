@@ -26,6 +26,7 @@ type EmployeFormValues = {
   date_embauche: string
   date_depart?: string
   actif: boolean
+  salaire_mensuel?: number
 }
 
 function normalizeOptionalDate(value?: string) {
@@ -53,6 +54,7 @@ export function EmployeForm({ postes, defaultValues, onSuccess }: EmployeFormPro
       date_embauche: defaultValues?.date_embauche ?? '',
       date_depart: defaultValues?.date_depart ?? '',
       actif: defaultValues?.actif ?? true,
+      salaire_mensuel: defaultValues?.salaire_mensuel ?? undefined,
     },
     mode: 'onSubmit',
     reValidateMode: 'onChange',
@@ -75,6 +77,7 @@ export function EmployeForm({ postes, defaultValues, onSuccess }: EmployeFormPro
       date_embauche: values.date_embauche,
       date_depart: normalizeOptionalDate(values.date_depart) ?? null,
       actif: Boolean(values.actif),
+      salaire_mensuel: values.salaire_mensuel ? Number(values.salaire_mensuel) : null,
     }
 
     if (isEditing && defaultValues?.id) {
@@ -85,6 +88,7 @@ export function EmployeForm({ postes, defaultValues, onSuccess }: EmployeFormPro
         date_embauche: payloadBase.date_embauche,
         date_depart: payloadBase.date_depart,
         actif: payloadBase.actif,
+        salaire_mensuel: payloadBase.salaire_mensuel,
       }
 
       updateEmploye.mutate(
@@ -99,7 +103,7 @@ export function EmployeForm({ postes, defaultValues, onSuccess }: EmployeFormPro
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Input
           label="Matricule *"
           placeholder="EMP-001"
@@ -116,6 +120,14 @@ export function EmployeForm({ postes, defaultValues, onSuccess }: EmployeFormPro
           placeholder="Choisir un poste"
           error={formErrors.poste_id?.message}
           {...register('poste_id')}
+        />
+        <Input
+          label="Salaire mensuel"
+          type="number"
+          step="1"
+          placeholder="0"
+          error={errors.salaire_mensuel?.message}
+          {...register('salaire_mensuel')}
         />
       </div>
 

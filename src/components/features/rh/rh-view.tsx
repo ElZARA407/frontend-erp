@@ -266,7 +266,8 @@ export function RhView() {
                         <th className="px-4 py-3">Poste</th>
                         <th className="px-4 py-3">Embauche</th>
                         <th className="px-4 py-3">Statut</th>
-                        <th className="px-4 py-3">Ancienneté</th>
+                        <th className="px-4 py-3">TH</th>
+                        <th className="px-4 py-3">Salaire</th>
                         <th className="px-4 py-3" />
                       </tr>
                     </thead>
@@ -287,7 +288,10 @@ export function RhView() {
                             </Badge>
                           </td>
                           <td className="px-4 py-3 text-steel-600">
-                            {employe.anciennete ?? '—'}
+                            {employe.poste?.taux_horaire  ?? '—'}
+                          </td>
+                          <td className="px-4 py-3 text-steel-600">
+                            {employe.salaire_mensuel ? formatMGA(employe.salaire_mensuel) : '—'}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex justify-end gap-1">

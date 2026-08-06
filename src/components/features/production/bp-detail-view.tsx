@@ -65,6 +65,7 @@ type SessionEmployeRow = {
     poste?: {
       id: number
       nom: string
+      taux_horaire: number
     }
   }
 }
@@ -709,7 +710,9 @@ function SessionDetailsPanel({ session }: { session: SessionRow }) {
                     {line.employe?.matricule ?? '—'} - {line.employe?.poste?.nom ?? 'Sans poste'}
                   </p>
                 </div>
-                <Badge variant="info">{formatDurationHours(line.heures_effectives)}</Badge>
+                <p>Heures de travail:</p><Badge variant="info">{formatDurationHours(line.heures_effectives)}</Badge>
+                <p>TH:</p><Badge variant="info">{formatMGA(line.employe?.poste?.taux_horaire)}</Badge>
+                <p>Cout:</p><Badge variant="info">{formatMGA(line.cout)}</Badge>
               </div>
             )}
           />
