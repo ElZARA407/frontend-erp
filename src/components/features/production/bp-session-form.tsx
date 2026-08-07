@@ -79,18 +79,30 @@ function createEvenementRow(): SessionBatchSchema['evenements'][number] {
 
 export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateFormProps) {
   const { mutateAsync: createSession, isPending } = useCreateSession()
-  const { data: machinesData, isLoading: machinesLoading } = useMachines()
-  const { data: matieresPage, isLoading: matieresLoading } = useMatieres({ actif: true, per_page: 100 })
-  const { data: productsPage, isLoading: productsLoading } = useProducts({ actif: true, per_page: 100 })
-  const { data: employesPage, isLoading: employesLoading } = useEmployes({ actif: true, per_page: 100 })
   const { data: locationsData, isLoading: locationsLoading } = useLocations()
+  const locations = Array.isArray(locationsData) ? locationsData : []
+  const { data: machinesData, isLoading: machinesLoading } = useMachines()
+  const bpLocationId = bp?.location?.id ?? locations[0]?.id ?? 0
+
+  const { data: matieresPage, isLoading: matieresLoading } = useMatieres({
+    actif: true,
+    per_page: 100,
+    location_id: bpLocationId || undefined,
+  })
+
+  const { data: employesPage, isLoading: employesLoading } = useEmployes({ actif: true, per_page: 100 })
   const { data: classmentsData, isLoading: classmentsLoading } = useClassments()
 
   const machines = Array.isArray(machinesData) ? machinesData : []
   const matieres = Array.isArray(matieresPage?.data?.data) ? matieresPage.data.data : []
-  const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.data : []
+  const bpProduit = bp?.produit ?? null
+  const bpProduitId = bpProduit?.id ?? 0
+  const bpProduitLabel = bpProduit
+    ? `${bpProduit.nomencla ?? ''} - ${bpProduit.designation ?? 'Produit'}`
+    : 'Produit de l’OF'
+
   const employes = Array.isArray(employesPage?.data?.data) ? employesPage.data.data : []
-  const locations = Array.isArray(locationsData) ? locationsData : []
+  
   const classments = Array.isArray(classmentsData) ? classmentsData.filter((item) => item.actif) : []
 
   const defaultValues = useMemo(() => buildDefaultValues(bp), [bp])
@@ -112,7 +124,7 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
 
   useEffect(() => {
     if (initializedRef.current) return
-    if (machinesLoading || matieresLoading || productsLoading || employesLoading || locationsLoading) return
+    if (machinesLoading || matieresLoading || employesLoading || locationsLoading) return
 
     initializedRef.current = true
     reset(defaultValues)
@@ -120,7 +132,6 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
     defaultValues,
     machinesLoading,
     matieresLoading,
-    productsLoading,
     employesLoading,
     locationsLoading,
     reset,
@@ -136,14 +147,6 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
     [matieres]
   )
 
-  const productOptions = useMemo(
-    () =>
-      products.map((product: CatalogueProduct) => ({
-        value: product.id,
-        label: `${product.nomencla} - ${product.designation}`,
-      })),
-    [products]
-  )
 
   const employeOptions = useMemo(
     () =>
@@ -169,7 +172,7 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
   )
 
   const defaultDestinationId = bp?.location?.id ?? locations[0]?.id ?? 0
-  const defaultProductId = bp?.produit?.id ?? products[0]?.id ?? 0
+  const defaultProductId = bp?.produit?.id ?? 0
   const defaultMatiereId = matieres[0]?.id ?? 0
   const defaultEmployeId = employes[0]?.id ?? 0
   // const defaultMachineId = bp?.machine_id ?? machines[0]?.id ?? 0
@@ -308,7 +311,7 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
               onClick={() =>
                 obtenusArray.append(createObtenuRow(defaultProductId, defaultClassementId, defaultDestinationId))
               }
-              disabled={!products.length || !locations.length || !classments.length}
+              disabled={!locations.length || !classments.length}
             >
               Ajouter une ligne
             </Button>
@@ -322,10 +325,9 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
                 <ObtenuRow
                   key={field.id}
                   index={index}
-                  productOptions={productOptions}
+                  productLabel={bpProduitLabel}
                   locationOptions={locationOptions}
                   classmentOptions={classmentOptions}
-                  canChooseProduct={products.length > 0}
                   canChooseLocation={locations.length > 0}
                   canChooseClassment={classments.length > 0}
                   onRemove={() => obtenusArray.remove(index)}
@@ -522,44 +524,44 @@ function EmptyLineState({ text }: { text: string }) {
 
 function ObtenuRow({
   index,
-  productOptions,
+  productLabel,
   locationOptions,
   classmentOptions,
-  canChooseProduct,
   canChooseLocation,
   canChooseClassment,
   onRemove,
 }: {
   index: number
-  productOptions: Array<{ value: number; label: string }>
+  productLabel: string
   locationOptions: Array<{ value: number; label: string }>
   classmentOptions: Array<{ value: number; label: string }>
-  canChooseProduct: boolean
   canChooseLocation: boolean
   canChooseClassment: boolean
   onRemove: () => void
 }) {
-  const { control, register, formState: { errors } } = useFormContext<SessionBatchSchema>()
+  const {
+    control,
+    register,
+    formState: { errors },
+  } = useFormContext<SessionBatchSchema>()
 
   return (
     <div className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 md:grid-cols-5">
-      <Controller
-        control={control}
-        name={`obtenus.${index}.produit_id` as const}
-        render={({ field }) => (
-          <SearchableSelect
-            label="Produit *"
-            options={productOptions}
-            placeholder={canChooseProduct ? 'Choisir un produit' : 'Aucun produit disponible'}
-            searchPlaceholder="Rechercher une désignation ou une nomencla..."
-            noOptionsMessage="Aucun produit trouvé."
-            error={errors.obtenus?.[index]?.produit_id?.message}
-            disabled={!canChooseProduct}
-            value={field.value}
-            onValueChange={(nextValue) => field.onChange(Number(nextValue))}
-          />
+      <div className="rounded-md border border-surface-border bg-surface-subtle px-3 py-2 md:col-span-2">
+        <p className="text-xs font-medium uppercase tracking-wide text-steel-400">
+          Produit obtenu
+        </p>
+        <p className="mt-1 font-medium text-steel-900">{productLabel}</p>
+        <input
+          type="hidden"
+          {...register(`obtenus.${index}.produit_id` as const, { valueAsNumber: true })}
+        />
+        {errors.obtenus?.[index]?.produit_id?.message && (
+          <p className="mt-1 text-xs text-red-600">
+            {errors.obtenus[index]?.produit_id?.message}
+          </p>
         )}
-      />
+      </div>
 
       <Select
         label="Classement *"
@@ -584,7 +586,9 @@ function ObtenuRow({
         placeholder={canChooseLocation ? 'Choisir une destination' : 'Aucune location disponible'}
         error={errors.obtenus?.[index]?.destination_location_id?.message}
         disabled={!canChooseLocation}
-        {...register(`obtenus.${index}.destination_location_id` as const, { valueAsNumber: true })}
+        {...register(`obtenus.${index}.destination_location_id` as const, {
+          valueAsNumber: true,
+        })}
       />
 
       <div className="flex items-end justify-end">

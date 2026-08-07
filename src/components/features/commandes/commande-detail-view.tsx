@@ -11,6 +11,7 @@ import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { StatCard } from '@/components/ui/stat-card'
 import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
 import { ArrowLeft, Copy, MapPin, ShoppingCart, Truck, UserRound } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 interface CommandeDetailViewProps {
   commandeId: number
@@ -19,6 +20,7 @@ interface CommandeDetailViewProps {
 export function CommandeDetailView({ commandeId }: CommandeDetailViewProps) {
   const { data: commande, isLoading } = useCommande(commandeId)
   const duplicateCommande = useDuplicateCommande()
+  const router = useRouter()
 
   const lignes = Array.isArray(commande?.lignes) ? commande.lignes : []
 
@@ -54,13 +56,13 @@ export function CommandeDetailView({ commandeId }: CommandeDetailViewProps) {
         subtitle={commande ? `Client ${commande.client?.nom ?? '—'}` : 'Chargement...'}
         actions={
           <>
-            <Link
-              href="/commandes"
+            <Button
+              onClick={() => router.back()}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
             >
               <ArrowLeft className="h-4 w-4" />
               Retour liste
-            </Link>
+            </Button>
             {commande && (
               <Button
                 variant="outline"

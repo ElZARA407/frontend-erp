@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, Calculator, CalendarRange, Factory, ReceiptText, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Calculator, CalendarRange, Factory, Package, ReceiptText, TrendingUp } from 'lucide-react'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
@@ -12,12 +12,13 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBonsProduction, useCoutMoyenBonProduction, useCoutMoyenProduit } from '@/lib/hooks/use-production'
 import { useProducts } from '@/lib/hooks/use-catalogue'
-import { formatDate, formatQty } from '@/lib/utils'
+import { formatDate, formatQty,formatMoney } from '@/lib/utils'
 import type { BonProduction, Produit } from '@/lib/types'
 import type {
   ProductionCostBpResponse,
   ProductionCostProductResponse,
 } from '@/lib/api/production'
+import { useRouter } from 'next/navigation'
 
 type Mode = 'produit' | 'bp'
 
@@ -27,14 +28,7 @@ interface CoutMoyenViewProps {
 
 type Resultat = ProductionCostProductResponse | ProductionCostBpResponse
 
-function formatMoney(value: number | null | undefined, fractionDigits = 0): string {
-  if (value === null || value === undefined) return '—'
 
-  return `${new Intl.NumberFormat('fr-MG', {
-    minimumFractionDigits: fractionDigits,
-    maximumFractionDigits: fractionDigits,
-  }).format(value)} Ar`
-}
 
 function MetricCard({
   label,
@@ -80,6 +74,7 @@ function EmptyState({ text }: { text: string }) {
 
 export function CoutMoyenView({ mode }: CoutMoyenViewProps) {
   const isProduitMode = mode === 'produit'
+  const router = useRouter()
 
   const { data: productsPage, isLoading: productsLoading } = useProducts({
     actif: true,
@@ -167,13 +162,13 @@ export function CoutMoyenView({ mode }: CoutMoyenViewProps) {
         }
         actions={
           <div className="flex flex-wrap gap-2">
-            <Link
-              href="/production"
+            <Button
+              onClick={() => router.back()}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
             >
               <ArrowLeft className="h-4 w-4" />
-              Retour production
-            </Link>
+              Retour liste
+            </Button>
             <Link
               href={isProduitMode ? '/production/cout-moyen-bp' : '/production/cout-moyen-produit'}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
@@ -284,7 +279,7 @@ export function CoutMoyenView({ mode }: CoutMoyenViewProps) {
             <EmptyState text="Choisis un élément pour afficher le coût moyen pondéré." />
           ) : (
             <>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
                 <MetricCard
                   label="Sessions prises"
                   value={String(result.sessions_count ?? 0)}
@@ -299,9 +294,15 @@ export function CoutMoyenView({ mode }: CoutMoyenViewProps) {
                 />
                 <MetricCard
                   label="Coût moyen pondéré"
-                  value={formatMoney(result.cout_moyen_pondere ?? 0, 4)}
+                  value={formatMoney(result.cout_moyen_pondere ?? 0, 2)}
                   icon={<ReceiptText className="h-5 w-5" />}
                   accent="warning"
+                />
+                <MetricCard
+                  label="Produit moyen / heure"
+                  value={`${formatQty(result.production_moyenne_heure ?? 0)} / h`}
+                  icon={<Package className="h-5 w-5" />}
+                  accent="primary"
                 />
                 <MetricCard
                   label="Échantillon"
@@ -334,6 +335,8 @@ export function CoutMoyenView({ mode }: CoutMoyenViewProps) {
                       <th className="px-4 py-3">Quantité</th>
                       <th className="px-4 py-3">Coût unitaire</th>
                       <th className="px-4 py-3">Coût pondéré</th>
+                      <th className="px-4 py-3">Produit / h</th>
+                      <th className="px-4 py-3">Heures prod.</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-border">
@@ -356,10 +359,16 @@ export function CoutMoyenView({ mode }: CoutMoyenViewProps) {
                             {formatQty(row.quantite)}
                           </td>
                           <td className="px-4 py-3 text-steel-600">
-                            {formatMoney(row.cout_unitaire, 4)}
+                            {formatMoney(row.cout_unitaire, 2)}
                           </td>
                           <td className="px-4 py-3 text-steel-600">
-                            {formatMoney(row.cout_pondere, 4)}
+                            {formatMoney(row.cout_pondere, 2)}
+                          </td>
+                          <td className="px-4 py-3 text-steel-600">
+                            {formatQty(row.production_session ?? 0)}
+                          </td>
+                          <td className="px-4 py-3 text-steel-600">
+                            {formatQty(row.temps_effectif ?? 0)}
                           </td>
                         </tr>
                       ))

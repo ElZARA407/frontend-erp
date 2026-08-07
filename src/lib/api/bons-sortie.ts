@@ -7,13 +7,12 @@ import type {
   BonSortiePayload,
   BonsSortiePage,
 } from '@/lib/bons-sortie.types'
+import { extractPaginatedResponse } from './pagination'
 
 export const bonsSortieApi = {
   list: async (filters: BonSortieFilters = {}) => {
-    const { data } = await apiClient.get<BonsSortiePage>(
-      `/logistique/bons-sortie${buildQueryString(filters)}`
-    )
-    return data
+    const { data } = await apiClient.get(`/logistique/bons-sortie${buildQueryString(filters)}`)
+    return extractPaginatedResponse<BonSortie>(data)
   },
 
   get: async (id: number) => {

@@ -124,13 +124,13 @@ export function DemandeAchatDetailView({ demandeId }: DemandeAchatDetailViewProp
         subtitle={demande ? `Demandeur ${demande.demandeur?.nom ?? '—'}` : 'Chargement...'}
         actions={
           <div className="flex flex-wrap gap-2">
-            <Link
-              href="/demandes-achat"
+            <Button
+              onClick={() => router.back()}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
             >
               <ArrowLeft className="h-4 w-4" />
               Retour liste
-            </Link>
+            </Button>
 
             {demande?.statut === 'brouillon' && (
               <>

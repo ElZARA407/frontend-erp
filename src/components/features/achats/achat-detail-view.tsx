@@ -11,6 +11,9 @@ import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { StatCard } from '@/components/ui/stat-card'
 import { useAchat, useValiderAchat } from '@/lib/hooks/use-achats'
 import { formatDate, formatDateTime, formatMGA, formatQty, getStatutColor } from '@/lib/utils'
+import { FileDown } from 'lucide-react'
+import { usePdfExport } from '@/lib/hooks/use-pdf-export'
+import { useRouter } from 'next/navigation'
 
 interface AchatDetailViewProps {
   achatId: number
@@ -19,6 +22,9 @@ interface AchatDetailViewProps {
 export function AchatDetailView({ achatId }: AchatDetailViewProps) {
   const { data: achat, isLoading } = useAchat(achatId)
   const validerAchat = useValiderAchat()
+  const { exportPdf, isExporting } = usePdfExport()
+  const router = useRouter()
+  
 
   const lignes = Array.isArray(achat?.lignes) ? achat.lignes : []
 
@@ -29,13 +35,14 @@ export function AchatDetailView({ achatId }: AchatDetailViewProps) {
           title={`BR #${achatId}`}
           subtitle="Bon de réception introuvable"
           actions={
-            <Link
-              href="/achats"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Retour
-            </Link>
+              <Link
+                href="/achats"
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Retour
+              </Link>
+
           }
         />
         <Card>
@@ -63,13 +70,24 @@ export function AchatDetailView({ achatId }: AchatDetailViewProps) {
                 Valider le BR
               </Button>
             )}
-            <Link
-              href="/achats"
+            {achat && (
+                <Button
+                  variant="outline"
+                  icon={<FileDown className="h-3.5 w-3.5" />}
+                  loading={isExporting('br', achat.id)}
+                  onClick={() => exportPdf({ type: 'br', document: achat })}
+                >
+                  Telecharger BR
+                </Button>
+              )}
+            <Button
+              onClick={() => router.back()}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
             >
               <ArrowLeft className="h-4 w-4" />
               Retour liste
-            </Link>
+            </Button>
+
           </div>
         }
       />

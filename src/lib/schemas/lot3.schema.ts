@@ -27,6 +27,7 @@ export const fournisseurSchema = z.object({
   interlocutaire: optionalText,
   code_compta: optionalText,
   actif: z.coerce.boolean(),
+  est_divers: z.coerce.boolean().optional(),
 })
 
 export const contratLineSchema = z.object({

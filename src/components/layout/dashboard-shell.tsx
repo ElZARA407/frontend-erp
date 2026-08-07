@@ -12,6 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useLogout } from '@/lib/hooks/use-auth'
 import { useCanRoute } from '@/lib/hooks/use-permissions'
 import { useAuthStore } from '@/lib/stores/auth.store'
+import { useUiStore } from '@/lib/stores/ui.store'
+import { cn } from '@/lib/utils'
 
 interface DashboardShellProps {
   children: ReactNode
@@ -25,12 +27,18 @@ export function DashboardShell({ children }: DashboardShellProps) {
   const utilisateur = useAuthStore((s) => s.utilisateur)
   const canAccessCurrentRoute = useCanRoute()
   const { mutate: logout, isPending } = useLogout()
+  const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed)
+  const closeMobileSidebar = useUiStore((s) => s.closeMobileSidebar)
 
   useEffect(() => {
     if (hasHydrated && (!isAuthenticated || !utilisateur)) {
       router.replace('/login')
     }
   }, [hasHydrated, isAuthenticated, utilisateur, router])
+
+  useEffect(() => {
+    closeMobileSidebar()
+  }, [pathname, closeMobileSidebar])
 
   if (!hasHydrated || !isAuthenticated || !utilisateur) {
     return (
@@ -50,8 +58,13 @@ export function DashboardShell({ children }: DashboardShellProps) {
       <Sidebar />
       <Topbar />
 
-      <main className="ml-60 min-h-screen pt-14">
-        <div className="p-6">
+      <main
+        className={cn(
+          'min-h-screen pt-14 transition-[margin-left] duration-200',
+          sidebarCollapsed ? 'md:ml-16' : 'md:ml-60'
+        )}
+      >
+        <div className="p-4 sm:p-6">
           {canAccessCurrentRoute ? (
             children
           ) : (

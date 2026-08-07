@@ -1,27 +1,45 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
+import { ArrowLeft, FileText, Package, RotateCcw, Truck, UserRound } from 'lucide-react'
 import { useLivraisonDetail } from '@/lib/hooks/use-commercial-details'
 import { useAnnulerLivraison, useConfirmerLivraison } from '@/lib/hooks/use-livraisons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
+import { Dialog } from '@/components/ui/dialog'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { StatCard } from '@/components/ui/stat-card'
 import { formatDate, formatDateTime, formatQty, getStatutColor } from '@/lib/utils'
-import { ArrowLeft, FileText, Package, RotateCcw, Truck, UserRound } from 'lucide-react'
-import type { Livraison } from '@/lib/types'
+import { FactureForm } from '../factures/facture-form'
+import { FileDown } from 'lucide-react'
+import { usePdfExport } from '@/lib/hooks/use-pdf-export'
+import { useRouter } from 'next/navigation'
 
-type LivraisonDetail = Livraison & {
+type LivraisonDetail = {
+  id: number
+  numero: string
+  source_type: 'commande' | 'vente_directe'
+  source_id: number
+  date_livraison: string | null
+  statut: 'prepare' | 'livre' | 'retourne'
+  reference_bc: string | null
+  reference_facture: string | null
+  chauffeur: string | null
+  vehicule: string | null
   observations?: string | null
+  est_facturee: boolean
+  created_at: string
+  client?: { id: number; nom: string } | null
   lignes?: Array<{
     id: number
     quantite_livree: number
     classement?: {
       id: number
       designation: string
-    }
+    } | null
   }>
   facture?: {
     id: number
@@ -38,6 +56,9 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
   const { data, isLoading } = useLivraisonDetail(livraisonId)
   const confirmerLivraison = useConfirmerLivraison()
   const annulerLivraison = useAnnulerLivraison()
+  const { exportPdf, isExporting } = usePdfExport()
+  const [showFacture, setShowFacture] = useState(false)
+  const router = useRouter()
 
   const livraison = data as LivraisonDetail | undefined
   const lignes = Array.isArray(livraison?.lignes) ? livraison.lignes : []
@@ -47,6 +68,7 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
     livraison?.statut === 'livre' &&
     livraison.source_type === 'commande' &&
     !livraison.est_facturee
+  const canFacturer = livraison?.statut === 'livre' && !livraison.est_facturee
 
   if (!isLoading && !livraison) {
     return (
@@ -55,13 +77,13 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
           title={`Livraison #${livraisonId}`}
           subtitle="Fiche non trouvée"
           actions={
-            <Link
-              href="/livraisons"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Retour
-            </Link>
+              <Link
+                href="/livraisons"
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Retour
+              </Link>
           }
         />
         <Card>
@@ -79,13 +101,34 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
         title={livraison?.numero ?? `Livraison #${livraisonId}`}
         subtitle={livraison ? `Client ${livraison.client?.nom ?? '—'}` : 'Chargement...'}
         actions={
-          <Link
-            href="/livraisons"
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Retour liste
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            {canFacturer && (
+              <Button
+                variant="outline"
+                icon={<FileText className="h-3.5 w-3.5" />}
+                onClick={() => setShowFacture(true)}
+              >
+                Facturer
+              </Button>
+            )}
+            {livraison && (
+                <Button
+                  variant="outline"
+                  icon={<FileDown className="h-3.5 w-3.5" />}
+                  loading={isExporting('livraison', livraisonId)}
+                  onClick={() => exportPdf({ type: 'livraison', document: livraison })}
+                >
+                  Telecharger BL
+                </Button>
+              )}
+            <Button
+              onClick={() => router.back()}
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Retour liste
+            </Button>
+          </div>
         }
       />
 
@@ -274,7 +317,7 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
             <div>
               <h2 className="text-sm font-semibold text-steel-900">Facture associée</h2>
               <p className="text-xs text-steel-500">
-                La finance traite le BL manuellement pour émettre la facture.
+                La facture est rattachée à ce BL.
               </p>
             </div>
             <Badge variant="warning" dot>
@@ -299,6 +342,20 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
           </CardBody>
         </Card>
       )}
+
+      <Dialog
+        open={showFacture}
+        onClose={() => setShowFacture(false)}
+        title={`Créer une facture depuis ${livraison?.numero ?? 'le BL'}`}
+        size="lg"
+      >
+        {livraison && (
+          <FactureForm
+            defaultLivraisonId={livraison.id}
+            onSuccess={() => setShowFacture(false)}
+          />
+        )}
+      </Dialog>
     </div>
   )
 }

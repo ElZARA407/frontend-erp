@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Eye, Plus, RotateCcw, ShoppingCart, CheckCircle2 } from 'lucide-react'
+import { Eye, Plus, RotateCcw, ShoppingCart, Truck, CheckCircle2 } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,9 +14,15 @@ import { Pagination } from '@/components/ui/pagination'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
 import { useClients } from '@/lib/hooks/use-clients'
-import { useAnnulerVenteDirecte, useValiderVenteDirecte, useVentesDirectes } from '@/lib/hooks/use-ventes-directes'
+import {
+  useAnnulerVenteDirecte,
+  useValiderVenteDirecte,
+  useVentesDirectes,
+} from '@/lib/hooks/use-ventes-directes'
 import type { VenteDirecte } from '@/lib/ventes-directes.types'
 import { VenteDirecteForm } from './vente-directe-form'
+import { LivraisonForm } from '../livraisons/livraison-form'
+import { useRouter } from 'next/navigation'
 
 export function VentesDirectesView() {
   const [page, setPage] = useState(1)
@@ -25,6 +31,9 @@ export function VentesDirectesView() {
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
   const [showCreate, setShowCreate] = useState(false)
+  const [showLivraison, setShowLivraison] = useState(false)
+  const [selectedVente, setSelectedVente] = useState<VenteDirecte | null>(null)
+  const router = useRouter();
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { mutate: validerVente, isPending: validating } = useValiderVenteDirecte()
@@ -57,6 +66,11 @@ export function VentesDirectesView() {
     if (statutVente === 'livree') return 'Livree'
     return statutVente
   }
+
+  const canDeliver = (vente: VenteDirecte) =>
+    vente.statut === 'validee' &&
+    Array.isArray(vente.lignes) &&
+    vente.lignes.some((ligne) => (ligne.quantite_restante ?? ligne.quantite) > 0)
 
   return (
     <div className="space-y-5">
@@ -142,7 +156,7 @@ export function VentesDirectesView() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-border">
-                  {['Numero', 'Client', 'Location', 'Date', 'Total', 'Statut', ''].map((h) => (
+                  {['Numero', 'Client', 'Localisation', 'Date', 'Total', 'Statut', ''].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
@@ -154,7 +168,9 @@ export function VentesDirectesView() {
               </thead>
               <tbody className="divide-y divide-surface-border">
                 {ventes.map((vente: VenteDirecte) => (
-                  <tr key={vente.id} className="hover:bg-surface-muted/60 transition-colors">
+                  <tr key={vente.id} className="cursor-pointer hover:bg-surface-muted/60 transition-colors"
+                    onClick={() => router.push(`/ventes-directes/${vente.id}`)}
+                  >
                     <td className="px-4 py-3">
                       <span className="ref-code">{vente.numero}</span>
                     </td>
@@ -175,13 +191,30 @@ export function VentesDirectesView() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {canDeliver(vente) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            icon={<Truck className="h-3.5 w-3.5" />}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              setSelectedVente(vente)
+                              setShowLivraison(true)
+                            }}
+                          >
+                            Livrer
+                          </Button>
+                        )}
                         {vente.statut === 'brouillon' && (
                           <Button
                             variant="ghost"
                             size="sm"
                             icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
                             loading={validating}
-                            onClick={() => validerVente(vente.id)}
+                            onClick={(event) =>{ 
+                              event.stopPropagation()
+                              validerVente(vente.id)
+                            }}
                           >
                             Valider
                           </Button>
@@ -192,16 +225,13 @@ export function VentesDirectesView() {
                             size="sm"
                             icon={<RotateCcw className="h-3.5 w-3.5" />}
                             loading={cancelling}
-                            onClick={() => annulerVente(vente.id)}
+                            onClick={(event) =>{
+                              event.stopPropagation()
+                              annulerVente(vente.id)}}
                           >
                             Annuler
                           </Button>
                         )}
-                        <Link href={`/ventes-directes/${vente.id}`}>
-                          <Button variant="ghost" size="sm" icon={<Eye className="h-3.5 w-3.5" />}>
-                            Voir
-                          </Button>
-                        </Link>
                       </div>
                     </td>
                   </tr>
@@ -230,6 +260,27 @@ export function VentesDirectesView() {
         size="wide"
       >
         <VenteDirecteForm onSuccess={() => setShowCreate(false)} />
+      </Dialog>
+
+      <Dialog
+        open={showLivraison}
+        onClose={() => {
+          setShowLivraison(false)
+          setSelectedVente(null)
+        }}
+        title={selectedVente ? `Créer un BL depuis ${selectedVente.numero}` : 'Créer un BL'}
+        size="wide"
+      >
+        {selectedVente && (
+          <LivraisonForm
+            sourceType="vente_directe"
+            source={selectedVente}
+            onSuccess={() => {
+              setShowLivraison(false)
+              setSelectedVente(null)
+            }}
+          />
+        )}
       </Dialog>
     </div>
   )

@@ -2,20 +2,12 @@
 import apiClient from './client'
 import type { ApiResponse, PaginatedResponse, JournalAchat } from '../types'
 import { buildQueryString } from '../utils'
+import { extractPaginatedResponse } from './pagination'
 
 export const achatsApi = {
-  list: async (filters: {
-    fournisseur_id?: number
-    statut?: string
-    date_debut?: string
-    date_fin?: string
-    per_page?: number
-    page?: number
-  } = {}) => {
-    const { data } = await apiClient.get<PaginatedResponse<JournalAchat>>(
-      `/achats/bons-reception${buildQueryString(filters)}`
-    )
-    return data
+  list: async (filters = {}) => {
+    const { data } = await apiClient.get(`/achats/bons-reception${buildQueryString(filters)}`)
+    return extractPaginatedResponse<JournalAchat>(data)
   },
 
   get: async (id: number) => {

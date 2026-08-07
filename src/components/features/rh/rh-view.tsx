@@ -30,10 +30,29 @@ import {
 } from 'lucide-react'
 
 type RhTab = 'postes' | 'employes'
+const PAGE_SIZE = 10
+
+function localPage<T>(items: T[], page: number) {
+  const total = items.length
+  const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const currentPage = Math.min(Math.max(1, page), lastPage)
+  const start = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE
+  const end = total === 0 ? 0 : Math.min(start + PAGE_SIZE, total)
+
+  return {
+    data: items.slice(start, end),
+    current_page: currentPage,
+    last_page: lastPage,
+    total,
+    from: total === 0 ? 0 : start + 1,
+    to: end,
+  }
+}
 
 export function RhView() {
   const [tab, setTab] = useState<RhTab>('postes')
 
+  const [postePage, setPostePage] = useState(1)
   const [employeePage, setEmployeePage] = useState(1)
   const [employeeSearch, setEmployeeSearch] = useState('')
   const [employeePosteId, setEmployeePosteId] = useState<string>('')
@@ -58,7 +77,9 @@ export function RhView() {
   const deleteEmploye = useDeleteEmploye()
 
   const postesList = useMemo(() => postes ?? [], [postes])
-  const employes = employesPage?.data ?? []
+  const postesPagination = useMemo(() => localPage(postesList, postePage), [postesList, postePage])
+  const employesPagination = employesPage?.data
+  const employes = Array.isArray(employesPagination?.data) ? employesPagination.data : []
 
   return (
     <div className="space-y-5">
@@ -120,7 +141,7 @@ export function RhView() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-border">
-                    {postesList.map((poste) => (
+                    {postesPagination.data.map((poste) => (
                       <tr key={poste.id} className="hover:bg-surface-subtle/70">
                         <td className="px-4 py-3 font-medium text-steel-900">{poste.nom}</td>
                         <td className="px-4 py-3 text-steel-600">{formatMGA(poste.taux_horaire)}/h</td>
@@ -161,6 +182,14 @@ export function RhView() {
                 </table>
               </div>
             )}
+            <Pagination
+              currentPage={postesPagination.current_page}
+              lastPage={postesPagination.last_page}
+              total={postesPagination.total}
+              from={postesPagination.from}
+              to={postesPagination.to}
+              onPageChange={setPostePage}
+            />
           </Card>
         </div>
       )}
@@ -284,16 +313,16 @@ export function RhView() {
                     </tbody>
                   </table>
                 </div>
-            {employesPage && (
-                <Pagination
-                    currentPage={employeePage} // Uses your local state tracking variable for matieres
-                    lastPage={(employesPage as any).last_page || 1}
-                    total={(employesPage as any).total || 0}
-                    from={(employesPage as any).from ?? 0}
-                    to={(employesPage as any).to ?? 0}
-                    onPageChange={setEmployeePage}
-                />
-                )}
+            {employesPagination && (
+              <Pagination
+                currentPage={employesPagination.current_page}
+                lastPage={employesPagination.last_page}
+                total={employesPagination.total}
+                from={employesPagination.from}
+                to={employesPagination.to}
+                onPageChange={setEmployeePage}
+              />
+            )}
               </>
             )}
           </Card>

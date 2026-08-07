@@ -120,3 +120,12 @@ export function buildQueryString(params: Record<string, unknown>): string {
   const str = query.toString()
   return str ? `?${str}` : ''
 }
+
+export function formatMoney(value: number | null | undefined, fractionDigits = 0): string {
+  if (value === null || value === undefined) return '—'
+
+  return `${new Intl.NumberFormat('fr-MG', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(value)} Ar`
+}

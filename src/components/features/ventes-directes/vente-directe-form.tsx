@@ -60,10 +60,39 @@ export function VenteDirecteForm({ onSuccess }: VenteDirecteFormProps) {
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { data: locationsData } = useLocations()
-  const { data: productsPage } = useProducts({ actif: true, per_page: 500 })
 
   const clients = Array.isArray(clientsPage?.data?.data) ? clientsPage.data.data : []
   const locations = Array.isArray(locationsData) ? locationsData : []
+  
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    getValues,
+    formState: { errors },
+  } = useForm<VenteDirecteFormValues>({
+    resolver: zodResolver(venteDirecteSchema) as unknown as Resolver<VenteDirecteFormValues>,
+    defaultValues: {
+      client_id: 0,
+      date: new Date().toISOString().slice(0, 10),
+      location_id: 0,
+      lignes: [createEmptyLine()],
+    },
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+  })
+
+  const watchLocationId = useWatch({ control, name: 'location_id' })
+  const locationId = Number(watchLocationId) > 0 ? Number(watchLocationId) : locations[0]?.id ?? 0
+
+  const { data: productsPage } = useProducts({
+    actif: true,
+    per_page: 500,
+    location_id: locationId || undefined,
+  })
+
   const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.data : []
 
   const eligibleProducts = useMemo(
@@ -92,24 +121,40 @@ export function VenteDirecteForm({ onSuccess }: VenteDirecteFormProps) {
     }
   }, [eligibleProducts])
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    setValue,
-    getValues,
-    formState: { errors },
-  } = useForm<VenteDirecteFormValues>({
-    resolver: zodResolver(venteDirecteSchema) as unknown as Resolver<VenteDirecteFormValues>,
-    defaultValues: {
-      client_id: 0,
-      date: new Date().toISOString().slice(0, 10),
-      location_id: 0,
-      lignes: [createEmptyLine()],
-    },
-    mode: 'onSubmit',
-    reValidateMode: 'onChange',
-  })
+  useEffect(() => {
+    if (!eligibleProducts.length) return
+
+    const currentLines = getValues('lignes') ?? []
+
+    currentLines.forEach((line, index) => {
+      const currentProduct = eligibleProducts.find((product) => product.id === Number(line.produit_id))
+
+      if (!currentProduct) {
+        const firstProduct = eligibleProducts[0]
+        const firstClassement = getAvailableClassements(firstProduct)[0]
+
+        setValue(`lignes.${index}.produit_id`, firstProduct?.id ?? 0, {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+        setValue(`lignes.${index}.classement_id`, firstClassement?.value ?? 0, {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+        return
+      }
+
+      const nextClassements = getAvailableClassements(currentProduct)
+      const classementStillValid = nextClassements.some((item) => item.value === Number(line.classement_id))
+
+      if (!classementStillValid) {
+        setValue(`lignes.${index}.classement_id`, nextClassements[0]?.value ?? 0, {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+      }
+    })
+  }, [eligibleProducts, getValues, setValue])
 
   const { fields, append, remove } = useFieldArray({
     control,

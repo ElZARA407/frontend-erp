@@ -2,6 +2,7 @@
 import axios, { AxiosError, type AxiosInstance } from 'axios'
 import Cookies from 'js-cookie'
 
+
 const TOKEN_KEY = 'cmp_token'
 
 export function getToken(): string | null {

@@ -125,6 +125,15 @@ export function FournisseurForm({ defaultValues, onSuccess }: FournisseurFormPro
         Actif
       </label>
 
+      <label className="flex items-center gap-2 text-sm text-steel-700">
+        <input
+          type="checkbox"
+          className="h-4 w-4 accent-steel-700"
+          {...register('est_divers')}
+        />
+        Fournisseur divers
+      </label>
+
       <div className="flex justify-end gap-2 border-t border-surface-border pt-4">
         <Button type="submit" loading={createFournisseur.isPending || updateFournisseur.isPending}>
           {isEditing ? 'Mettre à jour' : 'Créer'}

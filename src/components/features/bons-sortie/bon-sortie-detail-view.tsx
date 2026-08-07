@@ -11,7 +11,9 @@ import { StatCard } from '@/components/ui/stat-card'
 import { formatDate, formatDateTime, formatQty, getStatutColor } from '@/lib/utils'
 import { MOTIFS_SORTIE } from '@/lib/constants'
 import { useBonSortie, useValiderBonSortie } from '@/lib/hooks/use-bons-sortie'
-import type { BonSortie } from '@/lib/bons-sortie.types'
+import { FileDown } from 'lucide-react'
+import { usePdfExport } from '@/lib/hooks/use-pdf-export'
+import { useRouter } from 'next/navigation'
 
 interface BonSortieDetailViewProps {
   bonId: number
@@ -20,6 +22,8 @@ interface BonSortieDetailViewProps {
 export function BonSortieDetailView({ bonId }: BonSortieDetailViewProps) {
   const { data: bon, isLoading } = useBonSortie(bonId)
   const validerBonSortie = useValiderBonSortie()
+  const { exportPdf, isExporting } = usePdfExport()
+  const router = useRouter()
 
   const lignes = Array.isArray(bon?.lignes) ? bon.lignes : []
 
@@ -52,7 +56,7 @@ export function BonSortieDetailView({ bonId }: BonSortieDetailViewProps) {
     <div className="space-y-5">
       <PageHeader
         title={bon?.numero ?? `Bon de sortie #${bonId}`}
-        subtitle={bon ? `Location ${bon.location?.nom ?? '—'}` : 'Chargement...'}
+        subtitle={bon ? `Localisation : ${bon.location?.nom ?? '—'}` : 'Chargement...'}
         actions={
           <div className="flex flex-wrap gap-2">
             {bon?.statut === 'brouillon' && (
@@ -64,13 +68,23 @@ export function BonSortieDetailView({ bonId }: BonSortieDetailViewProps) {
                 Valider
               </Button>
             )}
-            <Link
-              href="/bons-sortie"
+            {bon && (
+              <Button
+                variant="outline"
+                icon={<FileDown className="h-3.5 w-3.5" />}
+                loading={isExporting('bon_sortie', bon.id)}
+                onClick={() => exportPdf({ type: 'bon_sortie', document: bon })}
+              >
+                PDF
+              </Button>
+            )}
+            <Button
+              onClick={() => router.back()}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
             >
               <ArrowLeft className="h-4 w-4" />
               Retour liste
-            </Link>
+            </Button>
           </div>
         }
       />

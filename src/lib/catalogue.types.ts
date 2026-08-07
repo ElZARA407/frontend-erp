@@ -110,6 +110,7 @@ export interface CatalogueProductFilters {
   search?: string
   categorie_id?: number
   actif?: boolean
+  location_id?: number
   page?: number
   per_page?: number
   [key: string]: unknown
@@ -119,6 +120,7 @@ export interface CatalogueMatiereFilters {
   search?: string
   type?: string
   actif?: boolean
+  location_id?: number
   page?: number
   per_page?: number
   [key: string]: unknown

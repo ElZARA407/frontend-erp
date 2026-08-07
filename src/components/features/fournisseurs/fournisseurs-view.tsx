@@ -1,7 +1,7 @@
 // src/components/features/fournisseurs/fournisseurs-view.tsx
 'use client'
 
-import { useMemo, useState } from 'react'
+import {  useState } from 'react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,12 +15,14 @@ import { formatDateTime } from '@/lib/utils'
 import { useDeleteFournisseur, useFournisseurs } from '@/lib/hooks/use-lot3'
 import type { Fournisseur } from '@/lib/lot3.types'
 import { FournisseurForm } from './fournisseur-form'
-import { Plus, PencilLine, Trash2, Truck } from 'lucide-react'
+import { Plus, PencilLine, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export function FournisseursView() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [actif, setActif] = useState<string>('')
+  const router = useRouter()
 
   const [showDialog, setShowDialog] = useState(false)
   const [selectedFournisseur, setSelectedFournisseur] = useState<Fournisseur | null>(null)
@@ -114,7 +116,11 @@ export function FournisseursView() {
                 </thead>
                 <tbody className="divide-y divide-surface-border">
                   {fournisseurs.map((fournisseur) => (
-                    <tr key={fournisseur.id} className="hover:bg-surface-subtle/70">
+                    <tr
+                      key={fournisseur.id}
+                      className="cursor-pointer hover:bg-surface-subtle/70"
+                      onClick={() => router.push(`/fournisseurs/${fournisseur.id}`)}
+                    >
                       <td className="px-4 py-3 font-medium text-steel-900">{fournisseur.reference}</td>
                       <td className="px-4 py-3 text-steel-600">{fournisseur.nom}</td>
                       <td className="px-4 py-3 text-steel-600">{fournisseur.contact}</td>
@@ -133,13 +139,19 @@ export function FournisseursView() {
                             variant="ghost"
                             size="sm"
                             icon={<PencilLine className="h-3.5 w-3.5" />}
-                            onClick={() => openEdit(fournisseur)}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              openEdit(fournisseur)
+                            }}
                           />
                           <Button
                             variant="ghost"
                             size="sm"
                             icon={<Trash2 className="h-3.5 w-3.5" />}
-                            onClick={() => deleteFournisseur.mutate(fournisseur.id)}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              deleteFournisseur.mutate(fournisseur.id)
+                            }}
                           />
                         </div>
                       </td>

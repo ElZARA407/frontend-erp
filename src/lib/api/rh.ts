@@ -1,16 +1,16 @@
 // src/lib/api/rh.ts
 import apiClient from './client'
-import type { ApiResponse, PaginatedResponse } from '@/lib/types'
+import type { ApiResponse } from '@/lib/types'
 import { buildQueryString } from '@/lib/utils'
 import type {
   RhEmploye,
   RhEmployeFilters,
   RhEmployePayload,
-  RhEmployesPage,
   RhPoste,
   RhPosteFilters,
   RhPostePayload,
 } from '@/lib/rh.types'
+import { extractPaginatedResponse } from './pagination'
 
 export const rhApi = {
   listPostes: async (filters: RhPosteFilters = {}) => {
@@ -41,8 +41,8 @@ export const rhApi = {
   },
 
   listEmployes: async (filters: RhEmployeFilters = {}) => {
-    const { data } = await apiClient.get<RhEmployesPage>(`/rh/employes${buildQueryString(filters)}`)
-    return data
+    const { data } = await apiClient.get(`/rh/employes${buildQueryString(filters)}`)
+    return extractPaginatedResponse<RhEmploye>(data)
   },
 
   getEmploye: async (id: number) => {

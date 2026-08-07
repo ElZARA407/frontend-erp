@@ -212,7 +212,7 @@ export function AchatForm({ onSuccess }: AchatFormProps) {
                     <td className="px-3 py-2">
                       <Input
                         type="number"
-                        step="100"
+                        step="1"
                         className="text-right"
                         error={errors.lignes?.[index]?.prix_unitaire?.message}
                         {...register(`lignes.${index}.prix_unitaire`, { valueAsNumber: true })}

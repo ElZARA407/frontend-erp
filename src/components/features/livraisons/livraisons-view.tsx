@@ -2,20 +2,28 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { CheckCircle, Eye, RotateCcw, Truck } from 'lucide-react'
+import { CheckCircle, Eye, FileText, RotateCcw, Truck } from 'lucide-react'
 import { useAnnulerLivraison, useConfirmerLivraison, useLivraisons } from '@/lib/hooks/use-livraisons'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import { Dialog } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { formatDate, getStatutColor } from '@/lib/utils'
 import type { Livraison } from '@/lib/types'
+import { FactureForm } from '../factures/facture-form'
+import { FileDown } from 'lucide-react'
+import { usePdfExport } from '@/lib/hooks/use-pdf-export'
+import { useRouter } from 'next/navigation'
 
 export function LivraisonsView() {
   const [page, setPage] = useState(1)
   const [statut, setStatut] = useState<string>('')
+  const [selectedLivraison, setSelectedLivraison] = useState<Livraison | null>(null)
+  const { exportPdf, isExporting } = usePdfExport()
+  const router = useRouter()
 
   const { data, isLoading } = useLivraisons({
     statut: statut || undefined,
@@ -86,9 +94,12 @@ export function LivraisonsView() {
                   livraison.statut === 'livre' &&
                   livraison.source_type === 'commande' &&
                   !livraison.est_facturee
+                const canFacturer = livraison.statut === 'livre' && !livraison.est_facturee
 
                 return (
-                  <tr key={livraison.id} className="transition-colors hover:bg-surface-muted/60">
+                  <tr key={livraison.id} className="transition-colors hover:bg-surface-muted/60 cursor-pointer"
+                    onClick={() => router.push(`/livraisons/${livraison.id}`)}
+                  >
                     <td className="px-4 py-3">
                       <span className="ref-code">{livraison.numero}</span>
                     </td>
@@ -128,9 +139,23 @@ export function LivraisonsView() {
                             size="sm"
                             icon={<CheckCircle className="h-3.5 w-3.5 text-emerald-600" />}
                             loading={isConfirming}
-                            onClick={() => confirmer(livraison.id)}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              confirmer(livraison.id)}}
                           >
                             Confirmer
+                          </Button>
+                        )}
+                        {canFacturer && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            icon={<FileText className="h-3.5 w-3.5" />}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              setSelectedLivraison(livraison)}}
+                          >
+                            Facturer
                           </Button>
                         )}
                         {canAnnuler && (
@@ -139,16 +164,24 @@ export function LivraisonsView() {
                             size="sm"
                             icon={<RotateCcw className="h-3.5 w-3.5" />}
                             loading={isAnnuling}
-                            onClick={() => annuler(livraison.id)}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              annuler(livraison.id)}}
                           >
                             Annuler
                           </Button>
                         )}
-                        <Link href={`/livraisons/${livraison.id}`}>
-                          <Button variant="ghost" size="sm" icon={<Eye className="h-3.5 w-3.5" />}>
-                            Voir
-                          </Button>
-                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={<FileDown className="h-3.5 w-3.5" />}
+                          loading={isExporting('livraison', livraison.id)}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            exportPdf({ type: 'livraison', document: livraison })}}
+                        >
+                          PDF
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -169,6 +202,20 @@ export function LivraisonsView() {
           />
         )}
       </Card>
+
+      <Dialog
+        open={selectedLivraison !== null}
+        onClose={() => setSelectedLivraison(null)}
+        title={selectedLivraison ? `Créer une facture depuis ${selectedLivraison.numero}` : 'Nouvelle facture'}
+        size="lg"
+      >
+        {selectedLivraison && (
+          <FactureForm
+            defaultLivraisonId={selectedLivraison.id}
+            onSuccess={() => setSelectedLivraison(null)}
+          />
+        )}
+      </Dialog>
     </div>
   )
 }
