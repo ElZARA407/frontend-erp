@@ -43,16 +43,16 @@ export default function LoginPage() {
 
       {/* Panneau droit - formulaire */}
       <div className="flex flex-1 items-center justify-center bg-surface-muted px-6 py-12">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-sm ">
           <div className="mb-8">
-            <div className="mb-4 flex h-16 w-24 items-center justify-center rounded-xl bg-white px-3 shadow-sm lg:hidden">
+            <div className="mb-4 flex flex-1 items-center justify-center rounded-xl bg-white px-3 shadow-sm lg:hidden">
               <Image
                 src="/images/logo-cmp.png"
                 alt="Logo CMP"
-                width={112}
+                width={200}
                 height={64}
                 priority
-                className="h-auto max-h-12 w-auto object-contain"
+                className="h-auto max-h-36 w-auto object-contain"
               />
             </div>
             <h1 className="text-2xl font-semibold text-steel-900">Connexion</h1>
