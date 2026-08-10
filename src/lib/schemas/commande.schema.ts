@@ -10,7 +10,7 @@ export const ligneCommandeSchema = z.object({
 export const commandeSchema = z.object({
   client_id: z.number({ message: 'Client requis' }).int().positive('Client requis'),
   date: z.string().min(1, 'Date requise'),
-  date_livraison_prevue: z.string().optional().or(z.literal('')),
+  date_livraison_prevue: z.string().min(1, 'Date de livraison requise'),
   location_id: z.number({ message: 'Site requis' }).int().positive('Site requis'),
   echeance: z.number().int().refine((v) => [15, 30, 60].includes(v), 'Échéance invalide'),
   lignes: z.array(ligneCommandeSchema).min(1, 'Au moins une ligne requise'),
