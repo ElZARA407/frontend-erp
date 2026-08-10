@@ -8,6 +8,7 @@ import type {
   RhPosteFilters,
   RhPostePayload,
 } from '@/lib/rh.types'
+import { notifyApiError } from '../api-error'
 
 export const RH_KEYS = {
   postes: ['rh', 'postes'] as const,
@@ -38,7 +39,7 @@ export function useCreatePoste() {
       qc.invalidateQueries({ queryKey: RH_KEYS.postes })
       toast.success('Poste créé.')
     },
-    onError: () => toast.error('Erreur lors de la création du poste.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création du poste.'),
   })
 }
 
@@ -51,7 +52,7 @@ export function useUpdatePoste() {
       qc.invalidateQueries({ queryKey: RH_KEYS.postes })
       toast.success('Poste mis à jour.')
     },
-    onError: () => toast.error('Erreur lors de la mise à jour du poste.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la mise à jour du poste.'),
   })
 }
 
@@ -63,7 +64,7 @@ export function useDeletePoste() {
       qc.invalidateQueries({ queryKey: RH_KEYS.postes })
       toast.success('Poste supprimé.')
     },
-    onError: () => toast.error('Impossible de supprimer ce poste.'),
+    onError: (error) => notifyApiError(error, 'Impossible de supprimer ce poste.'),
   })
 }
 
@@ -75,7 +76,7 @@ export function useCreateEmploye() {
       qc.invalidateQueries({ queryKey: RH_KEYS.employes })
       toast.success('Employé créé.')
     },
-    onError: () => toast.error('Erreur lors de la création de l’employé.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création de l’employé.'),
   })
 }
 
@@ -88,7 +89,7 @@ export function useUpdateEmploye() {
       qc.invalidateQueries({ queryKey: RH_KEYS.employes })
       toast.success('Employé mis à jour.')
     },
-    onError: () => toast.error('Erreur lors de la mise à jour de l’employé.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la mise à jour de l’employé.'),
   })
 }
 
@@ -100,6 +101,6 @@ export function useDeleteEmploye() {
       qc.invalidateQueries({ queryKey: RH_KEYS.employes })
       toast.success('Employé archivé.')
     },
-    onError: () => toast.error('Impossible d’archiver cet employé.'),
+    onError: (error) => notifyApiError(error, 'Impossible d’archiver cet employé.'),
   })
 }

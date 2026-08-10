@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ventesDirectesApi } from '@/lib/api/ventes-directes'
+import { notifyApiError } from '@/lib/api-error'
 import type { VenteDirecteFilters, VenteDirectePayload } from '@/lib/ventes-directes.types'
 
 export const VENTES_DIRECTES_KEYS = {
@@ -31,9 +32,9 @@ export function useCreateVenteDirecte() {
     mutationFn: (payload: VenteDirectePayload) => ventesDirectesApi.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: VENTES_DIRECTES_KEYS.ventes })
-      toast.success('Vente directe creee.')
+      toast.success('Vente directe créée.')
     },
-    onError: () => toast.error('Erreur lors de la creation de la vente directe.'),
+    onError: (error) => notifyApiError(error, 'Impossible de créer cette vente directe.'),
   })
 }
 
@@ -45,9 +46,10 @@ export function useValiderVenteDirecte() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: VENTES_DIRECTES_KEYS.ventes })
       qc.invalidateQueries({ queryKey: ['stocks'] })
-      toast.success('Vente directe validee.')
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Vente directe validée.')
     },
-    onError: () => toast.error('Erreur lors de la validation de la vente directe.'),
+    onError: (error) => notifyApiError(error, 'Impossible de valider cette vente directe.'),
   })
 }
 
@@ -59,8 +61,9 @@ export function useAnnulerVenteDirecte() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: VENTES_DIRECTES_KEYS.ventes })
       qc.invalidateQueries({ queryKey: ['stocks'] })
-      toast.success('Vente directe annulee.')
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Vente directe annulée.')
     },
-    onError: () => toast.error('Erreur lors de l annulation de la vente directe.'),
+    onError: (error) => notifyApiError(error, 'Impossible d’annuler cette vente directe.'),
   })
 }

@@ -11,6 +11,7 @@ import type {
   CatalogueProductClassment,
   CatalogueProductUpdatePayload,
 } from '@/lib/catalogue.types'
+import { notifyApiError } from '@/lib/api-error'
 
 export const CATALOGUE_KEYS = {
   categories: ['catalogue', 'categories'] as const,
@@ -68,7 +69,7 @@ export function useCreateCategory() {
       qc.invalidateQueries({ queryKey: CATALOGUE_KEYS.categories })
       toast.success('Catégorie créée.')
     },
-    onError: () => toast.error('Erreur lors de la création de la catégorie.'),
+    onError: (error) => notifyApiError(error, 'Impossible de terminer cette action.'),
   })
 }
 
@@ -80,7 +81,7 @@ export function useDeleteCategory() {
       qc.invalidateQueries({ queryKey: CATALOGUE_KEYS.categories })
       toast.success('Catégorie supprimée.')
     },
-    onError: () => toast.error('Impossible de supprimer cette catégorie.'),
+    onError: (error) => notifyApiError(error, 'Impossible de supprimer cette catégorie.'),
   })
 }
 
@@ -92,7 +93,7 @@ export function useCreateProduct() {
       qc.invalidateQueries({ queryKey: CATALOGUE_KEYS.products })
       toast.success('Produit créé.')
     },
-    onError: () => toast.error('Erreur lors de la création du produit.'),
+    onError: (error) => notifyApiError(error, 'Impossible de terminer cette action.'),
   })
 }
 
@@ -105,7 +106,7 @@ export function useUpdateProduct() {
       qc.invalidateQueries({ queryKey: CATALOGUE_KEYS.products })
       toast.success('Produit mis à jour.')
     },
-    onError: () => toast.error('Erreur lors de la mise à jour du produit.'),
+    onError: (error) => notifyApiError(error, 'Impossible de terminer cette action.'),
   })
 }
 
@@ -117,7 +118,7 @@ export function useDeleteProduct() {
       qc.invalidateQueries({ queryKey: CATALOGUE_KEYS.products })
       toast.success('Produit archivé.')
     },
-    onError: () => toast.error('Impossible d’archiver ce produit.'),
+    onError: (error) => notifyApiError(error, 'Impossible d’archiver ce produit.'),
   })
 }
 
@@ -130,7 +131,7 @@ export function useImportProducts() {
       qc.invalidateQueries({ queryKey: CATALOGUE_KEYS.products })
       toast.success('Import produits terminé.')
     },
-    onError: () => toast.error('Erreur lors de l’import Excel des produits.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de l’import Excel des produits.'),
   })
 }
 
@@ -142,7 +143,7 @@ export function useCreateMatiere() {
       qc.invalidateQueries({ queryKey: CATALOGUE_KEYS.matieres })
       toast.success('Matière première créée.')
     },
-    onError: () => toast.error('Erreur lors de la création de la matière première.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création de la matière première.'),
   })
 }
 
@@ -155,7 +156,7 @@ export function useUpdateMatiere() {
       qc.invalidateQueries({ queryKey: CATALOGUE_KEYS.matieres })
       toast.success('Matière première mise à jour.')
     },
-    onError: () => toast.error('Erreur lors de la mise à jour de la matière première.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la mise à jour de la matière première.'),
   })
 }
 
@@ -167,7 +168,7 @@ export function useDeleteMatiere() {
       qc.invalidateQueries({ queryKey: CATALOGUE_KEYS.matieres })
       toast.success('Matière première archivée.')
     },
-    onError: () => toast.error('Impossible d’archiver cette matière première.'),
+    onError: (error) => notifyApiError(error, 'Impossible d’archiver cette matière première.'),
   })
 }
 
@@ -180,7 +181,7 @@ export function useImportMatieres() {
       qc.invalidateQueries({ queryKey: CATALOGUE_KEYS.matieres })
       toast.success('Import matières terminé.')
     },
-    onError: () => toast.error('Erreur lors de l’import Excel des matières.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de l’import Excel des matières.'),
   })
 }
 

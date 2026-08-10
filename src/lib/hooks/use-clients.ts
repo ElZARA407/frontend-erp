@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { clientsApi, type ClientFilters } from '../api/clients'
 import type { ClientSchema } from '../schemas/client.schema'
+import { notifyApiError } from '../api-error'
 
 export const CLIENTS_KEY = ['clients']
 
@@ -30,7 +31,7 @@ export function useCreateClient() {
       qc.invalidateQueries({ queryKey: CLIENTS_KEY })
       toast.success('Client créé.')
     },
-    onError: () => toast.error('Erreur lors de la création.'),
+    onError: (error) => notifyApiError(error, 'Impossible de créer ce client.'),
   })
 }
 
@@ -42,7 +43,7 @@ export function useUpdateClient(id: number) {
       qc.invalidateQueries({ queryKey: CLIENTS_KEY })
       toast.success('Client mis à jour.')
     },
-    onError: () => toast.error('Erreur lors de la mise à jour.'),
+    onError: (error) => notifyApiError(error, 'Impossible de mettre à jour ce client.'),
   })
 }
 
@@ -54,6 +55,6 @@ export function useDeleteClient() {
       qc.invalidateQueries({ queryKey: CLIENTS_KEY })
       toast.success('Client archivé.')
     },
-    onError: () => toast.error('Erreur lors de la suppression.'),
+    onError: (error) => notifyApiError(error, 'Impossible de supprimer ce client.'),
   })
 }

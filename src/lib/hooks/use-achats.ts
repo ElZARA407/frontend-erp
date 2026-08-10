@@ -1,7 +1,7 @@
-// src/lib/hooks/use-achats.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { achatsApi } from '../api/achats'
+import { notifyApiError } from '../api-error'
 import type { AchatSchema } from '../schemas/achat.schema'
 
 export const ACHATS_KEY = ['achats']
@@ -31,7 +31,7 @@ export function useCreateAchat() {
       qc.invalidateQueries({ queryKey: ACHATS_KEY })
       toast.success('Bon de réception créé.')
     },
-    onError: () => toast.error('Erreur lors de la création du BR.'),
+    onError: (error) => notifyApiError(error, 'Impossible de créer ce bon de réception.'),
   })
 }
 
@@ -43,8 +43,9 @@ export function useValiderAchat() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ACHATS_KEY })
       qc.invalidateQueries({ queryKey: ['stocks'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('BR validé. Stocks mis à jour.')
     },
-    onError: () => toast.error('Erreur lors de la validation.'),
+    onError: (error) => notifyApiError(error, 'Impossible de valider ce bon de réception.'),
   })
 }

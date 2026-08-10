@@ -11,6 +11,7 @@ import {
   type MachinePayload,
 } from '../api/production'
 import type { BonProductionSchema } from '../schemas/production.schema'
+import { notifyApiError } from '../api-error'
 
 export const PRODUCTION_KEY = ['production'] as const
 export const DASHBOARD_KEY = ['dashboard'] as const
@@ -49,7 +50,7 @@ export function useCreateMachine() {
       qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
       toast.success('Machine créée.')
     },
-    onError: () => toast.error('Erreur lors de la création de la machine.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création de la machine.'),
   })
 }
 
@@ -63,7 +64,7 @@ export function useCreateBonProduction() {
       qc.invalidateQueries({ queryKey: DASHBOARD_KEY })
       toast.success('Bon de production créé.')
     },
-    onError: () => toast.error('Erreur lors de la création.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création.'),
   })
 }
 
@@ -77,7 +78,7 @@ export function useClotureBP() {
       qc.invalidateQueries({ queryKey: DASHBOARD_KEY })
       toast.success('BP clôturé.')
     },
-    onError: () => toast.error('Erreur lors de la clôture.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la clôture.'),
   })
 }
 
@@ -91,7 +92,7 @@ export function useAnnulerBP() {
       qc.invalidateQueries({ queryKey: DASHBOARD_KEY })
       toast.success('BP annulé.')
     },
-    onError: () => toast.error('Erreur lors de l’annulation.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de l’annulation.'),
   })
 }
 
@@ -105,7 +106,7 @@ export function useCreateSession() {
       qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
       toast.success('Session créée.')
     },
-    onError: () => toast.error('Erreur lors de la création de la session.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création de la session.'),
   })
 }
 
@@ -120,7 +121,7 @@ export function useValiderSession() {
       qc.invalidateQueries({ queryKey: ['stocks'] })
       toast.success('Session validée. Stocks mis à jour.')
     },
-    onError: () => toast.error('Erreur lors de la validation.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la validation.'),
   })
 }
 
@@ -134,7 +135,7 @@ export function useAddProductionMatiere() {
       qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
       toast.success('Matière ajoutée.')
     },
-    onError: () => toast.error('Erreur lors de l’ajout de la matière.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de l’ajout de la matière.'),
   })
 }
 
@@ -148,7 +149,7 @@ export function useAddProductionObtenu() {
       qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
       toast.success('Produit obtenu ajouté.')
     },
-    onError: () => toast.error('Erreur lors de l’ajout du produit obtenu.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de l’ajout du produit obtenu.'),
   })
 }
 
@@ -162,7 +163,7 @@ export function useAddProductionEmploye() {
       qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
       toast.success('Employé ajouté.')
     },
-    onError: () => toast.error('Erreur lors de l’ajout de l’employé.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de l’ajout de l’employé.'),
   })
 }
 
@@ -176,7 +177,7 @@ export function useAddProductionEvenement() {
       qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
       toast.success('Événement ajouté.')
     },
-    onError: () => toast.error('Erreur lors de l’ajout de l’événement.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de l’ajout de l’événement.'),
   })
 }
 

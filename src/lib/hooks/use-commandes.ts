@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { commandesApi, type CommandeFilters, type CreateCommandePayload } from '../api/commandes'
+import { notifyApiError } from '../api-error'
 
 export const COMMANDES_KEY = ['commandes']
 
@@ -29,7 +30,7 @@ export function useCreateCommande() {
       qc.invalidateQueries({ queryKey: COMMANDES_KEY })
       toast.success('Commande créée.')
     },
-    onError: () => toast.error('Erreur lors de la création.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création.'),
   })
 }
 

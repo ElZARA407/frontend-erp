@@ -11,6 +11,7 @@ import type {
   FournisseurFilters,
   FournisseurPayload,
 } from '@/lib/lot3.types'
+import { notifyApiError } from '../api-error'
 
 export const LOT3_KEYS = {
   fournisseurs: ['lot3', 'fournisseurs'] as const,
@@ -58,7 +59,7 @@ export function useCreateFournisseur() {
       qc.invalidateQueries({ queryKey: LOT3_KEYS.fournisseurs })
       toast.success('Fournisseur créé.')
     },
-    onError: () => toast.error('Erreur lors de la création du fournisseur.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création du fournisseur.'),
   })
 }
 
@@ -71,7 +72,7 @@ export function useUpdateFournisseur() {
       qc.invalidateQueries({ queryKey: LOT3_KEYS.fournisseurs })
       toast.success('Fournisseur mis à jour.')
     },
-    onError: () => toast.error('Erreur lors de la mise à jour du fournisseur.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la mise à jour du fournisseur.'),
   })
 }
 
@@ -83,7 +84,7 @@ export function useDeleteFournisseur() {
       qc.invalidateQueries({ queryKey: LOT3_KEYS.fournisseurs })
       toast.success('Fournisseur supprimé.')
     },
-    onError: () => toast.error('Impossible de supprimer ce fournisseur.'),
+    onError: (error) => notifyApiError(error, 'Impossible de supprimer ce fournisseur.'),
   })
 }
 
@@ -95,7 +96,7 @@ export function useCreateContrat() {
       qc.invalidateQueries({ queryKey: LOT3_KEYS.contrats })
       toast.success('Contrat créé.')
     },
-    onError: () => toast.error('Erreur lors de la création du contrat.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création du contrat.'),
   })
 }
 
@@ -108,7 +109,7 @@ export function useToggleContratActif() {
       qc.invalidateQueries({ queryKey: LOT3_KEYS.contrats })
       toast.success('Statut du contrat mis à jour.')
     },
-    onError: () => toast.error('Erreur lors du changement de statut du contrat.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors du changement de statut du contrat.'),
   })
 }
 
@@ -120,7 +121,7 @@ export function useDeleteContrat() {
       qc.invalidateQueries({ queryKey: LOT3_KEYS.contrats })
       toast.success('Contrat desactive.')
     },
-    onError: () => toast.error('Impossible de supprimer ce contrat.'),
+    onError: (error) => notifyApiError(error, 'Impossible de supprimer ce contrat.'),
   })
 }
 
@@ -132,7 +133,7 @@ export function useCreateDemandeAchat() {
       qc.invalidateQueries({ queryKey: LOT3_KEYS.demandes })
       toast.success('Demande d’achat créée.')
     },
-    onError: () => toast.error('Erreur lors de la création de la demande.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création de la demande.'),
   })
 }
 
@@ -145,7 +146,7 @@ export function useUpdateDemandeAchat() {
       qc.invalidateQueries({ queryKey: LOT3_KEYS.demandes })
       toast.success('Demande d’achat mise à jour.')
     },
-    onError: () => toast.error('Erreur lors de la mise à jour de la demande.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la mise à jour de la demande.'),
   })
 }
 
@@ -157,7 +158,7 @@ export function useSubmitDemandeAchat() {
       qc.invalidateQueries({ queryKey: LOT3_KEYS.demandes })
       toast.success('Demande soumise.')
     },
-    onError: () => toast.error('Erreur lors de la soumission.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la soumission.'),
   })
 }
 
@@ -169,7 +170,7 @@ export function useApproveDemandeAchat() {
       qc.invalidateQueries({ queryKey: LOT3_KEYS.demandes })
       toast.success('Demande approuvée.')
     },
-    onError: () => toast.error('Erreur lors de l’approbation.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de l’approbation.'),
   })
 }
 
@@ -181,7 +182,7 @@ export function useRejectDemandeAchat() {
       qc.invalidateQueries({ queryKey: LOT3_KEYS.demandes })
       toast.success('Demande rejetée.')
     },
-    onError: () => toast.error('Erreur lors du rejet.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors du rejet.'),
   })
 }
 
@@ -193,6 +194,6 @@ export function useDeleteDemandeAchat() {
       qc.invalidateQueries({ queryKey: LOT3_KEYS.demandes })
       toast.success('Demande supprimée.')
     },
-    onError: () => toast.error('Impossible de supprimer cette demande.'),
+    onError: (error) => notifyApiError(error, 'Impossible de supprimer cette demande.'),
   })
 }

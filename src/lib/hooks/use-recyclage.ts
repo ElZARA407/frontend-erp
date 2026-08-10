@@ -6,6 +6,7 @@ import type {
   BtSessionPayload,
   RecyclageFilters,
 } from '@/lib/recyclage.types'
+import { notifyApiError } from '../api-error'
 
 export const RECYCLAGE_KEYS = {
   bons: ['recyclage', 'bons-transformation'] as const,
@@ -47,7 +48,7 @@ export function useCreateBonTransformation() {
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Bon de transformation créé.')
     },
-    onError: () => toast.error('Erreur lors de la création du BT.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création du BT.'),
   })
 }
 
@@ -61,7 +62,7 @@ export function useUpdateBonTransformation() {
       qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.bons })
       toast.success('Bon de transformation mis à jour.')
     },
-    onError: () => toast.error('Erreur lors de la mise à jour du BT.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la mise à jour du BT.'),
   })
 }
 
@@ -75,7 +76,7 @@ export function useClotureBonTransformation() {
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Bon de transformation clôturé.')
     },
-    onError: () => toast.error('Erreur lors de la clôture du BT.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la clôture du BT.'),
   })
 }
 
@@ -90,7 +91,7 @@ export function useCreateBtSession() {
       qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.sessions })
       toast.success('Session de transformation créée.')
     },
-    onError: () => toast.error('Erreur lors de la création de la session.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création de la session.'),
   })
 }
 
@@ -106,6 +107,6 @@ export function useValidateBtSession() {
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Session validée. Stocks mis à jour.')
     },
-    onError: () => toast.error('Erreur lors de la validation de la session.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la validation de la session.'),
   })
 }

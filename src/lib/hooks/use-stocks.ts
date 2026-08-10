@@ -1,7 +1,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { stocksApi } from '../api/stocks'
-import type { AjustementStockValues, StockInitialValues  } from '../schemas/stock.schema'
+import { notifyApiError } from '../api-error'
+import type { AjustementStockValues, StockInitialValues } from '../schemas/stock.schema'
 
 export const STOCKS_KEY = ['stocks'] as const
 
@@ -59,9 +60,10 @@ export function useCreateInitialStock() {
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Stock initial déclaré. Mouvement inventaire créé.')
     },
-    onError: () => toast.error('Erreur lors de la déclaration du stock initial.'),
+    onError: (error) => notifyApiError(error, 'Impossible de déclarer ce stock initial.'),
   })
 }
+
 export function useImportStocks() {
   const qc = useQueryClient()
 
@@ -72,7 +74,7 @@ export function useImportStocks() {
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Stocks importés.')
     },
-    onError: () => toast.error('Erreur lors de l’import Excel des stocks.'),
+    onError: (error) => notifyApiError(error, 'Impossible d’importer ce fichier de stock.'),
   })
 }
 
@@ -83,8 +85,9 @@ export function useAjusterInventaire() {
     mutationFn: (payload: AjustementStockValues) => stocksApi.ajusterInventaire(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: STOCKS_KEY })
-      toast.success('Ajustement inventaire enregistre.')
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Ajustement inventaire enregistré.')
     },
-    onError: () => toast.error('Erreur lors de l’ajustement inventaire.'),
+    onError: (error) => notifyApiError(error, 'Impossible d’enregistrer cet ajustement inventaire.'),
   })
 }

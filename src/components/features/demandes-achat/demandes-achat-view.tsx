@@ -291,7 +291,7 @@ export function DemandesAchatView() {
     if (confirmAction.type === 'approuver') approveDemande.mutate(confirmAction.id, options)
     if (confirmAction.type === 'rejeter') rejectDemande.mutate(confirmAction.id, options)
   }}
-/>
+/>  
     </div>
   )
 }

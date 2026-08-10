@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { downloadReportBlob, reportsApi, type ReportExportSection } from '@/lib/api/reports'
 import type { ReportsFilters } from '@/lib/reports.types'
+import { notifyApiError } from '../api-error'
 
 export const REPORTS_KEY = ['reports'] as const
 
@@ -22,8 +23,8 @@ export function useExportReport() {
       downloadReportBlob(blob, variables.section)
       toast.success('Export Excel généré.')
     },
-    onError: () => {
-      toast.error('Export Excel impossible.')
+    onError: (error) => {
+      notifyApiError(error, 'Export Excel impossible.')
     },
   })
 }

@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { bonsSortieApi } from '@/lib/api/bons-sortie'
+import { notifyApiError } from '@/lib/api-error'
 import type { BonSortieFilters, BonSortiePayload } from '@/lib/bons-sortie.types'
 
 export const BONS_SORTIE_KEYS = {
@@ -34,7 +35,7 @@ export function useCreateBonSortie() {
       qc.invalidateQueries({ queryKey: BONS_SORTIE_KEYS.bons })
       toast.success('Bon de sortie créé.')
     },
-    onError: () => toast.error('Erreur lors de la création du bon de sortie.'),
+    onError: (error) => notifyApiError(error, 'Impossible de créer ce bon de sortie.'),
   })
 }
 
@@ -48,7 +49,7 @@ export function useUpdateBonSortie() {
       qc.invalidateQueries({ queryKey: BONS_SORTIE_KEYS.bons })
       toast.success('Bon de sortie mis à jour.')
     },
-    onError: () => toast.error('Erreur lors de la mise à jour du bon de sortie.'),
+    onError: (error) => notifyApiError(error, 'Impossible de mettre à jour ce bon de sortie.'),
   })
 }
 
@@ -61,7 +62,7 @@ export function useDeleteBonSortie() {
       qc.invalidateQueries({ queryKey: BONS_SORTIE_KEYS.bons })
       toast.success('Bon de sortie supprimé.')
     },
-    onError: () => toast.error('Impossible de supprimer ce bon de sortie.'),
+    onError: (error) => notifyApiError(error, 'Impossible de supprimer ce bon de sortie.'),
   })
 }
 
@@ -76,6 +77,6 @@ export function useValiderBonSortie() {
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Bon de sortie validé.')
     },
-    onError: () => toast.error('Erreur lors de la validation du bon de sortie.'),
+    onError: (error) => notifyApiError(error, 'Impossible de valider ce bon de sortie.'),
   })
 }

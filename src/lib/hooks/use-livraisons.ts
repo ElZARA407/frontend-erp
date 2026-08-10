@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { livraisonsApi, type LivraisonCreatePayload } from '../api/livraisons'
+import { notifyApiError } from '../api-error'
 import { COMMERCIAL_DETAIL_KEYS } from './use-commercial-details'
 
 export const LIVRAISONS_KEY = ['livraisons'] as const
@@ -24,7 +25,7 @@ export function useCreateLivraison() {
       qc.invalidateQueries({ queryKey: ['ventes-directes'] })
       toast.success('Livraison créée.')
     },
-    onError: () => toast.error('Erreur lors de la création de la livraison.'),
+    onError: (error) => notifyApiError(error, 'Impossible de créer cette livraison.'),
   })
 }
 
@@ -39,10 +40,11 @@ export function useConfirmerLivraison() {
       qc.invalidateQueries({ queryKey: ['commandes'] })
       qc.invalidateQueries({ queryKey: ['ventes-directes'] })
       qc.invalidateQueries({ queryKey: ['factures'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
       qc.invalidateQueries({ queryKey: COMMERCIAL_DETAIL_KEYS.livraison })
       toast.success('Livraison confirmée.')
     },
-    onError: () => toast.error('Erreur lors de la confirmation.'),
+    onError: (error) => notifyApiError(error, 'Impossible de confirmer cette livraison.'),
   })
 }
 
@@ -57,9 +59,10 @@ export function useAnnulerLivraison() {
       qc.invalidateQueries({ queryKey: ['commandes'] })
       qc.invalidateQueries({ queryKey: ['ventes-directes'] })
       qc.invalidateQueries({ queryKey: ['factures'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
       qc.invalidateQueries({ queryKey: COMMERCIAL_DETAIL_KEYS.livraison })
       toast.success('Livraison annulée.')
     },
-    onError: () => toast.error('Erreur lors de l’annulation.'),
+    onError: (error) => notifyApiError(error, 'Impossible d’annuler cette livraison.'),
   })
 }

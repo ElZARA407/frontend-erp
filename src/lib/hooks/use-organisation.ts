@@ -8,6 +8,7 @@ import type {
   OrganisationUtilisateurFilters,
   OrganisationUtilisateurPayload,
 } from '@/lib/organisation.types'
+import { notifyApiError } from '../api-error'
 
 export const ORGANISATION_KEYS = {
   roles: ['organisation', 'roles'] as const,
@@ -47,7 +48,7 @@ export function useCreateRole() {
       qc.invalidateQueries({ queryKey: ORGANISATION_KEYS.roles })
       toast.success('Rôle créé.')
     },
-    onError: () => toast.error('Erreur lors de la création du rôle.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création du rôle.'),
   })
 }
 
@@ -60,7 +61,7 @@ export function useUpdateRole() {
       qc.invalidateQueries({ queryKey: ORGANISATION_KEYS.roles })
       toast.success('Rôle mis à jour.')
     },
-    onError: () => toast.error('Erreur lors de la mise à jour du rôle.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la mise à jour du rôle.'),
   })
 }
 
@@ -72,7 +73,7 @@ export function useDeleteRole() {
       qc.invalidateQueries({ queryKey: ORGANISATION_KEYS.roles })
       toast.success('Rôle supprimé.')
     },
-    onError: () => toast.error('Impossible de supprimer ce rôle.'),
+    onError: (error) => notifyApiError(error, 'Impossible de supprimer ce rôle.'),
   })
 }
 
@@ -84,7 +85,7 @@ export function useCreateLocation() {
       qc.invalidateQueries({ queryKey: ORGANISATION_KEYS.locations })
       toast.success('Location créée.')
     },
-    onError: () => toast.error('Erreur lors de la création de la location.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création de la location.'),
   })
 }
 
@@ -97,7 +98,7 @@ export function useUpdateLocation() {
       qc.invalidateQueries({ queryKey: ORGANISATION_KEYS.locations })
       toast.success('Location mise à jour.')
     },
-    onError: () => toast.error('Erreur lors de la mise à jour de la location.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la mise à jour de la location.'),
   })
 }
 
@@ -109,7 +110,7 @@ export function useDeleteLocation() {
       qc.invalidateQueries({ queryKey: ORGANISATION_KEYS.locations })
       toast.success('Location supprimée.')
     },
-    onError: () => toast.error('Impossible de supprimer cette location.'),
+    onError: (error) => notifyApiError(error, 'Impossible de supprimer cette location.'),
   })
 }
 
@@ -121,7 +122,7 @@ export function useCreateUser() {
       qc.invalidateQueries({ queryKey: ORGANISATION_KEYS.users })
       toast.success('Utilisateur créé.')
     },
-    onError: () => toast.error('Erreur lors de la création de l’utilisateur.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création de l’utilisateur.'),
   })
 }
 
@@ -134,7 +135,7 @@ export function useUpdateUser() {
       qc.invalidateQueries({ queryKey: ORGANISATION_KEYS.users })
       toast.success('Utilisateur mis à jour.')
     },
-    onError: () => toast.error('Erreur lors de la mise à jour de l’utilisateur.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la mise à jour de l’utilisateur.'),
   })
 }
 
@@ -146,7 +147,7 @@ export function useDeleteUser() {
       qc.invalidateQueries({ queryKey: ORGANISATION_KEYS.users })
       toast.success('Utilisateur supprimé.')
     },
-    onError: () => toast.error('Impossible de supprimer cet utilisateur.'),
+    onError: (error) => notifyApiError(error, 'Impossible de supprimer cet utilisateur.'),
   })
 }
 
@@ -158,6 +159,6 @@ export function useToggleUserActive() {
       qc.invalidateQueries({ queryKey: ORGANISATION_KEYS.users })
       toast.success('Statut utilisateur mis à jour.')
     },
-    onError: () => toast.error('Erreur lors du changement de statut.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors du changement de statut.'),
   })
 }

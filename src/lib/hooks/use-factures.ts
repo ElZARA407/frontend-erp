@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { facturesApi } from '../api/factures'
+import { notifyApiError } from '../api-error'
 import { DASHBOARD_KEY } from './use-dashboard'
 import { COMMERCIAL_DETAIL_KEYS } from './use-commercial-details'
 import { LIVRAISONS_KEY } from './use-livraisons'
@@ -9,7 +10,6 @@ import type {
   FactureCreatePayload,
   FactureFilters,
   FacturePayerPayload,
-  FacturePreviewPayload,
 } from '../factures.types'
 
 export const FACTURES_KEY = ['factures'] as const
@@ -55,7 +55,7 @@ export function useCreateFacture() {
       qc.invalidateQueries({ queryKey: DASHBOARD_KEY })
       toast.success('Facture créée.')
     },
-    onError: () => toast.error('Erreur lors de la création de la facture.'),
+    onError: (error) => notifyApiError(error, 'Impossible de créer cette facture.'),
   })
 }
 
@@ -63,7 +63,11 @@ export function usePayerFacture() {
   const qc = useQueryClient()
 
   return useMutation({
-    mutationFn: (payload: { id: number; mode_paiement: FacturePayerPayload['mode_paiement']; montant_paye: number }) =>
+    mutationFn: (payload: {
+      id: number
+      mode_paiement: FacturePayerPayload['mode_paiement']
+      montant_paye: number
+    }) =>
       facturesApi.payer(payload.id, {
         mode_paiement: payload.mode_paiement,
         montant_paye: payload.montant_paye,
@@ -75,7 +79,7 @@ export function usePayerFacture() {
       qc.invalidateQueries({ queryKey: DASHBOARD_KEY })
       toast.success('Paiement enregistré.')
     },
-    onError: () => toast.error("Erreur lors de l'enregistrement."),
+    onError: (error) => notifyApiError(error, 'Impossible d’enregistrer ce paiement.'),
   })
 }
 
@@ -91,6 +95,6 @@ export function useAnnulerFacture() {
       qc.invalidateQueries({ queryKey: DASHBOARD_KEY })
       toast.success('Facture annulée.')
     },
-    onError: () => toast.error('Erreur lors de l’annulation.'),
+    onError: (error) => notifyApiError(error, 'Impossible d’annuler cette facture.'),
   })
 }
