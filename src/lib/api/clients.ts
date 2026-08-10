@@ -7,6 +7,9 @@ import { extractPaginatedResponse } from './pagination'
 export interface ClientFilters {
   search?: string
   actif?: boolean
+  est_divers?: boolean
+  date_debut?: string
+  date_fin?: string
   per_page?: number
   page?: number
   [key: string]: unknown

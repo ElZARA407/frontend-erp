@@ -1,11 +1,23 @@
 // src/lib/api/achats.ts
 import apiClient from './client'
-import type { ApiResponse, PaginatedResponse, JournalAchat } from '../types'
+import type { ApiResponse, JournalAchat } from '../types'
 import { buildQueryString } from '../utils'
 import { extractPaginatedResponse } from './pagination'
 
+export interface AchatFilters {
+  search?: string
+  fournisseur_id?: number
+  location_id?: number
+  statut?: string
+  date_debut?: string
+  date_fin?: string
+  per_page?: number
+  page?: number
+  [key: string]: unknown
+}
+
 export const achatsApi = {
-  list: async (filters = {}) => {
+  list: async (filters: AchatFilters = {}) => {
     const { data } = await apiClient.get(`/achats/bons-reception${buildQueryString(filters)}`)
     return extractPaginatedResponse<JournalAchat>(data)
   },

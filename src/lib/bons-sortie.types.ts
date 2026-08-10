@@ -1,14 +1,30 @@
 import type { PaginatedResponse } from '@/lib/types'
 
 export type BonSortieStatut = 'brouillon' | 'valide'
-export type BonSortieMotif = 'usage_interne' | 'perte' | 'echantillon' | 'don' | 'autre'
+
+export type BonSortieMotif =
+  | 'transfert'
+  | 'echantillon'
+  | 'perte'
+  | 'casse'
+  | 'consommation_interne'
+  | 'don'
+  | 'destruction'
+  | 'autre'
+  | 'usage_interne'
 
 export interface BonSortieClientRef {
   id: number
   nom: string
+  reference?: string | null
 }
 
 export interface BonSortieLocationRef {
+  id: number
+  nom: string
+}
+
+export interface BonSortieUserRef {
   id: number
   nom: string
 }
@@ -40,18 +56,25 @@ export interface BonSortie {
   numero: string
   date: string
   motif: BonSortieMotif
+  motif_libelle?: string | null
+  motif_detail?: string | null
   statut: BonSortieStatut
   observations: string | null
   client?: BonSortieClientRef | null
   location?: BonSortieLocationRef | null
+  destination_location?: BonSortieLocationRef | null
+  createur?: BonSortieUserRef | null
+  valideur?: BonSortieUserRef | null
   lignes?: BonSortieLine[]
   created_at?: string
 }
 
 export interface BonSortiePayload {
   location_id: number
+  destination_location_id?: number | null
   date: string
   motif: BonSortieMotif
+  motif_detail?: string | null
   client_id?: number | null
   observations?: string | null
   lignes: Array<{
@@ -62,7 +85,12 @@ export interface BonSortiePayload {
 }
 
 export interface BonSortieFilters {
+  search?: string
   location_id?: number
+  destination_location_id?: number
+  client_id?: number
+  created_by?: number
+  produit_id?: number
   statut?: string
   motif?: string
   date_debut?: string

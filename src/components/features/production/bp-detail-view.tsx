@@ -14,6 +14,7 @@ import { useAnnulerBP, useBonProduction, useClotureBP, useValiderSession } from 
 import { formatDate, formatDateTime, formatDurationHours, formatMGA, formatPercent, formatQty, getStatutColor } from '@/lib/utils'
 import type { BpSession } from '@/lib/types'
 import { useRouter } from 'next/navigation'
+import { usePermissions } from '@/lib/hooks/use-permissions'
 
 interface ProductionDetailViewProps {
   bpId: number
@@ -64,6 +65,7 @@ type SessionEmployeRow = {
     poste?: {
       id: number
       nom: string
+      taux_horaire: number
     }
   }
 }
@@ -76,6 +78,7 @@ type SessionEvenementRow = {
   heure_debut: string
   heure_fin?: string | null
   description?: string | null
+  total?: number
   operateur?: {
     id: number
     nom: string
@@ -206,6 +209,7 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
   const validateSession = useValiderSession()
   const clotureBP = useClotureBP()
   const annulerBP = useAnnulerBP()
+  const permissions = usePermissions()
 
   const sessions = Array.isArray(bp?.sessions) ? (bp.sessions as SessionRow[]) : []
 
@@ -530,7 +534,8 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
                           >
                             Détails
                           </Button>
-                          {session.statut === 'ouverte' && (
+                          {permissions.can('validate') && (
+                          session.statut === 'ouverte' && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -540,7 +545,7 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
                             >
                               Valider
                             </Button>
-                          )}
+                          ))}
                         </div>
                       </td>
                     </tr>
@@ -705,7 +710,9 @@ function SessionDetailsPanel({ session }: { session: SessionRow }) {
                     {line.employe?.matricule ?? '—'} - {line.employe?.poste?.nom ?? 'Sans poste'}
                   </p>
                 </div>
-                <Badge variant="info">{formatDurationHours(line.heures_effectives)}</Badge>
+                <p>Heures de travail:</p><Badge variant="info">{formatDurationHours(line.heures_effectives)}</Badge>
+                <p>TH:</p><Badge variant="info">{formatMGA(line.employe?.poste?.taux_horaire)}</Badge>
+                <p>Cout:</p><Badge variant="info">{formatMGA(line.cout)}</Badge>
               </div>
             )}
           />
@@ -722,14 +729,15 @@ function SessionDetailsPanel({ session }: { session: SessionRow }) {
                   </p>
                   <p className="text-xs text-steel-500">
                     {line.heure_debut}
-                    {line.heure_fin ? ` - ${line.heure_fin}` : ''}
+                    {line.heure_fin ? ` - ${line.heure_fin}` : ''} 
+                    {line.total ? ` : ${line.total}` : '—'}
                     {line.operateur?.nom ? ` • ${line.operateur.nom}` : ''}
                   </p>
                   {line.description && (
                     <p className="mt-1 text-xs text-steel-600">{line.description}</p>
                   )}
                 </div>
-                <Badge variant="warning">{getEventLabel(line.type_evenement)}</Badge>
+                <Badge variant="warning">{getEventLabel(line.type_evenement)}: {line.total ?? '—'}</Badge>
               </div>
             )}
           />

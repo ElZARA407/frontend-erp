@@ -1,8 +1,15 @@
-// src/lib/hooks/use-permissions.ts
 import { useMemo } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '../stores/auth.store'
-import { canAccessRoute, canPerform, type PermissionAction } from '../permissions'
+import {
+  canAccessRoute,
+  canPerform,
+  canSeeDashboardWidget,
+  canSeeReportTab,
+  ReportTabPermission,
+  type DashboardWidget,
+  type PermissionAction,
+} from '../permissions'
 
 export function useCurrentRole() {
   return useAuthStore((state) => state.utilisateur?.role?.nom ?? null)
@@ -10,7 +17,6 @@ export function useCurrentRole() {
 
 export function useCan(action: PermissionAction) {
   const role = useCurrentRole()
-
   return useMemo(() => canPerform(role, action), [role, action])
 }
 
@@ -24,6 +30,11 @@ export function useCanRoute(path?: string) {
   )
 }
 
+export function useCanDashboardWidget(widget: DashboardWidget) {
+  const role = useCurrentRole()
+  return useMemo(() => canSeeDashboardWidget(role, widget), [role, widget])
+}
+
 export function usePermissions() {
   const role = useCurrentRole()
   const pathname = usePathname()
@@ -33,8 +44,10 @@ export function usePermissions() {
       role,
       can: (action: PermissionAction) => canPerform(role, action),
       canRoute: (path: string) => canAccessRoute(role, path),
+      canReportTab: (tab: ReportTabPermission) => canSeeReportTab(role, tab),
+      canDashboardWidget: (widget: DashboardWidget) => canSeeDashboardWidget(role, widget),
       currentPathAllowed: canAccessRoute(role, pathname),
     }),
     [role, pathname]
   )
-}
+} 

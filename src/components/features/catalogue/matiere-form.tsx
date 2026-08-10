@@ -204,7 +204,7 @@ export function MatiereForm({ defaultValues, onSuccess }: MatiereFormProps) {
               <Input
                 label="Prix moyen"
                 type="number"
-                step="100"
+                step="1"
                 placeholder="0"
                 value={field.value ?? ''}
                 onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}

@@ -57,6 +57,7 @@ export interface CatalogueMatiere {
   description: string | null
   unite: string
   prix_moyen: number
+  seuil?: number | null
   actif: boolean
   stock_total?: number
   en_rupture?: boolean
@@ -111,6 +112,9 @@ export interface CatalogueProductFilters {
   categorie_id?: number
   actif?: boolean
   location_id?: number
+  stock_state?: 'all' | 'available' | 'rupture'
+  date_debut?: string
+  date_fin?: string
   page?: number
   per_page?: number
   [key: string]: unknown
@@ -121,6 +125,9 @@ export interface CatalogueMatiereFilters {
   type?: string
   actif?: boolean
   location_id?: number
+  stock_state?: 'all' | 'available' | 'rupture'
+  date_debut?: string
+  date_fin?: string
   page?: number
   per_page?: number
   [key: string]: unknown

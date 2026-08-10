@@ -5,19 +5,26 @@ import type {
   BonSortie,
   BonSortieFilters,
   BonSortiePayload,
-  BonsSortiePage,
 } from '@/lib/bons-sortie.types'
 import { extractPaginatedResponse } from './pagination'
 
 export const bonsSortieApi = {
   list: async (filters: BonSortieFilters = {}) => {
-    const { data } = await apiClient.get(`/logistique/bons-sortie${buildQueryString(filters)}`)
+    const { data } = await apiClient.get(
+      `/logistique/bons-sortie${buildQueryString({
+        ...filters,
+        search: filters.search?.trim() || undefined,
+        page: filters.page ?? 1,
+        per_page: filters.per_page ?? 10,
+      })}`,
+    )
+
     return extractPaginatedResponse<BonSortie>(data)
   },
 
   get: async (id: number) => {
     const { data } = await apiClient.get<ApiResponse<BonSortie>>(
-      `/logistique/bons-sortie/${id}`
+      `/logistique/bons-sortie/${id}`,
     )
     return data.data
   },
@@ -25,7 +32,7 @@ export const bonsSortieApi = {
   create: async (payload: BonSortiePayload) => {
     const { data } = await apiClient.post<ApiResponse<BonSortie>>(
       '/logistique/bons-sortie',
-      payload
+      payload,
     )
     return data.data
   },
@@ -33,14 +40,21 @@ export const bonsSortieApi = {
   update: async (id: number, payload: Partial<BonSortiePayload>) => {
     const { data } = await apiClient.put<ApiResponse<BonSortie>>(
       `/logistique/bons-sortie/${id}`,
-      payload
+      payload,
     )
     return data.data
   },
 
+  delete: async (id: number) => {
+    const { data } = await apiClient.delete<ApiResponse<null>>(
+      `/logistique/bons-sortie/${id}`,
+    )
+    return data
+  },
+
   valider: async (id: number) => {
     const { data } = await apiClient.post<ApiResponse<BonSortie>>(
-      `/logistique/bons-sortie/${id}/valider`
+      `/logistique/bons-sortie/${id}/valider`,
     )
     return data.data
   },

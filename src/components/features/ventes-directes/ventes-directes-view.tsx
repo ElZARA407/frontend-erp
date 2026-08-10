@@ -23,6 +23,7 @@ import type { VenteDirecte } from '@/lib/ventes-directes.types'
 import { VenteDirecteForm } from './vente-directe-form'
 import { LivraisonForm } from '../livraisons/livraison-form'
 import { useRouter } from 'next/navigation'
+import { usePermissions } from '@/lib/hooks/use-permissions'
 
 export function VentesDirectesView() {
   const [page, setPage] = useState(1)
@@ -34,6 +35,7 @@ export function VentesDirectesView() {
   const [showLivraison, setShowLivraison] = useState(false)
   const [selectedVente, setSelectedVente] = useState<VenteDirecte | null>(null)
   const router = useRouter();
+  const permissions = usePermissions()
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { mutate: validerVente, isPending: validating } = useValiderVenteDirecte()
@@ -205,7 +207,8 @@ export function VentesDirectesView() {
                             Livrer
                           </Button>
                         )}
-                        {vente.statut === 'brouillon' && (
+                        {permissions.can('validate') && (
+                        vente.statut === 'brouillon' && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -218,7 +221,7 @@ export function VentesDirectesView() {
                           >
                             Valider
                           </Button>
-                        )}
+                        ))}
                         {vente.statut === 'validee' && (
                           <Button
                             variant="danger"

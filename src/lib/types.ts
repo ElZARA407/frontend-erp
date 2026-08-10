@@ -310,6 +310,7 @@ export interface BpSessionCalcul {
       heure_fin?: string | null
       description?: string | null
       duree: number
+      total?: number
     }>
   } | null
   calcule_le?: string | null
@@ -340,7 +341,69 @@ export interface StatutFacture {
 }
 
 // ── Dashboard ───────────────────────────────────────────
+export interface DashboardPoint {
+  date: string
+  label: string
+  total?: number
+  entrees?: number
+  sorties?: number
+}
+
+export interface DashboardTopItem {
+  id: number
+  label: string
+  description?: string | null
+  quantite?: number
+  total: number
+}
+
+export interface DashboardProductionObjectif {
+  objectif: number
+  realise: number
+  taux: number
+}
+
+export interface DashboardAlerte {
+  id: string
+  priorite: 'haute' | 'moyenne' | 'basse'
+  type:
+    | 'stock_faible'
+    | 'commande_urgente'
+    | 'bp_bloque'
+    | 'bt_bloque'
+    | 'facture_retard'
+    | 'livraison_jour'
+    | 'contrat_semaine'
+  titre: string
+  message: string
+  action_label: string
+  action_url: string
+}
+
 export interface DashboardKpi {
+  kpi: {
+    commandes_en_attente: number
+    bons_production_en_cours: number
+    bons_transformation_en_cours: number
+    livraisons_du_jour: number
+    factures_en_attente: number
+    valeur_totale_stock: number
+    produits_sous_minimum: number
+    matieres_sous_minimum: number
+    references_stock: number
+  }
+  charts: {
+    ventes_30_jours: DashboardPoint[]
+    production_objectif_realise: DashboardProductionObjectif
+    stock_entrees_sorties: DashboardPoint[]
+    top_produits: DashboardTopItem[]
+    top_clients: DashboardTopItem[]
+  }
+  alertes: DashboardAlerte[]
+  generated_at: string
+}
+
+export interface LegacyDashboardKpi {
   production: {
     bp_actifs: number
     bp_clotures_mois: number

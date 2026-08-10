@@ -30,12 +30,41 @@ export const fournisseurSchema = z.object({
   est_divers: z.coerce.boolean().optional(),
 })
 
-export const contratLineSchema = z.object({
-  classement_id: z.coerce.number().int().positive('Le classement est requis'),
-  quantite_contractuelle: z.coerce.number().positive('La quantite doit etre superieure a 0'),
-  frequence: z.enum(['hebdomadaire', 'bimensuel', 'mensuel']),
-  prix_unitaire: z.coerce.number().min(0, 'Le prix doit etre positif'),
-})
+export const contratLineSchema = z
+  .object({
+    produit_id: z.coerce.number().int().positive('Le produit est requis'),
+    classement_id: z.coerce.number().int().positive('Le classement est requis'),
+    quantite_contractuelle: z.coerce.number().positive('La quantite doit etre superieure a 0'),
+    frequence: z.enum([
+      'quotidienne',
+      'hebdomadaire',
+      'bimensuel',
+      'mensuel',
+      'tous_x_jours',
+      'personnalisee',
+    ]),
+    frequence_jours: optionalNumber.nullable().optional(),
+    date_debut: optionalText.nullable().optional(),
+    date_fin: optionalText.nullable().optional(),
+    prix_unitaire: z.coerce.number().min(0, 'Le prix doit etre positif'),
+  })
+  .superRefine((value, ctx) => {
+    if (value.frequence === 'tous_x_jours' && !value.frequence_jours) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['frequence_jours'],
+        message: 'Le nombre de jours est requis',
+      })
+    }
+
+    if (value.date_debut && value.date_fin && value.date_fin < value.date_debut) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['date_fin'],
+        message: 'La date fin doit etre apres la date debut',
+      })
+    }
+  })
 
 export const contratSchema = z.object({
   client_id: z.coerce.number().int().positive('Le client est requis'),

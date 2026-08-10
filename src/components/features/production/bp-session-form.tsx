@@ -7,9 +7,7 @@ import {
   useFieldArray,
   useForm,
   useFormContext,
-  useWatch,
   type Resolver,
-  type UseFormSetValue,
 } from 'react-hook-form'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -20,10 +18,10 @@ import { Select } from '@/components/ui/select'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import { useEmployes } from '@/lib/hooks/use-rh'
 import { useCreateSession, useMachines } from '@/lib/hooks/use-production'
-import { useClassments, useMatieres, useProducts } from '@/lib/hooks/use-catalogue'
+import { useClassments, useMatieres } from '@/lib/hooks/use-catalogue'
 import { sessionSchema, type SessionBatchSchema } from '@/lib/schemas/production.schema'
 import type { BonProduction } from '@/lib/types'
-import type { CatalogueMatiere, CatalogueProduct } from '@/lib/catalogue.types'
+import type { CatalogueMatiere } from '@/lib/catalogue.types'
 import type { RhEmploye } from '@/lib/rh.types'
 
 interface BpSessionCreateFormProps {
@@ -118,7 +116,6 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
     reset,
     control,
     register,
-    setValue,
     formState: { errors },
   } = methods
 
@@ -212,7 +209,7 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
           <Input
             label="Coût électricité"
             type="number"
-            step="100"
+            step="1"
             placeholder="0"
             error={errors.cout_electricite?.message}
             {...register('cout_electricite')}
@@ -271,7 +268,7 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
                   <Input
                     label="Quantité utilisée *"
                     type="number"
-                    step="100"
+                    step="1"
                     error={errors.matieres?.[index]?.quantite_utilisee?.message}
                     {...register(`matieres.${index}.quantite_utilisee` as const, { valueAsNumber: true })}
                   />
@@ -575,7 +572,7 @@ function ObtenuRow({
       <Input
         label="Quantité produite *"
         type="number"
-        step="0.001"
+        step="1"
         error={errors.obtenus?.[index]?.quantite_produite?.message}
         {...register(`obtenus.${index}.quantite_produite` as const, { valueAsNumber: true })}
       />

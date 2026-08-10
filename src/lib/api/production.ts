@@ -4,9 +4,11 @@ import { buildQueryString } from '../utils'
 import { extractPaginatedResponse } from './pagination'
 
 export interface BpFilters {
+  search?: string
   location_id?: number
   statut?: string
   produit_id?: number
+  machine_id?: number
   date_debut?: string
   date_fin?: string
   per_page?: number

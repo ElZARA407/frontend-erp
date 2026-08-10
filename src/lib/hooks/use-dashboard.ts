@@ -48,3 +48,12 @@ export function useDashboardFinance() {
     refetchInterval: 5 * 60 * 1000,
   })
 }
+
+export function usePilotage() {
+  return useQuery({
+    queryKey: [...DASHBOARD_KEY, 'pilotage'],
+    queryFn: dashboardApi.pilotage,
+    staleTime: 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
+  })
+}

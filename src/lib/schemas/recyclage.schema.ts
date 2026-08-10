@@ -16,37 +16,47 @@ export const bonTransformationSchema = z.object({
   date: z.string().min(1, 'La date est requise'),
   location_id: z.coerce.number().int().positive('Le site est requis'),
   matiere_brute_id: z.coerce.number().int().positive('La matière brute est requise'),
-  matiere_broyee_id: z.coerce.number().int().positive('La matière broyée est requise'),
-  machine_broyage: z.string().min(1, 'La machine est requise').max(100, '100 caractères maximum'),
-  quantite_entree: z.coerce.number().positive('La quantité doit être supérieure à 0'),
+  machine_id: z.coerce.number().int().positive('La machine est requise'),
+  quantite_entree: z.coerce.number().positive('La quantité prévue doit être supérieure à 0'),
+  observations: optionalText,
 })
 
 export const btSessionSchema = z.object({
   date_session: z.string().min(1, 'La date est requise'),
-  machine_broyage: z.string().min(1, 'La machine est requise').max(100, '100 caractères maximum'),
-})
-
-export const btMatiereSchema = z.object({
-  matiere_id: z.coerce.number().int().positive('La matière est requise'),
-  type: z.enum(['entree', 'sortie']),
-  quantite: z.coerce.number().positive('La quantité doit être supérieure à 0'),
-  quantite_restituee: optionalNumber,
-})
-
-export const btEmployeSchema = z.object({
-  employe_id: z.coerce.number().int().positive('L’employé est requis'),
-  heures_brutes: z.coerce.number().positive('Les heures doivent être supérieures à 0'),
-})
-
-export const btEvenementSchema = z.object({
-  type_evenement: z.enum(['broyage', 'pause', 'panne', 'autre']),
-  heure_debut: z.string().min(1, 'L’heure de début est requise'),
-  heure_fin: optionalText,
-  description: optionalText,
+  machine_id: z.coerce.number().int().positive('La machine est requise'),
+  sorties: z.array(
+    z.object({
+      quantite_utilisee: z.coerce.number().positive('La quantité utilisée est requise'),
+      quantite_restituee: z.coerce.number().min(0).optional(),
+    }).refine(
+      (value) => (value.quantite_restituee ?? 0) <= value.quantite_utilisee,
+      {
+        message: 'La quantité restituée ne peut pas dépasser la quantité utilisée',
+        path: ['quantite_restituee'],
+      }
+    )
+  ).min(1, 'Ajoute au moins une sortie de matière brute'),
+  entrees: z.array(
+    z.object({
+      matiere_id: z.coerce.number().int().positive('La matière broyée est requise'),
+      quantite: z.coerce.number().positive('La quantité produite est requise'),
+    })
+  ).min(1, 'Ajoute au moins une matière broyée obtenue'),
+  employes: z.array(
+    z.object({
+      employe_id: z.coerce.number().int().positive('L’employé est requis'),
+      heures_brutes: optionalNumber,
+    })
+  ).optional(),
+  evenements: z.array(
+    z.object({
+      type_evenement: z.enum(['broyage', 'pause', 'panne', 'autre']),
+      heure_debut: z.string().min(1, 'L’heure de début est requise'),
+      heure_fin: optionalText,
+      description: optionalText,
+    })
+  ).optional(),
 })
 
 export type BonTransformationSchema = z.infer<typeof bonTransformationSchema>
 export type BtSessionSchema = z.infer<typeof btSessionSchema>
-export type BtMatiereSchema = z.infer<typeof btMatiereSchema>
-export type BtEmployeSchema = z.infer<typeof btEmployeSchema>
-export type BtEvenementSchema = z.infer<typeof btEvenementSchema>

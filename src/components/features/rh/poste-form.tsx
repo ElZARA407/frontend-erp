@@ -66,7 +66,7 @@ export function PosteForm({ defaultValues, onSuccess }: PosteFormProps) {
         <Input
           label="Salaire mensuel"
           type="number"
-          step="10000"
+          step="1"
           placeholder="0"
           error={errors.salaire_mensuel?.message}
           {...register('salaire_mensuel')}

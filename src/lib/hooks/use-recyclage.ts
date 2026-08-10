@@ -1,11 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { recyclageApi } from '@/lib/api/recyclage'
 import type {
   BonTransformationPayload,
-  BtEmployePayload,
-  BtEvenementPayload,
-  BtMatierePayload,
   BtSessionPayload,
   RecyclageFilters,
 } from '@/lib/recyclage.types'
@@ -20,6 +17,7 @@ export function useBonTransformations(filters: RecyclageFilters = {}) {
     queryKey: [...RECYCLAGE_KEYS.bons, filters],
     queryFn: () => recyclageApi.list(filters),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -27,8 +25,7 @@ export function useBonTransformation(id: number) {
   return useQuery({
     queryKey: [...RECYCLAGE_KEYS.bons, id],
     queryFn: () => recyclageApi.get(id),
-    enabled: !!id,
-    staleTime: 60_000,
+    enabled: id > 0,
   })
 }
 
@@ -36,8 +33,7 @@ export function useBtSessions(btId: number) {
   return useQuery({
     queryKey: [...RECYCLAGE_KEYS.sessions, btId],
     queryFn: () => recyclageApi.sessions.list(btId),
-    enabled: !!btId,
-    staleTime: 30_000,
+    enabled: btId > 0,
   })
 }
 
@@ -48,6 +44,7 @@ export function useCreateBonTransformation() {
     mutationFn: (payload: BonTransformationPayload) => recyclageApi.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.bons })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Bon de transformation créé.')
     },
     onError: () => toast.error('Erreur lors de la création du BT.'),
@@ -75,7 +72,7 @@ export function useClotureBonTransformation() {
     mutationFn: (id: number) => recyclageApi.cloture(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.bons })
-      qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.sessions })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Bon de transformation clôturé.')
     },
     onError: () => toast.error('Erreur lors de la clôture du BT.'),
@@ -89,9 +86,9 @@ export function useCreateBtSession() {
     mutationFn: ({ btId, payload }: { btId: number; payload: BtSessionPayload }) =>
       recyclageApi.sessions.create(btId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.sessions })
       qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.bons })
-      toast.success('Session créée.')
+      qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.sessions })
+      toast.success('Session de transformation créée.')
     },
     onError: () => toast.error('Erreur lors de la création de la session.'),
   })
@@ -103,57 +100,12 @@ export function useValidateBtSession() {
   return useMutation({
     mutationFn: (sessionId: number) => recyclageApi.sessions.validate(sessionId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.sessions })
       qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.bons })
+      qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.sessions })
       qc.invalidateQueries({ queryKey: ['stocks'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Session validée. Stocks mis à jour.')
     },
     onError: () => toast.error('Erreur lors de la validation de la session.'),
-  })
-}
-
-export function useAddBtMatiere() {
-  const qc = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ sessionId, payload }: { sessionId: number; payload: BtMatierePayload }) =>
-      recyclageApi.sessions.addMatiere(sessionId, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.sessions })
-      qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.bons })
-      toast.success('Matière ajoutée à la session.')
-    },
-    onError: () => toast.error('Erreur lors de l’ajout de matière.'),
-  })
-}
-
-export function useAddBtEmploye() {
-  const qc = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ sessionId, payload }: { sessionId: number; payload: BtEmployePayload }) =>
-      recyclageApi.sessions.addEmploye(sessionId, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.sessions })
-      qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.bons })
-      toast.success('Employé ajouté à la session.')
-    },
-    onError: () => toast.error('Erreur lors de l’ajout d’employé.'),
-  })
-}
-
-export function useAddBtEvenement() {
-  const qc = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ sessionId, payload }: { sessionId: number; payload: BtEvenementPayload }) =>
-      recyclageApi.sessions.addEvenement(sessionId, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.sessions })
-      qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.bons })
-      toast.success('Événement ajouté à la session.')
-    },
-    onError: () => toast.error('Erreur lors de l’ajout de l’événement.'),
   })
 }
