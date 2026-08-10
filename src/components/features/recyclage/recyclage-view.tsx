@@ -18,6 +18,7 @@ import { useBonTransformations, useClotureBonTransformation } from '@/lib/hooks/
 import type { BonTransformation, RecyclageLocationRef } from '@/lib/recyclage.types'
 import { BtForm } from './bt-form'
 import { DateRangeFilter } from '@/components/ui/date-range-filter'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -47,6 +48,7 @@ export function RecyclageView() {
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
   const [showCreate, setShowCreate] = useState(false)
+  const [confirmClotureId, setConfirmClotureId] = useState<number | null>(null)
 
   const router = useRouter()
   const { data: locationsData } = useLocations()
@@ -235,7 +237,7 @@ export function RecyclageView() {
                             loading={closing}
                             onClick={(event) => {
                               event.stopPropagation()
-                              clotureBt(bt.id)
+                              setConfirmClotureId(bt.id)
                             }}
                           >
                             Clôturer
@@ -270,6 +272,21 @@ export function RecyclageView() {
       >
         <BtForm onSuccess={() => setShowCreate(false)} />
       </Dialog>
+      <ConfirmationDialog
+  open={confirmClotureId !== null}
+  title="Clôture"
+  description="Voulez vous vraiment clôturer ce bon de transformation ?"
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  loading={closing}
+  onClose={() => setConfirmClotureId(null)}
+  onConfirm={() => {
+    if (!confirmClotureId) return
+    clotureBt(confirmClotureId, {
+      onSuccess: () => setConfirmClotureId(null),
+    })
+  }}
+/>
     </div>
   )
 }

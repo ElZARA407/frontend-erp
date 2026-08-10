@@ -21,6 +21,7 @@ import { payerFactureSchema, type PayerFactureSchema } from '@/lib/schemas/factu
 import { FileDown } from 'lucide-react'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { useRouter } from 'next/navigation'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 interface FactureDetailViewProps {
   factureId: number
@@ -29,6 +30,7 @@ interface FactureDetailViewProps {
 export function FactureDetailView({ factureId }: FactureDetailViewProps) {
   const [showPayDialog, setShowPayDialog] = useState(false)
   const router = useRouter()
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
 
   const { data: facture, isLoading } = useFacture(factureId)
   const payerFacture = usePayerFacture()
@@ -130,7 +132,7 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
                 variant="outline"
                 icon={<XCircle className="h-3.5 w-3.5" />}
                 loading={annulerFacture.isPending}
-                onClick={() => annulerFacture.mutate(facture.id)}
+                onClick={() => setConfirmCancelOpen(true)}
               >
                 Annuler
               </Button>
@@ -417,6 +419,22 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
           </div>
         </form>
       </Dialog>
+      <ConfirmationDialog
+  open={confirmCancelOpen}
+  title="Annulation"
+  description="Voulez vous vraiment annuler cette facture ?"
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant="danger"
+  loading={annulerFacture.isPending}
+  onClose={() => setConfirmCancelOpen(false)}
+  onConfirm={() => {
+    if (!facture) return
+    annulerFacture.mutate(facture.id, {
+      onSuccess: () => setConfirmCancelOpen(false),
+    })
+  }}
+/>
     </div>
   )
 }

@@ -24,6 +24,7 @@ import { formatDate, getStatutColor } from '@/lib/utils'
 import type { BonSortie } from '@/lib/bons-sortie.types'
 import { BonSortieForm } from './bon-sortie-form'
 import { usePermissions } from '@/lib/hooks/use-permissions'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 const PAGE_SIZE = 10
 
@@ -43,6 +44,10 @@ export function BonsSortieView() {
   const [motif, setMotif] = useState('')
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
+  const [confirmAction, setConfirmAction] = useState<null | {
+  type: 'valider' | 'supprimer'
+  id: number
+}>(null)
 
   const { data: locationsData } = useLocations()
   const locations = Array.isArray(locationsData) ? locationsData : []
@@ -211,17 +216,17 @@ export function BonsSortieView() {
                           bon.statut === 'brouillon' && (
                           <>
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
-                              loading={validating}
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                validerBonSortie(bon.id)
-                              }}
-                            >
-                              Valider
-                            </Button>
+                                      variant="ghost"
+                                      size="sm"
+                                      icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
+                                      loading={validating}
+                                      onClick={(event) => {
+                                        event.stopPropagation()
+                                        setConfirmAction({ type: 'valider', id: bon.id })
+                                      }}
+                                    >
+                                      Valider
+                                    </Button>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -229,7 +234,7 @@ export function BonsSortieView() {
                               loading={deleteBonSortie.isPending}
                               onClick={(event) => {
                                 event.stopPropagation()
-                                deleteBonSortie.mutate(bon.id)
+                                setConfirmAction({ type: 'supprimer', id: bon.id })
                               }}
                             />
                           </>
@@ -276,6 +281,34 @@ export function BonsSortieView() {
       >
         <BonSortieForm onSuccess={() => setShowCreate(false)} />
       </Dialog>
+      <ConfirmationDialog
+  open={confirmAction !== null}
+  title={confirmAction?.type === 'valider' ? 'Validation' : 'Suppression'}
+  description={
+    confirmAction?.type === 'valider'
+      ? 'Voulez vous vraiment valider ce bon de sortie ?'
+      : 'Voulez vous vraiment supprimer ce bon de sortie ?'
+  }
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant={confirmAction?.type === 'supprimer' ? 'danger' : 'primary'}
+  loading={validating || deleteBonSortie.isPending}
+  onClose={() => setConfirmAction(null)}
+  onConfirm={() => {
+    if (!confirmAction) return
+
+    if (confirmAction.type === 'valider') {
+      validerBonSortie(confirmAction.id, {
+        onSuccess: () => setConfirmAction(null),
+      })
+      return
+    }
+
+    deleteBonSortie.mutate(confirmAction.id, {
+      onSuccess: () => setConfirmAction(null),
+    })
+  }}
+/>
     </div>
   )
 }

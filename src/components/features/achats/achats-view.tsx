@@ -23,6 +23,7 @@ import type { JournalAchat, Location } from '@/lib/types'
 import type { Fournisseur } from '@/lib/lot3.types'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { usePermissions } from '@/lib/hooks/use-permissions'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -54,6 +55,15 @@ export function AchatsView() {
   const {exportPdf, isExporting} = usePdfExport()
   const router = useRouter()
   const permissions = usePermissions()
+  const [confirmAction, setConfirmAction] = useState<null | {
+  title: string
+  description: string
+  confirmLabel: string
+  variant?: 'primary' | 'danger'
+  loading?: boolean
+  onConfirm: () => void
+}>(null)
+const [confirmValidateId, setConfirmValidateId] = useState<number | null>(null)
 
   const { data: fournisseursPage } = useFournisseurs({ actif: true, per_page: 200 })
   const { data: locationsData } = useLocations()
@@ -241,7 +251,8 @@ export function AchatsView() {
                           loading={isPending}
                           onClick={(event) => {
                             event.stopPropagation()
-                            valider(br.id)}}
+                            setConfirmValidateId(br.id)
+                          }}
                         >
                           Valider
                         </Button>
@@ -274,6 +285,22 @@ export function AchatsView() {
       >
         <AchatForm onSuccess={() => setShowCreate(false)} />
       </Dialog>
+
+      <ConfirmationDialog
+        open={confirmValidateId !== null}
+        title="Validation"
+        description="Voulez vous vraiment valider ce bon de réception ?"
+        confirmLabel="Oui"
+        cancelLabel="Non"
+        loading={isPending}
+        onClose={() => setConfirmValidateId(null)}
+        onConfirm={() => {
+          if (!confirmValidateId) return
+          valider(confirmValidateId, {
+            onSuccess: () => setConfirmValidateId(null),
+          })
+        }}
+      />
     </div>
   )
 }

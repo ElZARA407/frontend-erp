@@ -18,6 +18,7 @@ import { FournisseurForm } from './fournisseur-form'
 import { Plus, PencilLine, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { DateRangeFilter } from '@/components/ui/date-range-filter'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 const PAGE_SIZE = 10
 
@@ -29,6 +30,7 @@ export function FournisseursView() {
   const [estDivers, setEstDivers] = useState('')
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
 
   const [showDialog, setShowDialog] = useState(false)
   const [selectedFournisseur, setSelectedFournisseur] = useState<Fournisseur | null>(null)
@@ -187,7 +189,7 @@ export function FournisseursView() {
                             icon={<Trash2 className="h-3.5 w-3.5" />}
                             onClick={(event) => {
                               event.stopPropagation()
-                              deleteFournisseur.mutate(fournisseur.id)
+                              setConfirmDeleteId(fournisseur.id)
                             }}
                           />
                         </div>
@@ -224,6 +226,22 @@ export function FournisseursView() {
           onSuccess={() => setShowDialog(false)}
         />
       </Dialog>
+      <ConfirmationDialog
+  open={confirmDeleteId !== null}
+  title="Archivage"
+  description="Voulez vous vraiment archiver ce fournisseur ?"
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant="danger"
+  loading={deleteFournisseur.isPending}
+  onClose={() => setConfirmDeleteId(null)}
+  onConfirm={() => {
+    if (!confirmDeleteId) return
+    deleteFournisseur.mutate(confirmDeleteId, {
+      onSuccess: () => setConfirmDeleteId(null),
+    })
+  }}
+/>
     </div>
   )
 }

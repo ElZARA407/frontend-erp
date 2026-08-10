@@ -25,6 +25,7 @@ import type { Facture } from '@/lib/factures.types'
 import { FileDown } from 'lucide-react'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { useRouter } from 'next/navigation'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 
 type FactureRow = Facture
@@ -39,6 +40,7 @@ export function FacturesView() {
   const [payingId, setPayingId] = useState<number | null>(null)
   const { exportPdf, isExporting } = usePdfExport()
   const router = useRouter()
+  const [confirmCancelId, setConfirmCancelId] = useState<number | null>(null)
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 200 })
   const { data, isLoading } = useFactures({
@@ -52,7 +54,7 @@ export function FacturesView() {
   })
 
   const { mutate: payer, isPending: paying } = usePayerFacture()
-  const { mutate: annuler } = useAnnulerFacture()
+  const { mutate: annuler, isPending: cancelling } = useAnnulerFacture()
 
   const pagination = data?.data
   const factures = Array.isArray(pagination?.data) ? pagination.data : []
@@ -317,7 +319,8 @@ export function FacturesView() {
                             icon={<XCircle className="h-3.5 w-3.5 text-red-500" />}
                             onClick={(event) => {
                               event.stopPropagation()
-                              annuler(f.id)}}
+                              setConfirmCancelId(f.id)
+                            }}
                           >
                             Annuler
                           </Button>
@@ -404,6 +407,22 @@ export function FacturesView() {
           </div>
         </form>
       </Dialog>
+      <ConfirmationDialog
+  open={confirmCancelId !== null}
+  title="Annulation"
+  description="Voulez vous vraiment annuler cette facture ?"
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant="danger"
+  loading={cancelling}
+  onClose={() => setConfirmCancelId(null)}
+  onConfirm={() => {
+    if (!confirmCancelId) return
+    annuler(confirmCancelId, {
+      onSuccess: () => setConfirmCancelId(null),
+    })
+  }}
+/>
     </div>
   )
 }

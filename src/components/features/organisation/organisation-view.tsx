@@ -39,6 +39,7 @@ import {
   ToggleRight,
   PencilLine,
 } from 'lucide-react'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 type TabKey = 'utilisateurs' | 'roles' | 'locations'
 
@@ -50,6 +51,7 @@ function localPage<T>(items: T[], page: number) {
   const currentPage = Math.min(Math.max(1, page), lastPage)
   const start = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE
   const end = total === 0 ? 0 : Math.min(start + PAGE_SIZE, total)
+  
 
   return {
     data: items.slice(start, end),
@@ -65,6 +67,10 @@ export function OrganisationView() {
   const [tab, setTab] = useState<TabKey>('utilisateurs')
   const [rolePage, setRolePage] = useState(1)
   const [locationPage, setLocationPage] = useState(1)
+  const [confirmAction, setConfirmAction] = useState<null | {
+  type: 'toggle-user' | 'delete-user' | 'delete-role' | 'delete-location'
+  id: number
+}>(null)
 
   const [userPage, setUserPage] = useState(1)
   const [userSearch, setUserSearch] = useState('')
@@ -275,13 +281,13 @@ export function OrganisationView() {
                               variant="ghost"
                               size="sm"
                               icon={user.actif ? <ToggleLeft className="h-3.5 w-3.5" /> : <ToggleRight className="h-3.5 w-3.5" />}
-                              onClick={() => toggleUserActive.mutate(user.id)}
+                              onClick={() => setConfirmAction({ type: 'toggle-user', id: user.id })}
                             />
                             <Button
                               variant="ghost"
                               size="sm"
                               icon={<Trash2 className="h-3.5 w-3.5" />}
-                              onClick={() => deleteUser.mutate(user.id)}
+                              onClick={() => setConfirmAction({ type: 'delete-user', id: user.id })}
                             />
                           </div>
                         </td>
@@ -356,7 +362,7 @@ export function OrganisationView() {
                               variant="ghost"
                               size="sm"
                               icon={<Trash2 className="h-3.5 w-3.5" />}
-                              onClick={() => deleteRole.mutate(role.id)}
+                              onClick={() => setConfirmAction({ type: 'delete-role', id: role.id })}
                             />
                           </div>
                         </td>
@@ -433,7 +439,7 @@ export function OrganisationView() {
                               variant="ghost"
                               size="sm"
                               icon={<Trash2 className="h-3.5 w-3.5" />}
-                              onClick={() => deleteLocation.mutate(location.id)}
+                              onClick={() => setConfirmAction({ type: 'delete-location', id: location.id })}
                             />
                           </div>
                         </td>
@@ -495,6 +501,40 @@ export function OrganisationView() {
           onSuccess={() => setShowLocationDialog(false)}
         />
       </Dialog>
+
+      <ConfirmationDialog
+  open={confirmAction !== null}
+  title="Confirmation"
+  description={
+    confirmAction?.type === 'toggle-user'
+      ? 'Voulez vous vraiment changer le statut de cet utilisateur ?'
+      : confirmAction?.type === 'delete-user'
+        ? 'Voulez vous vraiment supprimer cet utilisateur ?'
+        : confirmAction?.type === 'delete-role'
+          ? 'Voulez vous vraiment supprimer ce rôle ?'
+          : 'Voulez vous vraiment supprimer cette location ?'
+  }
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant={confirmAction?.type === 'toggle-user' ? 'primary' : 'danger'}
+  loading={
+    toggleUserActive.isPending ||
+    deleteUser.isPending ||
+    deleteRole.isPending ||
+    deleteLocation.isPending
+  }
+  onClose={() => setConfirmAction(null)}
+  onConfirm={() => {
+    if (!confirmAction) return
+
+    const options = { onSuccess: () => setConfirmAction(null) }
+
+    if (confirmAction.type === 'toggle-user') toggleUserActive.mutate(confirmAction.id, options)
+    if (confirmAction.type === 'delete-user') deleteUser.mutate(confirmAction.id, options)
+    if (confirmAction.type === 'delete-role') deleteRole.mutate(confirmAction.id, options)
+    if (confirmAction.type === 'delete-location') deleteLocation.mutate(confirmAction.id, options)
+  }}
+/>
     </div>
   )
 }

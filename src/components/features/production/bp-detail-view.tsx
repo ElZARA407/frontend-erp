@@ -15,6 +15,7 @@ import { formatDate, formatDateTime, formatDurationHours, formatMGA, formatPerce
 import type { BpSession } from '@/lib/types'
 import { useRouter } from 'next/navigation'
 import { usePermissions } from '@/lib/hooks/use-permissions'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 interface ProductionDetailViewProps {
   bpId: number
@@ -204,6 +205,10 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
   const [showSessionDialog, setShowSessionDialog] = useState(false)
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null)
   const router = useRouter()
+  const [confirmAction, setConfirmAction] = useState<null | {
+  type: 'annuler-bp' | 'cloturer-bp' | 'valider-session'
+  id: number
+}>(null)
 
   const { data: bp, isLoading } = useBonProduction(bpId)
   const validateSession = useValiderSession()
@@ -268,7 +273,7 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
                 variant="danger"
                 icon={<XCircle className="h-3.5 w-3.5" />}
                 loading={annulerBP.isPending}
-                onClick={() => annulerBP.mutate(bp.id)}
+                onClick={() => setConfirmAction({ type: 'annuler-bp', id: bp.id })}
               >
                 Annuler
               </Button>
@@ -277,7 +282,7 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
               <Button
                 icon={<CheckCircle2 className="h-3.5 w-3.5" />}
                 loading={clotureBP.isPending}
-                onClick={() => clotureBP.mutate(bp.id)}
+                onClick={() => setConfirmAction({ type: 'cloturer-bp', id: bp.id })}
               >
                 Clôturer
               </Button>
@@ -541,7 +546,7 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
                               size="sm"
                               icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
                               loading={validateSession.isPending}
-                              onClick={() => validateSession.mutate(session.id)}
+                              onClick={() => setConfirmAction({ type: 'valider-session', id: session.id })}
                             >
                               Valider
                             </Button>
@@ -573,6 +578,49 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
           onSuccess={() => setShowSessionDialog(false)}
         />
       </Dialog>
+      <ConfirmationDialog
+  open={confirmAction !== null}
+  title={
+    confirmAction?.type === 'annuler-bp'
+      ? 'Annulation'
+      : confirmAction?.type === 'cloturer-bp'
+        ? 'Clôture'
+        : 'Validation'
+  }
+  description={
+    confirmAction?.type === 'annuler-bp'
+      ? 'Voulez vous vraiment annuler cet ordre de fabrication ?'
+      : confirmAction?.type === 'cloturer-bp'
+        ? 'Voulez vous vraiment clôturer cet ordre de fabrication ?'
+        : 'Voulez vous vraiment valider cette session de production ?'
+  }
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant={confirmAction?.type === 'annuler-bp' ? 'danger' : 'primary'}
+  loading={annulerBP.isPending || clotureBP.isPending || validateSession.isPending}
+  onClose={() => setConfirmAction(null)}
+  onConfirm={() => {
+    if (!confirmAction) return
+
+    if (confirmAction.type === 'annuler-bp') {
+      annulerBP.mutate(confirmAction.id, {
+        onSuccess: () => setConfirmAction(null),
+      })
+      return
+    }
+
+    if (confirmAction.type === 'cloturer-bp') {
+      clotureBP.mutate(confirmAction.id, {
+        onSuccess: () => setConfirmAction(null),
+      })
+      return
+    }
+
+    validateSession.mutate(confirmAction.id, {
+      onSuccess: () => setConfirmAction(null),
+    })
+  }}
+/>
     </div>
   )
 }

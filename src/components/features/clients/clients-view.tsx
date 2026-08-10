@@ -17,6 +17,7 @@ import type { Client } from '@/lib/types'
 import { useRouter } from 'next/navigation'
 import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { Select } from '@/components/ui/select'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 const PAGE_SIZE = 10
 
@@ -29,6 +30,7 @@ export function ClientsView() {
   const [estDivers, setEstDivers] = useState('')
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
 
   const router = useRouter()
   const { data, isLoading } = useClients({
@@ -206,7 +208,7 @@ export function ClientsView() {
                             loading={deleteClient.isPending}
                             onClick={(event) => {
                               event.stopPropagation()
-                              deleteClient.mutate(client.id)
+                              setConfirmDeleteId(client.id)
                             }}
                           >
                             Archiver
@@ -241,6 +243,22 @@ export function ClientsView() {
       >
         <ClientForm defaultValues={selectedClient} onSuccess={closeForm} />
       </Dialog>
+      <ConfirmationDialog
+  open={confirmDeleteId !== null}
+  title="Archivage"
+  description="Voulez vous vraiment archiver ce client ?"
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant="danger"
+  loading={deleteClient.isPending}
+  onClose={() => setConfirmDeleteId(null)}
+  onConfirm={() => {
+    if (!confirmDeleteId) return
+    deleteClient.mutate(confirmDeleteId, {
+      onSuccess: () => setConfirmDeleteId(null),
+    })
+  }}
+/>
     </div>
   )
 }

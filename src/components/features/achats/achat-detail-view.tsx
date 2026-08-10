@@ -15,6 +15,8 @@ import { FileDown } from 'lucide-react'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { useRouter } from 'next/navigation'
 import { usePermissions } from '@/lib/hooks/use-permissions'
+import { useState } from 'react'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 interface AchatDetailViewProps {
   achatId: number
@@ -26,6 +28,7 @@ export function AchatDetailView({ achatId }: AchatDetailViewProps) {
   const { exportPdf, isExporting } = usePdfExport()
   const router = useRouter()
   const permissions = usePermissions()
+  const [confirmValidateOpen, setConfirmValidateOpen] = useState(false)
   
 
   const lignes = Array.isArray(achat?.lignes) ? achat.lignes : []
@@ -68,7 +71,7 @@ export function AchatDetailView({ achatId }: AchatDetailViewProps) {
               <Button
                 icon={<CheckCircle2 className="h-3.5 w-3.5" />}
                 loading={validerAchat.isPending}
-                onClick={() => validerAchat.mutate(achat.id)}
+                onClick={() => setConfirmValidateOpen(true)}
               >
                 Valider le BR
               </Button>
@@ -247,6 +250,21 @@ export function AchatDetailView({ achatId }: AchatDetailViewProps) {
           )}
         </CardBody>
       </Card>
+      <ConfirmationDialog
+        open={confirmValidateOpen}
+        title="Validation"
+        description="Voulez vous vraiment valider ce bon de réception ?"
+        confirmLabel="Oui"
+        cancelLabel="Non"
+        loading={validerAchat.isPending}
+        onClose={() => setConfirmValidateOpen(false)}
+        onConfirm={() => {
+          if (!achat) return
+          validerAchat.mutate(achat.id, {
+            onSuccess: () => setConfirmValidateOpen(false),
+          })
+        }}
+      />
     </div>
   )
 }

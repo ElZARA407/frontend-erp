@@ -34,6 +34,7 @@ import type {
 import { CategorieForm } from './categorie-form'
 import { MatiereForm } from './matiere-form'
 import { ProduitForm } from './produit-form'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 type CatalogueTab = 'categories' | 'produits' | 'matieres'
 
@@ -46,6 +47,10 @@ export function CatalogueView() {
   const [productStockState, setProductStockState] = useState<'all' | 'available' | 'rupture'>('all')
   const [productDateDebut, setProductDateDebut] = useState('')
   const [productDateFin, setProductDateFin] = useState('')
+  const [confirmAction, setConfirmAction] = useState<null | {
+  type: 'delete-category' | 'delete-product' | 'delete-matiere'
+  id: number
+}>(null)
 
 const [matiereLocationId, setMatiereLocationId] = useState('')
 const [matiereStockState, setMatiereStockState] = useState<'all' | 'available' | 'rupture'>('all')
@@ -311,7 +316,7 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
                                 variant="ghost"
                                 size="sm"
                                 icon={<Trash2 className="h-3.5 w-3.5" />}
-                                onClick={() => deleteCategory.mutate(category.id)}
+                                onClick={() => setConfirmAction({ type: 'delete-category', id: category.id })}
                               />
                             </div>
                           </td>
@@ -486,7 +491,7 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
                                 icon={<Trash2 className="h-3.5 w-3.5" />}
                                 onClick={(event) => {
                                   event.stopPropagation()
-                                  deleteProduct.mutate(product.id)
+                                  setConfirmAction({ type: 'delete-product', id: product.id })
                                 }}
                               />
                             </div>
@@ -676,7 +681,7 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
                                 icon={<Trash2 className="h-3.5 w-3.5" />}
                                 onClick={(event) => {
                                   event.stopPropagation()
-                                  deleteMatiere.mutate(matiere.id)
+                                  setConfirmAction({ type: 'delete-matiere', id: matiere.id })
                                 }}
                               />
                             </div>
@@ -758,6 +763,32 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
         defaultSheetNames={['Sheet1']}
         onImport={handleImportMatieres}
       />
+
+      <ConfirmationDialog
+  open={confirmAction !== null}
+  title="Suppression"
+  description={
+    confirmAction?.type === 'delete-category'
+      ? 'Voulez vous vraiment supprimer cette catégorie ?'
+      : confirmAction?.type === 'delete-product'
+        ? 'Voulez vous vraiment archiver ce produit ?'
+        : 'Voulez vous vraiment archiver cette matière ?'
+  }
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant="danger"
+  loading={deleteCategory.isPending || deleteProduct.isPending || deleteMatiere.isPending}
+  onClose={() => setConfirmAction(null)}
+  onConfirm={() => {
+    if (!confirmAction) return
+
+    const options = { onSuccess: () => setConfirmAction(null) }
+
+    if (confirmAction.type === 'delete-category') deleteCategory.mutate(confirmAction.id, options)
+    if (confirmAction.type === 'delete-product') deleteProduct.mutate(confirmAction.id, options)
+    if (confirmAction.type === 'delete-matiere') deleteMatiere.mutate(confirmAction.id, options)
+  }}
+/>
     </div>
   )
 }

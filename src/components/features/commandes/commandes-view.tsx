@@ -20,6 +20,7 @@ import { useLocations } from '@/lib/hooks/use-organisation'
 import type { Client, Commande, Location } from '@/lib/types'
 import { CommandeForm } from './commande-form'
 import { LivraisonForm } from '../livraisons/livraison-form'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -51,6 +52,7 @@ export function CommandesView() {
   const [clientId, setClientId] = useState('')
   const [locationId, setLocationId] = useState('')
   const [dateDebut, setDateDebut] = useState('')
+  const [confirmDuplicateId, setConfirmDuplicateId] = useState<number | null>(null)
   const [dateFin, setDateFin] = useState('')
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 200 })
@@ -263,7 +265,7 @@ export function CommandesView() {
                           icon={<Copy className="h-3.5 w-3.5" />}
                           onClick={(event) => {
                             event.stopPropagation()
-                            duplicate(cmd.id)
+                            setConfirmDuplicateId(cmd.id)
                           }}
                         />
                       </div>
@@ -311,6 +313,19 @@ export function CommandesView() {
           />
         )}
       </Dialog>
+      <ConfirmationDialog
+  open={confirmDuplicateId !== null}
+  title="Duplication"
+  description="Voulez vous vraiment dupliquer cette commande ?"
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  onClose={() => setConfirmDuplicateId(null)}
+  onConfirm={() => {
+    if (!confirmDuplicateId) return
+    duplicate(confirmDuplicateId)
+    setConfirmDuplicateId(null)
+  }}
+/>
     </div>
   )
 }

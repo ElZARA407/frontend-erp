@@ -13,6 +13,8 @@ import { MOTIFS_SORTIE } from '@/lib/constants'
 import { useBonSortie, useValiderBonSortie } from '@/lib/hooks/use-bons-sortie'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { formatDate, formatDateTime, formatQty, getStatutColor } from '@/lib/utils'
+import { useState } from 'react'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 interface BonSortieDetailViewProps {
   bonId: number
@@ -28,6 +30,7 @@ export function BonSortieDetailView({ bonId }: BonSortieDetailViewProps) {
   const { data: bon, isLoading } = useBonSortie(bonId)
   const validerBonSortie = useValiderBonSortie()
   const { exportPdf, isExporting } = usePdfExport()
+  const [confirmValidateOpen, setConfirmValidateOpen] = useState(false)
 
   const lignes = Array.isArray(bon?.lignes) ? bon.lignes : []
   const totalQuantite = lignes.reduce((sum, ligne) => sum + (Number(ligne.quantite) || 0), 0)
@@ -68,7 +71,7 @@ export function BonSortieDetailView({ bonId }: BonSortieDetailViewProps) {
               <Button
                 icon={<CheckCircle2 className="h-3.5 w-3.5" />}
                 loading={validerBonSortie.isPending}
-                onClick={() => validerBonSortie.mutate(bon.id)}
+                onClick={() => setConfirmValidateOpen(true)}
               >
                 Valider
               </Button>
@@ -272,6 +275,21 @@ export function BonSortieDetailView({ bonId }: BonSortieDetailViewProps) {
           </div>
         )}
       </Card>
+      <ConfirmationDialog
+  open={confirmValidateOpen}
+  title="Validation"
+  description="Voulez vous vraiment valider ce bon de sortie ?"
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  loading={validerBonSortie.isPending}
+  onClose={() => setConfirmValidateOpen(false)}
+  onConfirm={() => {
+    if (!bon) return
+    validerBonSortie.mutate(bon.id, {
+      onSuccess: () => setConfirmValidateOpen(false),
+    })
+  }}
+/>
     </div>
   )
 }

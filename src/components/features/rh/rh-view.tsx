@@ -28,6 +28,7 @@ import {
   Trash2,
   Users,
 } from 'lucide-react'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 type RhTab = 'postes' | 'employes'
 const PAGE_SIZE = 10
@@ -51,6 +52,10 @@ function localPage<T>(items: T[], page: number) {
 
 export function RhView() {
   const [tab, setTab] = useState<RhTab>('postes')
+  const [confirmAction, setConfirmAction] = useState<null | {
+  type: 'delete-poste' | 'delete-employe'
+  id: number
+}>(null)
 
   const [postePage, setPostePage] = useState(1)
   const [employeePage, setEmployeePage] = useState(1)
@@ -172,7 +177,7 @@ export function RhView() {
                               variant="ghost"
                               size="sm"
                               icon={<Trash2 className="h-3.5 w-3.5" />}
-                              onClick={() => deletePoste.mutate(poste.id)}
+                              onClick={() => setConfirmAction({ type: 'delete-poste', id: poste.id })}
                             />
                           </div>
                         </td>
@@ -308,7 +313,7 @@ export function RhView() {
                                 variant="ghost"
                                 size="sm"
                                 icon={<Trash2 className="h-3.5 w-3.5" />}
-                                onClick={() => deleteEmploye.mutate(employe.id)}
+                                onClick={() => setConfirmAction({ type: 'delete-employe', id: employe.id })}
                               />
                             </div>
                           </td>
@@ -359,6 +364,29 @@ export function RhView() {
           onSuccess={() => setShowEmployeDialog(false)}
         />
       </Dialog>
+
+      <ConfirmationDialog
+  open={confirmAction !== null}
+  title="Suppression"
+  description={
+    confirmAction?.type === 'delete-poste'
+      ? 'Voulez vous vraiment supprimer ce poste ?'
+      : 'Voulez vous vraiment supprimer cet employé ?'
+  }
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant="danger"
+  loading={deletePoste.isPending || deleteEmploye.isPending}
+  onClose={() => setConfirmAction(null)}
+  onConfirm={() => {
+    if (!confirmAction) return
+
+    const options = { onSuccess: () => setConfirmAction(null) }
+
+    if (confirmAction.type === 'delete-poste') deletePoste.mutate(confirmAction.id, options)
+    if (confirmAction.type === 'delete-employe') deleteEmploye.mutate(confirmAction.id, options)
+  }}
+/>
     </div>
   )
 }

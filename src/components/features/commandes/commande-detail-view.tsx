@@ -12,6 +12,8 @@ import { StatCard } from '@/components/ui/stat-card'
 import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
 import { ArrowLeft, Copy, MapPin, ShoppingCart, Truck, UserRound } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 interface CommandeDetailViewProps {
   commandeId: number
@@ -21,6 +23,7 @@ export function CommandeDetailView({ commandeId }: CommandeDetailViewProps) {
   const { data: commande, isLoading } = useCommande(commandeId)
   const duplicateCommande = useDuplicateCommande()
   const router = useRouter()
+  const [confirmDuplicateOpen, setConfirmDuplicateOpen] = useState(false)
 
   const lignes = Array.isArray(commande?.lignes) ? commande.lignes : []
 
@@ -68,7 +71,7 @@ export function CommandeDetailView({ commandeId }: CommandeDetailViewProps) {
                 variant="outline"
                 icon={<Copy className="h-3.5 w-3.5" />}
                 loading={duplicateCommande.isPending}
-                onClick={() => duplicateCommande.mutate(commande.id)}
+                onClick={() => setConfirmDuplicateOpen(true)}
               >
                 Dupliquer
               </Button>
@@ -236,6 +239,21 @@ export function CommandeDetailView({ commandeId }: CommandeDetailViewProps) {
           )}
         </CardBody>
       </Card>
+      <ConfirmationDialog
+  open={confirmDuplicateOpen}
+  title="Duplication"
+  description="Voulez vous vraiment dupliquer cette commande ?"
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  loading={duplicateCommande.isPending}
+  onClose={() => setConfirmDuplicateOpen(false)}
+  onConfirm={() => {
+    if (!commande) return
+    duplicateCommande.mutate(commande.id, {
+      onSuccess: () => setConfirmDuplicateOpen(false),
+    })
+  }}
+/>
     </div>
   )
 }

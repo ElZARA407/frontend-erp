@@ -24,6 +24,7 @@ import { VenteDirecteForm } from './vente-directe-form'
 import { LivraisonForm } from '../livraisons/livraison-form'
 import { useRouter } from 'next/navigation'
 import { usePermissions } from '@/lib/hooks/use-permissions'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 export function VentesDirectesView() {
   const [page, setPage] = useState(1)
@@ -36,6 +37,10 @@ export function VentesDirectesView() {
   const [selectedVente, setSelectedVente] = useState<VenteDirecte | null>(null)
   const router = useRouter();
   const permissions = usePermissions()
+  const [confirmAction, setConfirmAction] = useState<null | {
+    type: 'valider' | 'annuler'
+    id: number
+  }>(null)
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { mutate: validerVente, isPending: validating } = useValiderVenteDirecte()
@@ -210,17 +215,17 @@ export function VentesDirectesView() {
                         {permissions.can('validate') && (
                         vente.statut === 'brouillon' && (
                           <Button
-                            variant="ghost"
-                            size="sm"
-                            icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
-                            loading={validating}
-                            onClick={(event) =>{ 
-                              event.stopPropagation()
-                              validerVente(vente.id)
-                            }}
-                          >
-                            Valider
-                          </Button>
+                              variant="ghost"
+                              size="sm"
+                              icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
+                              loading={validating}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setConfirmAction({ type: 'valider', id: vente.id })
+                              }}
+                            >
+                              Valider
+                            </Button>
                         ))}
                         {vente.statut === 'validee' && (
                           <Button
@@ -228,9 +233,10 @@ export function VentesDirectesView() {
                             size="sm"
                             icon={<RotateCcw className="h-3.5 w-3.5" />}
                             loading={cancelling}
-                            onClick={(event) =>{
+                            onClick={(event) => {
                               event.stopPropagation()
-                              annulerVente(vente.id)}}
+                              setConfirmAction({ type: 'annuler', id: vente.id })
+                            }}
                           >
                             Annuler
                           </Button>
@@ -285,6 +291,34 @@ export function VentesDirectesView() {
           />
         )}
       </Dialog>
+      <ConfirmationDialog
+  open={confirmAction !== null}
+  title={confirmAction?.type === 'valider' ? 'Validation' : 'Annulation'}
+  description={
+    confirmAction?.type === 'valider'
+      ? 'Voulez vous vraiment valider cette vente directe ?'
+      : 'Voulez vous vraiment annuler cette vente directe ?'
+  }
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant={confirmAction?.type === 'annuler' ? 'danger' : 'primary'}
+  loading={validating || cancelling}
+  onClose={() => setConfirmAction(null)}
+  onConfirm={() => {
+    if (!confirmAction) return
+
+    if (confirmAction.type === 'valider') {
+      validerVente(confirmAction.id, {
+        onSuccess: () => setConfirmAction(null),
+      })
+      return
+    }
+
+    annulerVente(confirmAction.id, {
+      onSuccess: () => setConfirmAction(null),
+    })
+  }}
+/>
     </div>
   )
 }

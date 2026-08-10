@@ -22,6 +22,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { Select } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDate, formatDateTime, getStatutColor } from '@/lib/utils'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import {
   useApproveDemandeAchat,
   useDeleteDemandeAchat,
@@ -47,6 +48,10 @@ export function DemandesAchatView() {
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
   const [showDialog, setShowDialog] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<null | {
+  type: 'soumettre' | 'supprimer' | 'approuver' | 'rejeter'
+  id: number
+}>(null)
 
   const { data: matieresPage } = useMatieres({ per_page: 100 })
   const { data: produitsPage } = useProducts({ per_page: 100 })
@@ -182,7 +187,7 @@ export function DemandesAchatView() {
                                 size="sm"
                                 icon={<Send className="h-3.5 w-3.5" />}
                                 loading={submitDemande.isPending}
-                                onClick={() => submitDemande.mutate(demande.id)}
+                                onClick={() => setConfirmAction({ type: 'soumettre', id: demande.id })}
                               >
                                 Soumettre
                               </Button>
@@ -191,7 +196,7 @@ export function DemandesAchatView() {
                                 size="sm"
                                 icon={<Trash2 className="h-3.5 w-3.5" />}
                                 loading={deleteDemande.isPending}
-                                onClick={() => deleteDemande.mutate(demande.id)}
+                                onClick={() => setConfirmAction({ type: 'supprimer', id: demande.id })}
                               >
                                 Supprimer
                               </Button>
@@ -205,7 +210,7 @@ export function DemandesAchatView() {
                                 size="sm"
                                 icon={<CheckCircle className="h-3.5 w-3.5" />}
                                 loading={approveDemande.isPending}
-                                onClick={() => approveDemande.mutate(demande.id)}
+                                onClick={() => setConfirmAction({ type: 'approuver', id: demande.id })}
                               >
                                 Approuver
                               </Button>
@@ -214,7 +219,7 @@ export function DemandesAchatView() {
                                 size="sm"
                                 icon={<XCircle className="h-3.5 w-3.5" />}
                                 loading={rejectDemande.isPending}
-                                onClick={() => rejectDemande.mutate(demande.id)}
+                                onClick={() => setConfirmAction({ type: 'rejeter', id: demande.id })}
                               >
                                 Rejeter
                               </Button>
@@ -254,6 +259,39 @@ export function DemandesAchatView() {
           onSuccess={() => setShowDialog(false)}
         />
       </Dialog>
+      <ConfirmationDialog
+  open={confirmAction !== null}
+  title="Confirmation"
+  description={
+    confirmAction?.type === 'soumettre'
+      ? 'Voulez vous vraiment soumettre cette demande d’achat ?'
+      : confirmAction?.type === 'supprimer'
+        ? 'Voulez vous vraiment supprimer cette demande d’achat ?'
+        : confirmAction?.type === 'approuver'
+          ? 'Voulez vous vraiment approuver cette demande d’achat ?'
+          : 'Voulez vous vraiment rejeter cette demande d’achat ?'
+  }
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant={confirmAction?.type === 'supprimer' || confirmAction?.type === 'rejeter' ? 'danger' : 'primary'}
+  loading={
+    submitDemande.isPending ||
+    deleteDemande.isPending ||
+    approveDemande.isPending ||
+    rejectDemande.isPending
+  }
+  onClose={() => setConfirmAction(null)}
+  onConfirm={() => {
+    if (!confirmAction) return
+
+    const options = { onSuccess: () => setConfirmAction(null) }
+
+    if (confirmAction.type === 'soumettre') submitDemande.mutate(confirmAction.id, options)
+    if (confirmAction.type === 'supprimer') deleteDemande.mutate(confirmAction.id, options)
+    if (confirmAction.type === 'approuver') approveDemande.mutate(confirmAction.id, options)
+    if (confirmAction.type === 'rejeter') rejectDemande.mutate(confirmAction.id, options)
+  }}
+/>
     </div>
   )
 }

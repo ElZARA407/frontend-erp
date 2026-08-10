@@ -20,6 +20,7 @@ import type { Client, Livraison } from '@/lib/types'
 import { FactureForm } from '../factures/facture-form'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { usePermissions } from '@/lib/hooks/use-permissions'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -52,6 +53,10 @@ export function LivraisonsView() {
   const { exportPdf, isExporting } = usePdfExport()
   const router = useRouter()
   const permissions = usePermissions()
+  const [confirmAction, setConfirmAction] = useState<null | {
+  type: 'confirmer' | 'annuler'
+  id: number
+}>(null)
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 200 })
   const clients = normalizeArray<Client>(clientsPage)
@@ -253,10 +258,11 @@ export function LivraisonsView() {
                             loading={isConfirming}
                             onClick={(event) => {
                               event.stopPropagation()
-                              confirmer(livraison.id)}}
+                              setConfirmAction({ type: 'confirmer', id: livraison.id })
+                            }}
                           >
                             Confirmer
-                          </Button>
+                            </Button>
                         ))}
                         {canFacturer && (
                           <Button
@@ -278,7 +284,8 @@ export function LivraisonsView() {
                             loading={isAnnuling}
                             onClick={(event) => {
                               event.stopPropagation()
-                              annuler(livraison.id)}}
+                              setConfirmAction({ type: 'annuler', id: livraison.id })
+                            }}
                           >
                             Annuler
                           </Button>
@@ -328,6 +335,34 @@ export function LivraisonsView() {
           />
         )}
       </Dialog>
+      <ConfirmationDialog
+  open={confirmAction !== null}
+  title={confirmAction?.type === 'confirmer' ? 'Confirmation' : 'Annulation'}
+  description={
+    confirmAction?.type === 'confirmer'
+      ? 'Voulez vous vraiment confirmer cette livraison ?'
+      : 'Voulez vous vraiment annuler cette livraison ?'
+  }
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant={confirmAction?.type === 'annuler' ? 'danger' : 'primary'}
+  loading={isConfirming || isAnnuling}
+  onClose={() => setConfirmAction(null)}
+  onConfirm={() => {
+    if (!confirmAction) return
+
+    if (confirmAction.type === 'confirmer') {
+      confirmer(confirmAction.id, {
+        onSuccess: () => setConfirmAction(null),
+      })
+      return
+    }
+
+    annuler(confirmAction.id, {
+      onSuccess: () => setConfirmAction(null),
+    })
+  }}
+/>
     </div>
   )
 }

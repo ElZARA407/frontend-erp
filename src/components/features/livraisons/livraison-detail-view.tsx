@@ -17,6 +17,7 @@ import { FactureForm } from '../factures/facture-form'
 import { FileDown } from 'lucide-react'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { useRouter } from 'next/navigation'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 type LivraisonDetail = {
   id: number
@@ -59,6 +60,7 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
   const { exportPdf, isExporting } = usePdfExport()
   const [showFacture, setShowFacture] = useState(false)
   const router = useRouter()
+  const [confirmAction, setConfirmAction] = useState<null | 'confirmer' | 'annuler'>(null)
 
   const livraison = data as LivraisonDetail | undefined
   const lignes = Array.isArray(livraison?.lignes) ? livraison.lignes : []
@@ -192,7 +194,7 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
             {canConfirmer && (
               <Button
                 loading={confirmerLivraison.isPending}
-                onClick={() => confirmerLivraison.mutate(livraison.id)}
+                onClick={() => setConfirmAction('confirmer')}
               >
                 Confirmer
               </Button>
@@ -202,7 +204,7 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
                 variant="danger"
                 loading={annulerLivraison.isPending}
                 icon={<RotateCcw className="h-4 w-4" />}
-                onClick={() => annulerLivraison.mutate(livraison.id)}
+                onClick={() => setConfirmAction('annuler')}
               >
                 Annuler
               </Button>
@@ -356,6 +358,34 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
           />
         )}
       </Dialog>
+      <ConfirmationDialog
+  open={confirmAction !== null}
+  title={confirmAction === 'confirmer' ? 'Confirmation' : 'Annulation'}
+  description={
+    confirmAction === 'confirmer'
+      ? 'Voulez vous vraiment confirmer cette livraison ?'
+      : 'Voulez vous vraiment annuler cette livraison ?'
+  }
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant={confirmAction === 'annuler' ? 'danger' : 'primary'}
+  loading={confirmerLivraison.isPending || annulerLivraison.isPending}
+  onClose={() => setConfirmAction(null)}
+  onConfirm={() => {
+    if (!livraison || !confirmAction) return
+
+    if (confirmAction === 'confirmer') {
+      confirmerLivraison.mutate(livraison.id, {
+        onSuccess: () => setConfirmAction(null),
+      })
+      return
+    }
+
+    annulerLivraison.mutate(livraison.id, {
+      onSuccess: () => setConfirmAction(null),
+    })
+  }}
+/>
     </div>
   )
 }

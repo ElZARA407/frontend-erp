@@ -22,6 +22,7 @@ import { formatDate, formatMGA, formatPercent, formatQty, getStatutColor } from 
 import type { BonProduction, Location, Machine } from '@/lib/types'
 import type { CatalogueProduct } from '@/lib/catalogue.types'
 import { usePermissions } from '@/lib/hooks/use-permissions'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -53,6 +54,10 @@ export function ProductionView() {
   const [locationId, setLocationId] = useState('')
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
+  const [confirmAction, setConfirmAction] = useState<null | {
+  type: 'annuler' | 'cloturer'
+  id: number
+}>(null)
 
   const { data: productsPage } = useProducts({ actif: true, per_page: 300 })
   const { data: machinesData } = useMachines({ actif: true })
@@ -288,9 +293,10 @@ export function ProductionView() {
                             size="sm"
                             loading={cancelling}
                             icon={<XCircle className="h-3.5 w-3.5" />}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              annulerBP(bp.id)}}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              setConfirmAction({ type: 'annuler', id: bp.id })
+                            }}
                           >
                             Annuler
                           </Button>
@@ -303,10 +309,11 @@ export function ProductionView() {
                             icon={<CheckCircle className="h-3.5 w-3.5 text-emerald-600" />}
                             onClick={(event) => {
                               event.stopPropagation()
-                              clotureBP(bp.id)}}
+                              setConfirmAction({ type: 'cloturer', id: bp.id })
+                            }}
                           >
                             Clôturer
-                          </Button>
+                          </Button>         
                         )}
                       </div>
                     </td>
@@ -337,6 +344,34 @@ export function ProductionView() {
       >
         <BpForm onSuccess={() => setShowCreate(false)} />
       </Dialog>
+      <ConfirmationDialog
+  open={confirmAction !== null}
+  title={confirmAction?.type === 'annuler' ? 'Annulation' : 'Clôture'}
+  description={
+    confirmAction?.type === 'annuler'
+      ? 'Voulez vous vraiment annuler cet ordre de fabrication ?'
+      : 'Voulez vous vraiment clôturer cet ordre de fabrication ?'
+  }
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant={confirmAction?.type === 'annuler' ? 'danger' : 'primary'}
+  loading={cancelling || closing}
+  onClose={() => setConfirmAction(null)}
+  onConfirm={() => {
+    if (!confirmAction) return
+
+    if (confirmAction.type === 'annuler') {
+      annulerBP(confirmAction.id, {
+        onSuccess: () => setConfirmAction(null),
+      })
+      return
+    }
+
+    clotureBP(confirmAction.id, {
+      onSuccess: () => setConfirmAction(null),
+    })
+  }}
+/>
     </div>
   )
 }

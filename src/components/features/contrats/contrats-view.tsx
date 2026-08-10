@@ -18,12 +18,18 @@ import { useContrats, useDeleteContrat, useToggleContratActif } from '@/lib/hook
 import type { Contrat } from '@/lib/lot3.types'
 import { ContratForm } from './contrat-form'
 import { Plus, PencilLine, ShieldCheck, ShieldOff, Trash2 } from 'lucide-react'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 
 export function ContratsView() {
   const [page, setPage] = useState(1)
   const [clientId, setClientId] = useState<string>('')
   const [mois, setMois] = useState('')
   const [actif, setActif] = useState<string>('')
+  const [confirmAction, setConfirmAction] = useState<null | {
+  type: 'toggle' | 'delete'
+  id: number
+  actif?: boolean
+}>(null)
 
   const [showDialog, setShowDialog] = useState(false)
 
@@ -159,17 +165,18 @@ export function ContratsView() {
                             size="sm"
                             icon={contrat.actif ? <ShieldOff className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}
                             onClick={() =>
-                              toggleContratActif.mutate({
-                                id: contrat.id,
-                                actif: !contrat.actif,
-                              })
-                            }
+                                setConfirmAction({
+                                  type: 'toggle',
+                                  id: contrat.id,
+                                  actif: !contrat.actif,
+                                })
+                              }
                           />
                           <Button
                             variant="ghost"
                             size="sm"
                             icon={<Trash2 className="h-3.5 w-3.5" />}
-                            onClick={() => deleteContrat.mutate(contrat.id)}
+                            onClick={() => setConfirmAction({ type: 'delete', id: contrat.id })}
                           />
                         </div>
                       </td>
@@ -205,6 +212,40 @@ export function ContratsView() {
           onSuccess={() => setShowDialog(false)}
         />
       </Dialog>
+      <ConfirmationDialog
+  open={confirmAction !== null}
+  title={confirmAction?.type === 'toggle' ? 'Changement de statut' : 'Suppression'}
+  description={
+    confirmAction?.type === 'toggle'
+      ? 'Voulez vous vraiment changer le statut de ce contrat ?'
+      : 'Voulez vous vraiment supprimer ce contrat ?'
+  }
+  confirmLabel="Oui"
+  cancelLabel="Non"
+  variant={confirmAction?.type === 'delete' ? 'danger' : 'primary'}
+  loading={toggleContratActif.isPending || deleteContrat.isPending}
+  onClose={() => setConfirmAction(null)}
+  onConfirm={() => {
+    if (!confirmAction) return
+
+    if (confirmAction.type === 'toggle') {
+      toggleContratActif.mutate(
+        {
+          id: confirmAction.id,
+          actif: Boolean(confirmAction.actif),
+        },
+        {
+          onSuccess: () => setConfirmAction(null),
+        }
+      )
+      return
+    }
+
+    deleteContrat.mutate(confirmAction.id, {
+      onSuccess: () => setConfirmAction(null),
+    })
+  }}
+/>
     </div>
   )
 }
