@@ -29,6 +29,7 @@ import {
   Users,
 } from 'lucide-react'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
 type RhTab = 'postes' | 'employes'
 const PAGE_SIZE = 10
@@ -51,6 +52,7 @@ function localPage<T>(items: T[], page: number) {
 }
 
 export function RhView() {
+  const [page, setPage] = useState(1)
   const [tab, setTab] = useState<RhTab>('postes')
   const [confirmAction, setConfirmAction] = useState<null | {
   type: 'delete-poste' | 'delete-employe'
@@ -62,6 +64,8 @@ export function RhView() {
   const [employeeSearch, setEmployeeSearch] = useState('')
   const [employeePosteId, setEmployeePosteId] = useState<string>('')
   const [employeeActive, setEmployeeActive] = useState<string>('')
+  const [sortBy, setSortBy] = useState('date')
+  const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
   const [showPosteDialog, setShowPosteDialog] = useState(false)
   const [showEmployeDialog, setShowEmployeDialog] = useState(false)
@@ -76,6 +80,8 @@ export function RhView() {
     actif: employeeActive === '' ? undefined : employeeActive === 'true',
     page: employeePage,
     per_page: 20,
+    sort_by: sortBy,
+    sort_dir: sortDir,
   })
 
   const deletePoste = useDeletePoste()
@@ -238,6 +244,22 @@ export function RhView() {
               onChange={(e) => {
                 setEmployeeActive(e.target.value)
                 setEmployeePage(1)
+              }}
+            />
+            <SortControl
+              sortBy={sortBy}
+              sortDir={sortDir}
+              options={[
+                { value: 'date', label: 'Date création' },
+                { value: 'nom', label: 'Nom' },
+              ]}
+              onSortByChange={(value) => {
+                setSortBy(value)
+                setPage(1)
+              }}
+              onSortDirChange={(value) => {
+                setSortDir(value)
+                setPage(1)
               }}
             />
             <Button

@@ -105,6 +105,8 @@ export const stocksApi = {
     search?: string
     per_page?: number
     page?: number
+    sort_by?: string
+    sort_dir?: 'asc' | 'desc'
   } = {}) => {
     const query = buildQueryString({
       ...filters,
@@ -124,6 +126,8 @@ export const stocksApi = {
     search?: string
     per_page?: number
     page?: number
+    sort_by?: string
+sort_dir?: 'asc' | 'desc'
   } = {}) => {
     const query = buildQueryString({
       ...filters,
@@ -149,9 +153,12 @@ export const stocksApi = {
     entite_id?: number
     type?: string
     reference_type?: string
+    motif?: string
     search?: string
     date_debut?: string
     date_fin?: string
+    sort_by?: string
+    sort_dir?: 'asc' | 'desc'
     per_page?: number
     page?: number
   } = {}) => {

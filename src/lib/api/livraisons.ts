@@ -1,5 +1,5 @@
 import apiClient from './client'
-import type { ApiResponse, PaginatedResponse, Livraison } from '../types'
+import type { ApiResponse, Livraison } from '../types'
 import { buildQueryString } from '../utils'
 import { extractPaginatedResponse } from './pagination'
 
@@ -14,6 +14,8 @@ export interface LivraisonFilters {
   per_page?: number
   page?: number
   [key: string]: unknown
+  sort_by?: string
+sort_dir?: 'asc' | 'desc'
 }
 
 export interface LivraisonLinePayload {
@@ -36,6 +38,14 @@ export interface LivraisonCreatePayload {
   lignes: LivraisonLinePayload[]
 }
 
+export interface LivraisonUpdatePayload {
+  reference_bc?: string | null
+  chauffeur?: string | null
+  vehicule?: string | null
+  observations?: string | null
+  date_livraison?: string | null
+}
+
 export const livraisonsApi = {
   list: async (filters: LivraisonFilters = {}) => {
     const { data } = await apiClient.get(`/logistique/livraisons${buildQueryString(filters)}`)
@@ -50,18 +60,35 @@ export const livraisonsApi = {
   create: async (payload: LivraisonCreatePayload) => {
     const { data } = await apiClient.post<ApiResponse<Livraison>>(
       '/logistique/livraisons',
-      payload
+      payload,
     )
     return data.data
   },
 
+  update: async (id: number, payload: LivraisonUpdatePayload) => {
+    const { data } = await apiClient.put<ApiResponse<Livraison>>(
+      `/logistique/livraisons/${id}`,
+      payload,
+    )
+    return data.data
+  },
+
+  delete: async (id: number) => {
+    const { data } = await apiClient.delete<ApiResponse<null>>(`/logistique/livraisons/${id}`)
+    return data
+  },
+
   confirmer: async (id: number) => {
-    const { data } = await apiClient.post<ApiResponse<Livraison>>(`/logistique/livraisons/${id}/confirmer`)
+    const { data } = await apiClient.post<ApiResponse<Livraison>>(
+      `/logistique/livraisons/${id}/confirmer`,
+    )
     return data.data
   },
 
   annuler: async (id: number) => {
-    const { data } = await apiClient.post<ApiResponse<Livraison>>(`/logistique/livraisons/${id}/annuler`)
+    const { data } = await apiClient.post<ApiResponse<Livraison>>(
+      `/logistique/livraisons/${id}/annuler`,
+    )
     return data.data
   },
 }

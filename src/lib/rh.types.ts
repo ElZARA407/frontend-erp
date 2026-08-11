@@ -50,6 +50,7 @@ export interface RhEmployePayload {
 export interface RhPosteFilters {
   search?: string
   [key: string]: unknown
+  
 }
 
 export interface RhEmployeFilters {
@@ -59,6 +60,8 @@ export interface RhEmployeFilters {
   page?: number
   per_page?: number
   [key: string]: unknown
+  sort_by?: string
+sort_dir?: 'asc' | 'desc'
 }
 
 export type RhEmployesPage = PaginatedResponse<RhEmploye>

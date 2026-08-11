@@ -19,6 +19,7 @@ import { Plus, PencilLine, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
 const PAGE_SIZE = 10
 
@@ -31,6 +32,8 @@ export function FournisseursView() {
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
+  const [sortBy, setSortBy] = useState('date')
+  const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
   const [showDialog, setShowDialog] = useState(false)
   const [selectedFournisseur, setSelectedFournisseur] = useState<Fournisseur | null>(null)
@@ -43,6 +46,8 @@ export function FournisseursView() {
     date_fin: dateFin || undefined,
     page,
     per_page: PAGE_SIZE,
+    sort_by: sortBy,
+    sort_dir: sortDir,
   })
 
   const deleteFournisseur = useDeleteFournisseur()
@@ -125,6 +130,23 @@ export function FournisseursView() {
           }}
           onDateFinChange={(value) => {
             setDateFin(value)
+            setPage(1)
+          }}
+        />
+
+        <SortControl
+          sortBy={sortBy}
+          sortDir={sortDir}
+          options={[
+            { value: 'date', label: 'Date création' },
+            { value: 'nom', label: 'Nom fournisseur' },
+          ]}
+          onSortByChange={(value) => {
+            setSortBy(value)
+            setPage(1)
+          }}
+          onSortDirChange={(value) => {
+            setSortDir(value)
             setPage(1)
           }}
         />

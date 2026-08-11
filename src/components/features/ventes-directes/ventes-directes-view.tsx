@@ -25,6 +25,7 @@ import { LivraisonForm } from '../livraisons/livraison-form'
 import { useRouter } from 'next/navigation'
 import { usePermissions } from '@/lib/hooks/use-permissions'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
 export function VentesDirectesView() {
   const [page, setPage] = useState(1)
@@ -41,6 +42,8 @@ export function VentesDirectesView() {
     type: 'valider' | 'annuler'
     id: number
   }>(null)
+  const [sortBy, setSortBy] = useState('date')
+  const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { mutate: validerVente, isPending: validating } = useValiderVenteDirecte()
@@ -53,6 +56,8 @@ export function VentesDirectesView() {
     date_fin: dateFin || undefined,
     page,
     per_page: 20,
+    sort_by: sortBy,
+    sort_dir: sortDir,
   })
 
   const clients = Array.isArray(clientsPage?.data.data) ? clientsPage.data.data : []
@@ -143,6 +148,23 @@ export function VentesDirectesView() {
           value={dateFin}
           onChange={(e) => {
             setDateFin(e.target.value)
+            setPage(1)
+          }}
+        />
+
+        <SortControl
+          sortBy={sortBy}
+          sortDir={sortDir}
+          options={[
+            { value: 'date', label: 'Date vente' },
+            { value: 'nom', label: 'Référence VD' },
+          ]}
+          onSortByChange={(value) => {
+            setSortBy(value)
+            setPage(1)
+          }}
+          onSortDirChange={(value) => {
+            setSortDir(value)
             setPage(1)
           }}
         />

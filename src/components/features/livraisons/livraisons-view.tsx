@@ -1,9 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle, FileDown, FileText, RotateCcw, Truck } from 'lucide-react'
+import { CheckCircle, FileDown, FileText, PencilLine, RotateCcw, Trash2, Truck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useAnnulerLivraison, useConfirmerLivraison, useLivraisons } from '@/lib/hooks/use-livraisons'
+import {
+  useAnnulerLivraison,
+  useConfirmerLivraison,
+  useDeleteLivraisonPreparee,
+  useLivraisons,
+} from '@/lib/hooks/use-livraisons'
 import { useClients } from '@/lib/hooks/use-clients'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
@@ -21,6 +26,7 @@ import { FactureForm } from '../factures/facture-form'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { usePermissions } from '@/lib/hooks/use-permissions'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -54,9 +60,11 @@ export function LivraisonsView() {
   const router = useRouter()
   const permissions = usePermissions()
   const [confirmAction, setConfirmAction] = useState<null | {
-  type: 'confirmer' | 'annuler'
+  type: 'confirmer' | 'annuler' | 'supprimer'
   id: number
 }>(null)
+  const [sortBy, setSortBy] = useState('date')
+  const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 200 })
   const clients = normalizeArray<Client>(clientsPage)
@@ -71,9 +79,12 @@ export function LivraisonsView() {
     date_fin: dateFin || undefined,
     page,
     per_page: 20,
+    sort_by: sortBy,
+    sort_dir: sortDir,
   })
   const { mutate: confirmer, isPending: isConfirming } = useConfirmerLivraison()
   const { mutate: annuler, isPending: isAnnuling } = useAnnulerLivraison()
+  const deleteLivraison = useDeleteLivraisonPreparee()
 
   const paginate = data?.data
   const livraisons = Array.isArray(paginate?.data) ? paginate.data : []
@@ -163,6 +174,22 @@ export function LivraisonsView() {
               setPage(1)
             }}
           />
+          <SortControl
+            sortBy={sortBy}
+            sortDir={sortDir}
+            options={[
+              { value: 'date', label: 'Date livraison' },
+              { value: 'nom', label: 'Référence BL' },
+            ]}
+            onSortByChange={(value) => {
+              setSortBy(value)
+              setPage(1)
+            }}
+            onSortDirChange={(value) => {
+              setSortDir(value)
+              setPage(1)
+            }}
+          />
         </div>
 
         <div className="flex w-fit overflow-hidden rounded-md border border-surface-border text-xs">
@@ -211,13 +238,16 @@ export function LivraisonsView() {
                   livraison.source_type === 'commande' &&
                   !livraison.est_facturee
                 const canFacturer = livraison.statut === 'livre' && !livraison.est_facturee
+                const canModifier = livraison.statut === 'prepare'
+                const canSupprimer = livraison.statut === 'prepare'
+                const displayNumero = livraison.numero ?? 'Préparation'
 
                 return (
                   <tr key={livraison.id} className="transition-colors hover:bg-surface-muted/60 cursor-pointer"
                     onClick={() => router.push(`/livraisons/${livraison.id}`)}
                   >
                     <td className="px-4 py-3">
-                      <span className="ref-code">{livraison.numero}</span>
+                      <span className="ref-code">{displayNumero}</span>
                     </td>
                     <td className="px-4 py-3 font-medium text-steel-800">
                       {livraison.client?.nom ?? '—'}
@@ -249,6 +279,34 @@ export function LivraisonsView() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {canModifier && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<PencilLine className="h-3.5 w-3.5" />}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              router.push(`/livraisons/${livraison.id}`)
+                            }}
+                          >
+                            Modifier
+                          </Button>
+                        )}
+
+                        {canSupprimer && (
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            icon={<Trash2 className="h-3.5 w-3.5" />}
+                            loading={deleteLivraison.isPending}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              setConfirmAction({ type: 'supprimer', id: livraison.id })
+                            }}
+                          >
+                            Supprimer
+                          </Button>
+                        )}
                         {permissions.can('approve') && (
                         livraison.statut === 'prepare' && (
                           <Button
@@ -264,7 +322,8 @@ export function LivraisonsView() {
                             Confirmer
                             </Button>
                         ))}
-                        {canFacturer && (
+                        {permissions.can('pay') && (
+                        canFacturer && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -275,7 +334,7 @@ export function LivraisonsView() {
                           >
                             Facturer
                           </Button>
-                        )}
+                        ))}
                         {canAnnuler && (
                           <Button
                             variant="danger"
@@ -290,17 +349,30 @@ export function LivraisonsView() {
                             Annuler
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          icon={<FileDown className="h-3.5 w-3.5" />}
-                          loading={isExporting('livraison', livraison.id)}
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            exportPdf({ type: 'livraison', document: livraison })}}
-                        >
-                          PDF
-                        </Button>
+                        {livraison.statut === 'livre' && livraison.numero && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<FileDown className="h-3.5 w-3.5" />}
+                            loading={isExporting('livraison', livraison.id)}
+                            onClick={(event) => {
+                              event.stopPropagation()
+
+                              const numero = livraison.numero
+                              if (!numero) return
+
+                              exportPdf({
+                                type: 'livraison',
+                                document: {
+                                  id: livraison.id,
+                                  numero,
+                                },
+                              })
+                            }}
+                          >
+                            PDF
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -336,33 +408,48 @@ export function LivraisonsView() {
         )}
       </Dialog>
       <ConfirmationDialog
-  open={confirmAction !== null}
-  title={confirmAction?.type === 'confirmer' ? 'Confirmation' : 'Annulation'}
-  description={
-    confirmAction?.type === 'confirmer'
-      ? 'Voulez vous vraiment confirmer cette livraison ?'
-      : 'Voulez vous vraiment annuler cette livraison ?'
-  }
-  confirmLabel="Oui"
-  cancelLabel="Non"
-  variant={confirmAction?.type === 'annuler' ? 'danger' : 'primary'}
-  loading={isConfirming || isAnnuling}
-  onClose={() => setConfirmAction(null)}
-  onConfirm={() => {
-    if (!confirmAction) return
+        open={confirmAction !== null}
+        title={
+          confirmAction?.type === 'confirmer'
+            ? 'Confirmation'
+            : confirmAction?.type === 'supprimer'
+              ? 'Suppression'
+              : 'Annulation'
+        }
+        description={
+          confirmAction?.type === 'confirmer'
+            ? 'Voulez vous vraiment confirmer cette livraison ?'
+            : confirmAction?.type === 'supprimer'
+              ? 'Voulez vous vraiment supprimer cette livraison préparée ?'
+              : 'Voulez vous vraiment annuler cette livraison confirmée ?'
+        }
+        confirmLabel="Oui"
+        cancelLabel="Non"
+        variant={confirmAction?.type === 'confirmer' ? 'primary' : 'danger'}
+        loading={isConfirming || isAnnuling || deleteLivraison.isPending}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={() => {
+          if (!confirmAction) return
 
-    if (confirmAction.type === 'confirmer') {
-      confirmer(confirmAction.id, {
-        onSuccess: () => setConfirmAction(null),
-      })
-      return
-    }
+          if (confirmAction.type === 'confirmer') {
+            confirmer(confirmAction.id, {
+              onSuccess: () => setConfirmAction(null),
+            })
+            return
+          }
 
-    annuler(confirmAction.id, {
-      onSuccess: () => setConfirmAction(null),
-    })
-  }}
-/>
+          if (confirmAction.type === 'supprimer') {
+            deleteLivraison.mutate(confirmAction.id, {
+              onSuccess: () => setConfirmAction(null),
+            })
+            return
+          }
+
+          annuler(confirmAction.id, {
+            onSuccess: () => setConfirmAction(null),
+          })
+        }}
+      />
     </div>
   )
 }

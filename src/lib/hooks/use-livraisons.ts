@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { livraisonsApi, type LivraisonCreatePayload } from '../api/livraisons'
+import {
+  livraisonsApi,
+  type LivraisonCreatePayload,
+  type LivraisonUpdatePayload,
+} from '../api/livraisons'
 import { notifyApiError } from '../api-error'
 import { COMMERCIAL_DETAIL_KEYS } from './use-commercial-details'
 
@@ -21,11 +25,38 @@ export function useCreateLivraison() {
     mutationFn: (payload: LivraisonCreatePayload) => livraisonsApi.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: LIVRAISONS_KEY })
-      qc.invalidateQueries({ queryKey: ['commandes'] })
-      qc.invalidateQueries({ queryKey: ['ventes-directes'] })
-      toast.success('Livraison créée.')
+      toast.success('Livraison préparée.')
     },
-    onError: (error) => notifyApiError(error, 'Impossible de créer cette livraison.'),
+    onError: (error) => notifyApiError(error, 'Impossible de préparer cette livraison.'),
+  })
+}
+
+export function useUpdateLivraison() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: LivraisonUpdatePayload }) =>
+      livraisonsApi.update(id, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: LIVRAISONS_KEY })
+      qc.invalidateQueries({ queryKey: COMMERCIAL_DETAIL_KEYS.livraison })
+      toast.success('Livraison mise à jour.')
+    },
+    onError: (error) => notifyApiError(error, 'Impossible de modifier cette livraison.'),
+  })
+}
+
+export function useDeleteLivraisonPreparee() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: number) => livraisonsApi.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: LIVRAISONS_KEY })
+      qc.invalidateQueries({ queryKey: COMMERCIAL_DETAIL_KEYS.livraison })
+      toast.success('Livraison préparée supprimée.')
+    },
+    onError: (error) => notifyApiError(error, 'Impossible de supprimer cette livraison préparée.'),
   })
 }
 

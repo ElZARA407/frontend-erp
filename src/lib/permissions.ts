@@ -139,6 +139,7 @@ const ACTION_MATRIX: Record<AppRole, Partial<Record<PermissionAction, boolean>>>
     cancel: true,
     export: true,
     deliver: true,
+    validate: true,
   },
   logistique: {
     view: true,

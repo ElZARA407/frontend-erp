@@ -145,14 +145,14 @@ export function OrganisationView() {
     <div className="space-y-5">
       <PageHeader
         title="Organisation"
-        subtitle="Gestion des rôles, utilisateurs et locations"
+        subtitle="Gestion des rôles, utilisateurs et localisations"
       />
 
       <div className="flex flex-wrap gap-2">
         {[
           { key: 'utilisateurs', label: 'Utilisateurs', icon: Users },
           { key: 'roles', label: 'Rôles', icon: Shield },
-          { key: 'locations', label: 'Locations', icon: Building2 },
+          { key: 'locations', label: 'Localisations', icon: Building2 },
         ].map(({ key, label, icon: Icon }) => (
           <Button
             key={key}
@@ -195,7 +195,7 @@ export function OrganisationView() {
             />
             <Select
               className="w-full md:w-52"
-              label="Location"
+              label="Localisation"
               placeholder="Toutes"
               options={locationsList.map((location) => ({
                 value: location.id,
@@ -246,7 +246,7 @@ export function OrganisationView() {
                       <th className="px-4 py-3">Nom</th>
                       <th className="px-4 py-3">Email</th>
                       <th className="px-4 py-3">Rôle</th>
-                      <th className="px-4 py-3">Location</th>
+                      <th className="px-4 py-3">Localisation</th>
                       <th className="px-4 py-3">Statut</th>
                       <th className="px-4 py-3">Créé le</th>
                       <th className="px-4 py-3" />
@@ -492,7 +492,7 @@ export function OrganisationView() {
       <Dialog
         open={showLocationDialog}
         onClose={() => setShowLocationDialog(false)}
-        title={selectedLocation ? 'Modifier la location' : 'Nouvelle location'}
+        title={selectedLocation ? 'Modifier la localisation' : 'Nouvelle localisation'}
         size="md"
       >
         <LocationForm
@@ -512,7 +512,7 @@ export function OrganisationView() {
         ? 'Voulez vous vraiment supprimer cet utilisateur ?'
         : confirmAction?.type === 'delete-role'
           ? 'Voulez vous vraiment supprimer ce rôle ?'
-          : 'Voulez vous vraiment supprimer cette location ?'
+          : 'Voulez vous vraiment supprimer cette localisation ?'
   }
   confirmLabel="Oui"
   cancelLabel="Non"

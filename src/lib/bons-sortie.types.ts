@@ -98,6 +98,8 @@ export interface BonSortieFilters {
   page?: number
   per_page?: number
   [key: string]: unknown
+  sort_by?: string
+sort_dir?: 'asc' | 'desc'
 }
 
 export type BonsSortiePage = PaginatedResponse<BonSortie>

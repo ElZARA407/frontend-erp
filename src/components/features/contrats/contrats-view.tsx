@@ -19,6 +19,7 @@ import type { Contrat } from '@/lib/lot3.types'
 import { ContratForm } from './contrat-form'
 import { Plus, PencilLine, ShieldCheck, ShieldOff, Trash2 } from 'lucide-react'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
 export function ContratsView() {
   const [page, setPage] = useState(1)
@@ -30,6 +31,8 @@ export function ContratsView() {
   id: number
   actif?: boolean
 }>(null)
+  const [sortBy, setSortBy] = useState('date')
+  const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
   const [showDialog, setShowDialog] = useState(false)
 
@@ -41,7 +44,10 @@ export function ContratsView() {
     actif: actif === '' ? undefined : actif === 'true',
     page,
     per_page: 20,
+    sort_by: sortBy,
+    sort_dir: sortDir,
   })
+
 
   const deleteContrat = useDeleteContrat()
   const toggleContratActif = useToggleContratActif()
@@ -113,6 +119,23 @@ export function ContratsView() {
           value={actif}
           onChange={(e) => {
             setActif(e.target.value)
+            setPage(1)
+          }}
+        />
+
+        <SortControl
+          sortBy={sortBy}
+          sortDir={sortDir}
+          options={[
+            { value: 'date', label: 'Date création' },
+            { value: 'nom', label: 'Référence contrat' },
+          ]}
+          onSortByChange={(value) => {
+            setSortBy(value)
+            setPage(1)
+          }}
+          onSortDirChange={(value) => {
+            setSortDir(value)
             setPage(1)
           }}
         />

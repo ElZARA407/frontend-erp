@@ -21,6 +21,7 @@ import type { Client, Commande, Location } from '@/lib/types'
 import { CommandeForm } from './commande-form'
 import { LivraisonForm } from '../livraisons/livraison-form'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -54,6 +55,8 @@ export function CommandesView() {
   const [dateDebut, setDateDebut] = useState('')
   const [confirmDuplicateId, setConfirmDuplicateId] = useState<number | null>(null)
   const [dateFin, setDateFin] = useState('')
+  const [sortBy, setSortBy] = useState('date')
+  const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 200 })
   const { data: locationsData } = useLocations()
@@ -71,6 +74,8 @@ export function CommandesView() {
     date_fin: dateFin || undefined,
     page,
     per_page: 20,
+    sort_by: sortBy,
+    sort_dir: sortDir,
   })
   const { mutate: duplicate } = useDuplicateCommande()
 
@@ -155,6 +160,23 @@ export function CommandesView() {
               }}
               onDateFinChange={(value) => {
                 setDateFin(value)
+                setPage(1)
+              }}
+            />
+
+            <SortControl
+              sortBy={sortBy}
+              sortDir={sortDir}
+              options={[
+                { value: 'date', label: 'Date commande' },
+                { value: 'nom', label: 'Référence commande' },
+              ]}
+              onSortByChange={(value) => {
+                setSortBy(value)
+                setPage(1)
+              }}
+              onSortDirChange={(value) => {
+                setSortDir(value)
                 setPage(1)
               }}
             />

@@ -24,6 +24,7 @@ import type { Fournisseur } from '@/lib/lot3.types'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { usePermissions } from '@/lib/hooks/use-permissions'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -64,6 +65,8 @@ export function AchatsView() {
   onConfirm: () => void
 }>(null)
 const [confirmValidateId, setConfirmValidateId] = useState<number | null>(null)
+const [sortBy, setSortBy] = useState('date')
+const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
   const { data: fournisseursPage } = useFournisseurs({ actif: true, per_page: 200 })
   const { data: locationsData } = useLocations()
@@ -79,6 +82,8 @@ const [confirmValidateId, setConfirmValidateId] = useState<number | null>(null)
     date_fin: dateFin || undefined,
     page,
     per_page: 20,
+    sort_by: sortBy,
+    sort_dir: sortDir,
   })
   const { mutate: valider, isPending } = useValiderAchat()
 
@@ -156,6 +161,23 @@ const [confirmValidateId, setConfirmValidateId] = useState<number | null>(null)
             }}
             onDateFinChange={(value) => {
               setDateFin(value)
+              setPage(1)
+            }}
+          />
+
+          <SortControl
+            sortBy={sortBy}
+            sortDir={sortDir}
+            options={[
+              { value: 'date', label: 'Date' },
+              { value: 'nom', label: 'Référence BR' },
+            ]}
+            onSortByChange={(value) => {
+              setSortBy(value)
+              setPage(1)
+            }}
+            onSortDirChange={(value) => {
+              setSortDir(value)
               setPage(1)
             }}
           />

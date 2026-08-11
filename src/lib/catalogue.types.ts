@@ -118,6 +118,8 @@ export interface CatalogueProductFilters {
   page?: number
   per_page?: number
   [key: string]: unknown
+  sort_by?: string
+sort_dir?: 'asc' | 'desc'
 }
 
 export interface CatalogueMatiereFilters {
@@ -131,6 +133,8 @@ export interface CatalogueMatiereFilters {
   page?: number
   per_page?: number
   [key: string]: unknown
+  sort_by?: string
+sort_dir?: 'asc' | 'desc'
 }
 
 export type CatalogueProductsPage = PaginatedResponse<CatalogueProduct>

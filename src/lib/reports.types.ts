@@ -142,6 +142,7 @@ export interface ReportMouvementRow {
   entree_fabrication: number
   autres_entrees: number
   retours: number
+  stock_depart: number
   stock_a_jour: number
   motif: string | null
   tiers: string | null

@@ -19,6 +19,9 @@ import { AjustementDialog } from './ajustement-dialog'
 import { MouvementStockView } from './mouvement-stock-view'
 import { Dialog } from '@/components/ui/dialog'
 import { StockInitialForm } from './stock-initial-form'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
+import { SearchableSelect } from '@/components/ui/searchable-select'
+import { useMatieres, useProducts } from '@/lib/hooks/use-catalogue'
 
 type TabKey = 'stock' | 'mouvements'
 type StockMode = 'inventaire' | 'ruptures'
@@ -66,14 +69,62 @@ export function StocksView() {
 
   const [stockLocationId, setStockLocationId] = useState('')
   const [stockEntiteType, setStockEntiteType] = useState('')
+  const [stockEntiteId, setStockEntiteId] = useState<number | null>(null)
+  const [includeZero, setIncludeZero] = useState(false)
+  const [stockSortBy, setStockSortBy] = useState('date')
+  const [stockSortDir, setStockSortDir] = useState<SortDirection>('desc')
 
   const [movementLocationId, setMovementLocationId] = useState('')
+  const [movementEntiteType, setMovementEntiteType] = useState('')
+  const [movementEntiteId, setMovementEntiteId] = useState<number | null>(null)
+  const [movementType, setMovementType] = useState('')
+  const [movementReferenceType, setMovementReferenceType] = useState('')
+  const [movementMotif, setMovementMotif] = useState('')
+  const [movementDateDebut, setMovementDateDebut] = useState('')
+  const [movementDateFin, setMovementDateFin] = useState('')
+  const [movementSortBy, setMovementSortBy] = useState('date')
+  const [movementSortDir, setMovementSortDir] = useState<SortDirection>('desc')
 
   const [adjustOpen, setAdjustOpen] = useState(false)
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null)
   const [importOpen, setImportOpen] = useState(false)
 
   const { data: locationsData } = useLocations()
+  const { data: productsPage } = useProducts({ per_page: 500 })
+  const { data: matieresPage } = useMatieres({ per_page: 500 })
+
+  const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.data : []
+  const matieres = Array.isArray(matieresPage?.data?.data) ? matieresPage.data.data : []
+
+  const stockArticleOptions =
+    stockEntiteType === 'produit'
+      ? products.map((product) => ({
+          value: product.id,
+          label: product.designation,
+          description: product.nomencla ?? undefined,
+        }))
+      : stockEntiteType === 'matiere'
+        ? matieres.map((matiere) => ({
+            value: matiere.id,
+            label: matiere.nom,
+            description: matiere.reference ?? undefined,
+          }))
+        : []
+
+  const movementArticleOptions =
+    movementEntiteType === 'produit'
+      ? products.map((product) => ({
+          value: product.id,
+          label: product.designation,
+          description: product.nomencla ?? undefined,
+        }))
+      : movementEntiteType === 'matiere'
+        ? matieres.map((matiere) => ({
+            value: matiere.id,
+            label: matiere.nom,
+            description: matiere.reference ?? undefined,
+          }))
+        : []
   const locations = useMemo(() => normalizeArray<{ id: number; nom: string }>(locationsData), [locationsData])
 
   const importStocks = useImportStocks()
@@ -82,22 +133,29 @@ export function StocksView() {
     () => ({
       location_id: stockLocationId ? Number(stockLocationId) : undefined,
       entite_type: stockEntiteType || undefined,
+      entite_id: stockEntiteId ?? undefined,
+      include_zero: includeZero || undefined,
       search: search || undefined,
+      sort_by: stockSortBy,
+      sort_dir: stockSortDir,
       page: stockPage,
       per_page: 10,
     }),
-    [stockLocationId, stockEntiteType, search, stockPage]
+    [stockLocationId, stockEntiteType, stockEntiteId, includeZero, search, stockSortBy, stockSortDir, stockPage]
   )
 
   const ruptureFilters = useMemo(
     () => ({
       location_id: stockLocationId ? Number(stockLocationId) : undefined,
       entite_type: stockEntiteType || undefined,
+      entite_id: stockEntiteId ?? undefined,
       search: search || undefined,
+      sort_by: stockSortBy,
+      sort_dir: stockSortDir,
       page: rupturePage,
       per_page: 10,
     }),
-    [stockLocationId, stockEntiteType, search, rupturePage]
+    [stockLocationId, stockEntiteType, stockEntiteId, search, stockSortBy, stockSortDir, rupturePage]
   )
 
   const { data: stockData, isLoading: loadingStock } = useStocks(stockFilters)
@@ -113,7 +171,16 @@ export function StocksView() {
     setStockPage(1)
     setRupturePage(1)
     setMovementPage(1)
-  }, [search, stockLocationId, stockEntiteType, stockMode])
+  }, [
+    search,
+    stockLocationId,
+    stockEntiteType,
+    stockEntiteId,
+    includeZero,
+    stockMode,
+    stockSortBy,
+    stockSortDir,
+  ])
 
   const handleImportStocks = async ({
     file,
@@ -185,7 +252,7 @@ export function StocksView() {
       <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
         <Input
           label="Recherche globale"
-          placeholder="Article, location, source, motif, reference..."
+          placeholder="Article, localisation, source, motif, reference..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           icon={<Search className="h-3.5 w-3.5" />}
@@ -213,9 +280,9 @@ export function StocksView() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
             <Select
-              label="Location"
+              label="Localisation"
               placeholder="Toutes"
               options={locations.map((location) => ({ value: location.id, label: location.nom }))}
               value={stockLocationId}
@@ -225,6 +292,7 @@ export function StocksView() {
                 setRupturePage(1)
               }}
             />
+
             <Select
               label="Type"
               placeholder="Toutes"
@@ -232,6 +300,64 @@ export function StocksView() {
               value={stockEntiteType}
               onChange={(e) => {
                 setStockEntiteType(e.target.value)
+                setStockEntiteId(null)
+                setStockPage(1)
+                setRupturePage(1)
+              }}
+            />
+
+            <SearchableSelect
+              label="Article"
+              value={stockEntiteId}
+              options={stockArticleOptions}
+              placeholder={
+                stockEntiteType === 'produit'
+                  ? 'Tous les produits'
+                  : stockEntiteType === 'matiere'
+                    ? 'Toutes les matières'
+                    : 'Choisir un type d’abord'
+              }
+              searchPlaceholder="Rechercher..."
+              noOptionsMessage="Aucun article trouvé."
+              disabled={!stockEntiteType}
+              onValueChange={(value) => {
+                setStockEntiteId(value ? Number(value) : null)
+                setStockPage(1)
+                setRupturePage(1)
+              }}
+            />
+
+            <Select
+              label="Stock zéro"
+              value={includeZero ? 'true' : 'false'}
+              options={[
+                { value: 'false', label: 'Masquer les zéros' },
+                { value: 'true', label: 'Afficher les zéros' },
+              ]}
+              onChange={(e) => {
+                setIncludeZero(e.target.value === 'true')
+                setStockPage(1)
+                setRupturePage(1)
+              }}
+            />
+          </div>
+
+          <div className="flex flex-wrap items-end gap-3">
+            <SortControl
+              sortBy={stockSortBy}
+              sortDir={stockSortDir}
+              options={[
+                { value: 'date', label: 'Dernière mise à jour' },
+                { value: 'quantite', label: 'Quantité' },
+                { value: 'type', label: 'Type article' },
+              ]}
+              onSortByChange={(value) => {
+                setStockSortBy(value)
+                setStockPage(1)
+                setRupturePage(1)
+              }}
+              onSortDirChange={(value) => {
+                setStockSortDir(value)
                 setStockPage(1)
                 setRupturePage(1)
               }}
@@ -436,6 +562,28 @@ export function StocksView() {
           search={search}
           locationId={movementLocationId}
           onLocationIdChange={setMovementLocationId}
+          entiteType={movementEntiteType}
+          onEntiteTypeChange={(value) => {
+            setMovementEntiteType(value)
+            setMovementEntiteId(null)
+          }}
+          entiteId={movementEntiteId}
+          onEntiteIdChange={setMovementEntiteId}
+          articleOptions={movementArticleOptions}
+          type={movementType}
+          onTypeChange={setMovementType}
+          referenceType={movementReferenceType}
+          onReferenceTypeChange={setMovementReferenceType}
+          motif={movementMotif}
+          onMotifChange={setMovementMotif}
+          dateDebut={movementDateDebut}
+          onDateDebutChange={setMovementDateDebut}
+          dateFin={movementDateFin}
+          onDateFinChange={setMovementDateFin}
+          sortBy={movementSortBy}
+          onSortByChange={setMovementSortBy}
+          sortDir={movementSortDir}
+          onSortDirChange={setMovementSortDir}
           page={movementPage}
           onPageChange={setMovementPage}
         />

@@ -14,6 +14,8 @@ export interface BpFilters {
   per_page?: number
   page?: number
   [key: string]: unknown
+  sort_by?: string
+sort_dir?: 'asc' | 'desc'
 }
 
 export interface BpMatierePayload {

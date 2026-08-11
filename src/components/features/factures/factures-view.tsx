@@ -26,6 +26,7 @@ import { FileDown } from 'lucide-react'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { useRouter } from 'next/navigation'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
 
 type FactureRow = Facture
@@ -41,6 +42,8 @@ export function FacturesView() {
   const { exportPdf, isExporting } = usePdfExport()
   const router = useRouter()
   const [confirmCancelId, setConfirmCancelId] = useState<number | null>(null)
+  const [sortBy, setSortBy] = useState('date')
+  const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 200 })
   const { data, isLoading } = useFactures({
@@ -51,6 +54,8 @@ export function FacturesView() {
     date_fin: dateFin || undefined,
     page,
     per_page: 20,
+    sort_by: sortBy,
+    sort_dir: sortDir,
   })
 
   const { mutate: payer, isPending: paying } = usePayerFacture()
@@ -197,6 +202,22 @@ export function FacturesView() {
           value={dateFin}
           onChange={(e) => {
             setDateFin(e.target.value)
+            setPage(1)
+          }}
+        />
+        <SortControl
+          sortBy={sortBy}
+          sortDir={sortDir}
+          options={[
+            { value: 'date', label: 'Date facture' },
+            { value: 'nom', label: 'Référence facture' },
+          ]}
+          onSortByChange={(value) => {
+            setSortBy(value)
+            setPage(1)
+          }}
+          onSortDirChange={(value) => {
+            setSortDir(value)
             setPage(1)
           }}
         />

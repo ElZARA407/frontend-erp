@@ -32,6 +32,7 @@ import { useReports } from '@/lib/hooks/use-reports'
 import { formatDate, formatMGA, formatQty } from '@/lib/utils'
 import type { ReportItem, ReportStockItem } from '@/lib/reports.types'
 import { usePermissions } from '@/lib/hooks/use-permissions'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
 type ReportTab = 'commercial' | 'stock' | 'production' | 'recyclage' | 'finance' | 'mouvements'
 
@@ -59,6 +60,8 @@ export function ReportsView() {
     const [dateDebut, setDateDebut] = useState(defaultStartDate())
     const [dateFin, setDateFin] = useState(today())
     const permissions = usePermissions()
+    const [mouvementSortBy, setMouvementSortBy] = useState('date')
+    const [mouvementSortDir, setMouvementSortDir] = useState<SortDirection>('desc')
 
     const visibleTabs = useMemo(
       () => TABS.filter((item) => permissions.canReportTab(item.key)),
@@ -182,18 +185,22 @@ export function ReportsView() {
           {tab === 'finance' && <FinanceReport data={data} />}
           {tab === 'mouvements' && (
             <MouvementsReport
-                data={data}
-                entiteType={mouvementEntiteType}
-                onEntiteTypeChange={(value) => {
+              data={data}
+              entiteType={mouvementEntiteType}
+              onEntiteTypeChange={(value) => {
                 setMouvementEntiteType(value)
-                setMouvementEntiteId(null)
-                }}
-                entiteId={mouvementEntiteId}
-                onEntiteIdChange={setMouvementEntiteId}
-                motif={mouvementMotif}
-                onMotifChange={setMouvementMotif}
-                produits={produits}
-                matieres={matieres}
+                setMouvementEntiteId(null)  
+              }}
+              entiteId={mouvementEntiteId}
+              onEntiteIdChange={setMouvementEntiteId}
+              motif={mouvementMotif}
+              onMotifChange={setMouvementMotif}
+              produits={produits}
+              matieres={matieres}
+              sortBy={mouvementSortBy}
+              sortDir={mouvementSortDir}
+              onSortByChange={setMouvementSortBy}
+              onSortDirChange={setMouvementSortDir}
             />
             )}
         </>
@@ -469,6 +476,10 @@ function MouvementsReport({
   onMotifChange,
   produits,
   matieres,
+  sortBy,
+  sortDir,
+  onSortByChange,
+  onSortDirChange,
 }: {
   data: Awaited<ReturnType<typeof useReports>>['data']
   entiteType: 'produit' | 'matiere'
@@ -479,9 +490,30 @@ function MouvementsReport({
   onMotifChange: (value: string) => void
   produits: Array<{ id: number; nomencla: string; designation: string }>
   matieres: Array<{ id: number; reference: string; nom: string }>
+  sortBy: string
+  sortDir: SortDirection
+  onSortByChange: (value: string) => void
+  onSortDirChange: (value: SortDirection) => void
 }) {
   const mouvements = data?.mouvements
-  const lignes = Array.isArray(mouvements?.lignes) ? mouvements.lignes : []
+  const lignesRaw = Array.isArray(mouvements?.lignes) ? mouvements.lignes : []
+
+  const lignes = useMemo(() => {
+    return [...lignesRaw].sort((a, b) => {
+      const direction = sortDir === 'asc' ? 1 : -1
+
+      if (sortBy === 'sorties') return ((a.sorties ?? 0) - (b.sorties ?? 0)) * direction
+      if (sortBy === 'entrees') return (((a.entree_fabrication ?? 0) + (a.autres_entrees ?? 0)) - ((b.entree_fabrication ?? 0) + (b.autres_entrees ?? 0))) * direction
+      if (sortBy === 'retours') return ((a.retours ?? 0) - (b.retours ?? 0)) * direction
+      if (sortBy === 'stock_depart') return ((a.stock_depart ?? 0) - (b.stock_depart ?? 0)) * direction
+      if (sortBy === 'stock_a_jour') return ((a.stock_a_jour ?? 0) - (b.stock_a_jour ?? 0)) * direction
+      if (sortBy === 'designation') {
+        return String(a.designation ?? '').localeCompare(String(b.designation ?? ''), 'fr', { numeric: true }) * direction
+      }
+
+      return String(a.date_mouvement ?? '').localeCompare(String(b.date_mouvement ?? '')) * direction
+    })
+  }, [lignesRaw, sortBy, sortDir])
 
   const articleOptions =
     entiteType === 'produit'
@@ -508,7 +540,7 @@ function MouvementsReport({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[180px_minmax(260px,1fr)_260px]">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
         <Select
           label="Type"
           value={entiteType}
@@ -537,6 +569,22 @@ function MouvementsReport({
           searchPlaceholder="Rechercher un motif..."
           noOptionsMessage="Aucun motif trouvé."
           onValueChange={(value) => onMotifChange(value)}
+        />
+
+        <SortControl
+          sortBy={sortBy}
+          sortDir={sortDir}
+          options={[
+            { value: 'date', label: 'Date mouvement' },
+            { value: 'designation', label: 'Désignation' },
+            { value: 'stock_depart', label: 'Stock départ' },
+            { value: 'sorties', label: 'Sorties' },
+            { value: 'entrees', label: 'Entrées' },
+            { value: 'retours', label: 'Retours' },
+            { value: 'stock_a_jour', label: 'Stock à jour' },
+          ]}
+          onSortByChange={onSortByChange}
+          onSortDirChange={onSortDirChange}
         />
       </div>
 
@@ -594,6 +642,7 @@ function MouvementsReport({
                     <th className="px-3 py-2">Réf.</th>
                     <th className="px-3 py-2">Désignation</th>
                     <th className="px-3 py-2">Classement</th>
+                    <th className="px-3 py-2 text-right">Stock départ</th>
                     <th className="px-3 py-2 text-right">Sorties</th>
                     <th className="px-3 py-2 text-right">Entrée fabrication</th>
                     <th className="px-3 py-2 text-right">Autres entrées</th>
@@ -610,6 +659,9 @@ function MouvementsReport({
                       <td className="px-3 py-2 font-medium text-steel-900">{row.reference ?? '—'}</td>
                       <td className="px-3 py-2 text-steel-700">{row.designation ?? '—'}</td>
                       <td className="px-3 py-2 text-steel-600">{row.classement ?? '—'}</td>
+                      <td className="px-3 py-2 text-right font-medium text-steel-700">
+                        {formatQty(row.stock_depart)}
+                      </td>
                       <td className="px-3 py-2 text-right text-red-600">{formatQty(row.sorties)}</td>
                       <td className="px-3 py-2 text-right text-emerald-600">{formatQty(row.entree_fabrication)}</td>
                       <td className="px-3 py-2 text-right text-steel-700">{formatQty(row.autres_entrees)}</td>

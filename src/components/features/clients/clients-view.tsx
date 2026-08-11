@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation'
 import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { Select } from '@/components/ui/select'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
 const PAGE_SIZE = 10
 
@@ -31,6 +32,8 @@ export function ClientsView() {
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
+  const [sortBy, setSortBy] = useState('date')
+  const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
   const router = useRouter()
   const { data, isLoading } = useClients({
@@ -41,6 +44,8 @@ export function ClientsView() {
     date_fin: dateFin || undefined,
     page,
     per_page: PAGE_SIZE,
+    sort_by: sortBy,
+    sort_dir: sortDir,
   })
   const deleteClient = useDeleteClient()
 
@@ -136,6 +141,23 @@ export function ClientsView() {
           }}
           onDateFinChange={(value) => {
             setDateFin(value)
+            setPage(1)
+          }}
+        />
+
+        <SortControl
+          sortBy={sortBy}
+          sortDir={sortDir}
+          options={[
+            { value: 'date', label: 'Date création' },
+            { value: 'nom', label: 'Nom client' },
+          ]}
+          onSortByChange={(value) => {
+            setSortBy(value)
+            setPage(1)
+          }}
+          onSortDirChange={(value) => {
+            setSortDir(value)
             setPage(1)
           }}
         />

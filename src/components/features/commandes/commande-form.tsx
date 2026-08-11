@@ -226,7 +226,7 @@ const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.dat
           error={errors.client_id?.message}
           {...register('client_id', { valueAsNumber: true })}
         />
-        <Select
+        {/* <Select
           label="Échéance paiement *"
           options={[
             { value: 15, label: '15 jours' },
@@ -235,6 +235,14 @@ const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.dat
           ]}
           error={errors.echeance?.message}
           {...register('echeance', { valueAsNumber: true })}
+        /> */}
+        <Input
+          label="Échéance paiement *"
+          type="number"
+          step="1"
+          placeholder="30"
+          error={errors.echeance?.message}
+          {...register('echeance')}
         />
       </div>
 

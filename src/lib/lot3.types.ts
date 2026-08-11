@@ -93,6 +93,8 @@ export interface ContratFilters {
   page?: number
   per_page?: number
   [key: string]: unknown
+  sort_by?: string
+sort_dir?: 'asc' | 'desc'
 }
 
 export interface Contrat {
@@ -158,6 +160,8 @@ export interface FournisseurFilters {
   page?: number
   per_page?: number
   [key: string]: unknown
+  sort_by?: string
+sort_dir?: 'asc' | 'desc'
 }
 
 
@@ -169,6 +173,8 @@ export interface DemandeAchatFilters {
   page?: number
   per_page?: number
   [key: string]: unknown
+  sort_by?: string
+sort_dir?: 'asc' | 'desc'
 }
 
 export type FournisseursPage = PaginatedResponse<Fournisseur>

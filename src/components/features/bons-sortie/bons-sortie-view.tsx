@@ -25,6 +25,7 @@ import type { BonSortie } from '@/lib/bons-sortie.types'
 import { BonSortieForm } from './bon-sortie-form'
 import { usePermissions } from '@/lib/hooks/use-permissions'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
 const PAGE_SIZE = 10
 
@@ -44,6 +45,8 @@ export function BonsSortieView() {
   const [motif, setMotif] = useState('')
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
+  const [sortBy, setSortBy] = useState('date')
+  const [sortDir, setSortDir] = useState<SortDirection>('desc')
   const [confirmAction, setConfirmAction] = useState<null | {
   type: 'valider' | 'supprimer'
   id: number
@@ -63,8 +66,10 @@ export function BonsSortieView() {
       date_fin: dateFin || undefined,
       page,
       per_page: PAGE_SIZE,
+      sort_by: sortBy,
+      sort_dir: sortDir,
     }),
-    [dateDebut, dateFin, locationId, motif, page, search, statut],
+    [dateDebut, dateFin, locationId, motif, page, search, statut, sortBy, sortDir],
   )
 
   const { data: bonsPage, isLoading } = useBonsSortie(filters)
@@ -153,6 +158,22 @@ export function BonsSortieView() {
             }}
           />
         </div>
+        <SortControl
+          sortBy={sortBy}
+          sortDir={sortDir}
+          options={[
+            { value: 'date', label: 'Date' },
+            { value: 'nom', label: 'Référence BS' },
+          ]}
+          onSortByChange={(value) => {
+            setSortBy(value)
+            setPage(1)
+          }}
+          onSortDirChange={(value) => {
+            setSortDir(value)
+            setPage(1)
+          }}
+        />
       </div>
 
       <Card>

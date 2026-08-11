@@ -13,6 +13,8 @@ export interface ClientFilters {
   per_page?: number
   page?: number
   [key: string]: unknown
+  sort_by?: string
+sort_dir?: 'asc' | 'desc'
 }
 
 export const clientsApi = {

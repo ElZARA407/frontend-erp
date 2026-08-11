@@ -317,9 +317,25 @@ export interface BpSessionCalcul {
 }
 
 // ── Livraisons ──────────────────────────────────────────
+// export interface Livraison {
+//   id: number
+//   numero: string
+//   source_type: 'commande' | 'vente_directe'
+//   source_id: number
+//   date_livraison: string | null
+//   statut: 'prepare' | 'livre' | 'retourne'
+//   reference_bc: string | null
+//   reference_facture: string | null
+//   chauffeur: string | null
+//   vehicule: string | null
+//   est_facturee: boolean
+//   client?: { id: number; nom: string }
+//   created_at: string
+// }
+
 export interface Livraison {
   id: number
-  numero: string
+  numero: string | null
   source_type: 'commande' | 'vente_directe'
   source_id: number
   date_livraison: string | null
@@ -328,8 +344,28 @@ export interface Livraison {
   reference_facture: string | null
   chauffeur: string | null
   vehicule: string | null
+  observations?: string | null
   est_facturee: boolean
   client?: { id: number; nom: string }
+  lignes?: Array<{
+    id: number
+    produit_id: number
+    classement_id: number
+    ligne_commande_id?: number | null
+    ligne_vente_directe_id?: number | null
+    quantite_livree: number
+    produit?: {
+      id: number
+      nomencla?: string | null
+      designation?: string | null
+    } | null
+    classement?: {
+      id: number
+      qualite?: string | null
+      libelle?: string | null
+      designation?: string | null
+    } | null
+  }>
   created_at: string
 }
 

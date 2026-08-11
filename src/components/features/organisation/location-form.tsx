@@ -50,7 +50,7 @@ export function LocationForm({ defaultValues, onSuccess }: LocationFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <Input
-        label="Nom de la location *"
+        label="Nom de la localisation *"
         placeholder="Usine principale"
         error={errors.nom?.message}
         {...register('nom')}

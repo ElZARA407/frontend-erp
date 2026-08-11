@@ -35,6 +35,7 @@ import { CategorieForm } from './categorie-form'
 import { MatiereForm } from './matiere-form'
 import { ProduitForm } from './produit-form'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
 type CatalogueTab = 'categories' | 'produits' | 'matieres'
 
@@ -51,6 +52,12 @@ export function CatalogueView() {
   type: 'delete-category' | 'delete-product' | 'delete-matiere'
   id: number
 }>(null)
+  const [productSortBy, setProductSortBy] = useState('date')
+  const [productSortDir, setProductSortDir] = useState<SortDirection>('desc')
+
+  const [matiereSortBy, setMatiereSortBy] = useState('date')
+  const [matiereSortDir, setMatiereSortDir] = useState<SortDirection>('desc')
+
 
 const [matiereLocationId, setMatiereLocationId] = useState('')
 const [matiereStockState, setMatiereStockState] = useState<'all' | 'available' | 'rupture'>('all')
@@ -91,6 +98,8 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
     date_fin: productDateFin || undefined,
     page: productPage,
     per_page: PAGE_SIZE,
+    sort_by: productSortBy,
+    sort_dir: productSortDir,
   })
   const { data: matieresPage, isLoading: matieresLoading } = useMatieres({
     search: matiereSearch || undefined,
@@ -102,6 +111,8 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
     date_fin: matiereDateFin || undefined,
     page: matierePage,
     per_page: PAGE_SIZE,
+    sort_by: matiereSortBy,
+    sort_dir: matiereSortDir,
   })
 
   const productsPageData = productsPage?.data
@@ -425,6 +436,22 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
                 setProductPage(1)
               }}
             />
+            <SortControl
+              sortBy={productSortBy}
+              sortDir={productSortDir}
+              options={[
+                { value: 'date', label: 'Date' },
+                { value: 'designation', label: 'Désignation' },
+              ]}
+              onSortByChange={(value) => {
+                setProductSortBy(value)
+                setProductPage(1)
+              }}
+              onSortDirChange={(value) => {
+                setProductSortDir(value)
+                setProductPage(1)
+              }}
+            />
           </div>
 
           <Card>
@@ -604,6 +631,23 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
               }}
               onDateFinChange={(value) => {
                 setMatiereDateFin(value)
+                setMatierePage(1)
+              }}
+            />
+
+            <SortControl
+              sortBy={matiereSortBy}
+              sortDir={matiereSortDir}
+              options={[
+                { value: 'date', label: 'Date' },
+                { value: 'nom', label: 'Nom' },
+              ]}
+              onSortByChange={(value) => {
+                setMatiereSortBy(value)
+                setMatierePage(1)
+              }}
+              onSortDirChange={(value) => {
+                setMatiereSortDir(value)
                 setMatierePage(1)
               }}
             />

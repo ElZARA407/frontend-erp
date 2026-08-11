@@ -19,6 +19,7 @@ import type { BonTransformation, RecyclageLocationRef } from '@/lib/recyclage.ty
 import { BtForm } from './bt-form'
 import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -49,6 +50,8 @@ export function RecyclageView() {
   const [dateFin, setDateFin] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [confirmClotureId, setConfirmClotureId] = useState<number | null>(null)
+  const [sortBy, setSortBy] = useState('date')
+  const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
   const router = useRouter()
   const { data: locationsData } = useLocations()
@@ -64,6 +67,8 @@ export function RecyclageView() {
     date_fin: dateFin || undefined,
     page,
     per_page: 20,
+    sort_by: sortBy,
+    sort_dir: sortDir,
   })
 
   const locations = normalizeArray<RecyclageLocationRef>(locationsData)
@@ -150,6 +155,22 @@ export function RecyclageView() {
             }}
             onDateFinChange={(value) => {
               setDateFin(value)
+              setPage(1)
+            }}
+          />
+          <SortControl
+            sortBy={sortBy}
+            sortDir={sortDir}
+            options={[
+              { value: 'date', label: 'Date OT' },
+              { value: 'nom', label: 'Référence OT' },
+            ]}
+            onSortByChange={(value) => {
+              setSortBy(value)
+              setPage(1)
+            }}
+            onSortDirChange={(value) => {
+              setSortDir(value)
               setPage(1)
             }}
           />

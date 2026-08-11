@@ -23,6 +23,7 @@ import type { BonProduction, Location, Machine } from '@/lib/types'
 import type { CatalogueProduct } from '@/lib/catalogue.types'
 import { usePermissions } from '@/lib/hooks/use-permissions'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -58,6 +59,8 @@ export function ProductionView() {
   type: 'annuler' | 'cloturer'
   id: number
 }>(null)
+  const [sortBy, setSortBy] = useState('date')
+  const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
   const { data: productsPage } = useProducts({ actif: true, per_page: 300 })
   const { data: machinesData } = useMachines({ actif: true })
@@ -77,6 +80,8 @@ export function ProductionView() {
     date_fin: dateFin || undefined,
     page,
     per_page: 10,
+    sort_by: sortBy,
+    sort_dir: sortDir,
   })
   const { mutate: clotureBP, isPending: closing } = useClotureBP()
   const { mutate: annulerBP, isPending: cancelling } = useAnnulerBP()
@@ -194,6 +199,22 @@ export function ProductionView() {
             }}
             onDateFinChange={(value) => {
               setDateFin(value)
+              setPage(1)
+            }}
+          />
+          <SortControl
+            sortBy={sortBy}
+            sortDir={sortDir}
+            options={[
+              { value: 'date', label: 'Date OF' },
+              { value: 'nom', label: 'Référence OF' },
+            ]}
+            onSortByChange={(value) => {
+              setSortBy(value)
+              setPage(1)
+            }}
+            onSortDirChange={(value) => {
+              setSortDir(value)
               setPage(1)
             }}
           />

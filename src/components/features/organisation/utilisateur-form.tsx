@@ -118,12 +118,12 @@ export function UtilisateurForm({
         />
 
         <Select
-          label="Location *"
+          label="Localisation *"
           options={locations.map((location) => ({
             value: location.id,
             label: `${location.nom} (${location.type})`,
           }))}
-          placeholder="Choisir la location"
+          placeholder="Choisir la localisation"
           error={formErrors.location_id?.message}
           {...register('location_id', { valueAsNumber: true })}
         />

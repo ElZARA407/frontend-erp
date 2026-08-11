@@ -113,16 +113,27 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
                 Facturer
               </Button>
             )}
-            {livraison && (
-                <Button
-                  variant="outline"
-                  icon={<FileDown className="h-3.5 w-3.5" />}
-                  loading={isExporting('livraison', livraisonId)}
-                  onClick={() => exportPdf({ type: 'livraison', document: livraison })}
-                >
-                  Telecharger BL
-                </Button>
-              )}
+            {livraison && livraison.statut === 'livre' && livraison.numero && (
+              <Button
+                variant="outline"
+                icon={<FileDown className="h-3.5 w-3.5" />}
+                loading={isExporting('livraison', livraisonId)}
+                onClick={() => {
+                  const numero = livraison.numero
+                  if (!numero) return
+
+                  exportPdf({
+                    type: 'livraison',
+                    document: {
+                      id: livraison.id,
+                      numero,
+                    },
+                  })
+                }}
+              >
+                Telecharger BL
+              </Button>
+            )}
             <Button
               onClick={() => router.back()}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
