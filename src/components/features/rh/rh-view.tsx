@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Pagination } from '@/components/ui/pagination'
 import { Select } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatDateTime, formatMGA } from '@/lib/utils'
+import { formatDate, formatDateTime, formatMGA } from '@/lib/utils'
 import {
   useDeleteEmploye,
   useDeletePoste,
@@ -307,7 +307,7 @@ export function RhView() {
                             <Badge variant="info">{employe.poste?.nom ?? '—'}</Badge>
                           </td>
                           <td className="px-4 py-3 text-steel-500">
-                            {formatDateTime(employe.date_embauche)}
+                            {formatDate(employe.date_embauche)}
                           </td>
                           <td className="px-4 py-3">
                             <Badge variant={employe.actif ? 'success' : 'muted'} dot>

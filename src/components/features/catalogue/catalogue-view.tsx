@@ -12,7 +12,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { Select } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ExcelImportDialog } from '@/components/ui/excel-import-dialog'
-import { formatDate, formatMGA, formatQty } from '@/lib/utils'
+import { formatDate, formatDateTime, formatMGA, formatQty } from '@/lib/utils'
 import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import {
@@ -319,7 +319,7 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
                             <Badge variant="info">{category.produits_count ?? 0}</Badge>
                           </td>
                           <td className="px-4 py-3 text-steel-500">
-                            {formatDate(category.created_at)}
+                            {formatDateTime(category.created_at)}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex justify-end">
