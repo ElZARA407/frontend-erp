@@ -44,6 +44,7 @@ export interface LivraisonUpdatePayload {
   vehicule?: string | null
   observations?: string | null
   date_livraison?: string | null
+  lignes?: LivraisonLinePayload[]
 }
 
 export const livraisonsApi = {

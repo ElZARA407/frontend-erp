@@ -347,6 +347,12 @@ export interface Livraison {
   observations?: string | null
   est_facturee: boolean
   client?: { id: number; nom: string }
+    source?: {
+    id: number
+    type: 'commande' | 'vente_directe'
+    label: string
+    numero: string | null
+  }
   lignes?: Array<{
     id: number
     produit_id: number

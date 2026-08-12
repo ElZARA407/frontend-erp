@@ -27,6 +27,7 @@ import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { usePermissions } from '@/lib/hooks/use-permissions'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { SortControl, type SortDirection } from '@/components/ui/sort-control'
+import { LivraisonForm } from './livraison-form'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -58,6 +59,7 @@ export function LivraisonsView() {
   const [dateFin, setDateFin] = useState('')
   const { exportPdf, isExporting } = usePdfExport()
   const router = useRouter()
+  const [editingLivraison, setEditingLivraison] = useState<Livraison | null>(null)
   const permissions = usePermissions()
   const [confirmAction, setConfirmAction] = useState<null | {
   type: 'confirmer' | 'annuler' | 'supprimer'
@@ -286,7 +288,7 @@ export function LivraisonsView() {
                             icon={<PencilLine className="h-3.5 w-3.5" />}
                             onClick={(event) => {
                               event.stopPropagation()
-                              router.push(`/livraisons/${livraison.id}`)
+                              setEditingLivraison(livraison)
                             }}
                           >
                             Modifier
@@ -404,6 +406,19 @@ export function LivraisonsView() {
           <FactureForm
             defaultLivraisonId={selectedLivraison.id}
             onSuccess={() => setSelectedLivraison(null)}
+          />
+        )}
+      </Dialog>
+      <Dialog
+        open={editingLivraison !== null}
+        onClose={() => setEditingLivraison(null)}
+        title={editingLivraison ? `Modifier ${editingLivraison.numero ?? 'la livraison préparée'}` : 'Modifier livraison'}
+        size="xl"
+      >
+        {editingLivraison && (
+          <LivraisonForm
+            defaultValues={editingLivraison}
+            onSuccess={() => setEditingLivraison(null)}
           />
         )}
       </Dialog>

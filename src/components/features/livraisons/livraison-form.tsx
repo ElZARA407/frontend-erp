@@ -1,13 +1,16 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Package, Truck } from 'lucide-react'
+import { AlertTriangle, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { useCreateLivraison } from '@/lib/hooks/use-livraisons'
+import { useCreateLivraison, useUpdateLivraison } from '@/lib/hooks/use-livraisons'
 import { formatDate, formatQty } from '@/lib/utils'
-import type { LivraisonCreatePayload } from '@/lib/api/livraisons'
+import type { LivraisonCreatePayload, LivraisonLinePayload } from '@/lib/api/livraisons'
+import type { Livraison } from '@/lib/types'
+
+type SourceType = 'commande' | 'vente_directe'
 
 type DeliverySourceLine = {
   id: number
@@ -15,7 +18,7 @@ type DeliverySourceLine = {
   classement_id: number
   quantite: number
   quantite_restante?: number | null
-  produit?: { id: number; nomencla?: string; designation?: string } | null
+  produit?: { id: number; nomencla?: string | null; designation?: string | null } | null
   classement?: {
     id: number
     qualite_libelle?: string | null
@@ -32,12 +35,12 @@ type DeliverySource = {
   client?: { id: number; nom: string } | null
   location?: { id: number; nom: string } | null
   lignes?: DeliverySourceLine[] | null
-  livraisons?: Array<{ id: number; numero: string }> | null
 }
 
 interface LivraisonFormProps {
-  sourceType: 'commande' | 'vente_directe'
-  source: DeliverySource
+  sourceType?: SourceType
+  source?: DeliverySource
+  defaultValues?: Livraison
   onSuccess?: () => void
 }
 
@@ -49,7 +52,8 @@ type DeliveryRow = {
   ligne_vente_directe_id: number | null
   produitLabel: string
   classementLabel: string
-  quantiteMax: number
+  quantiteMax: number | null
+  quantiteInitiale: number
 }
 
 function parseQty(value: string): number {
@@ -58,46 +62,74 @@ function parseQty(value: string): number {
   return Number(normalized)
 }
 
-function getLineMaxQuantity(line: DeliverySourceLine, sourceType: 'commande' | 'vente_directe'): number {
+const EMPTY_LINES: DeliverySourceLine[] = []
+const EMPTY_LIVRAISON_LINES: NonNullable<Livraison['lignes']> = []
+
+function getLineMaxQuantity(line: DeliverySourceLine, sourceType: SourceType): number {
   if (sourceType === 'commande') {
     const remaining = typeof line.quantite_restante === 'number' ? line.quantite_restante : line.quantite
     return Number.isFinite(remaining) ? remaining : 0
   }
 
-  return Number.isFinite(line.quantite) ? line.quantite : 0
+  const remaining = typeof line.quantite_restante === 'number' ? line.quantite_restante : line.quantite
+  return Number.isFinite(remaining) ? remaining : 0
 }
 
-export function LivraisonForm({ sourceType, source, onSuccess }: LivraisonFormProps) {
+export function LivraisonForm({ sourceType, source, defaultValues, onSuccess }: LivraisonFormProps) {
+  const isEditing = !!defaultValues?.id
   const createLivraison = useCreateLivraison()
-  const sourceLines = Array.isArray(source.lignes) ? source.lignes : []
+  const updateLivraison = useUpdateLivraison()
 
-  const rows = useMemo<DeliveryRow[]>(
-    () =>
-      sourceLines
-        .map((line) => {
-          const quantiteMax = getLineMaxQuantity(line, sourceType)
+  const resolvedSourceType = sourceType ?? defaultValues?.source_type ?? 'commande'
+  const sourceLines = Array.isArray(source?.lignes) ? source.lignes : EMPTY_LINES
+  const livraisonLines = Array.isArray(defaultValues?.lignes)
+    ? defaultValues.lignes
+    : EMPTY_LIVRAISON_LINES
 
-          return {
-            id: line.id,
-            produit_id: line.produit_id,
-            classement_id: line.classement_id,
-            ligne_commande_id: sourceType === 'commande' ? line.id : null,
-            ligne_vente_directe_id: sourceType === 'vente_directe' ? line.id : null,
-            produitLabel: line.produit?.designation ?? line.produit?.nomencla ?? '—',
-            classementLabel:
-              line.classement?.qualite_libelle ??
-              line.classement?.libelle ??
-              line.classement?.designation ??
-              line.classement?.qualite ??
-              '—',
-            quantiteMax,
-          }
-        })
-        .filter((row) => row.quantiteMax > 0),
-    [sourceLines, sourceType]
-  )
+  const rows = useMemo<DeliveryRow[]>(() => {
+    if (isEditing) {
+      return livraisonLines.map((line) => ({
+        id: line.id,
+        produit_id: line.produit_id,
+        classement_id: line.classement_id,
+        ligne_commande_id: line.ligne_commande_id ?? null,
+        ligne_vente_directe_id: line.ligne_vente_directe_id ?? null,
+        produitLabel: line.produit?.designation ?? line.produit?.nomencla ?? '—',
+        classementLabel:
+          line.classement?.designation ??
+          line.classement?.libelle ??
+          line.classement?.qualite ??
+          '—',
+        quantiteMax: null,
+        quantiteInitiale: line.quantite_livree,
+      }))
+    }
 
-  const [referenceBc, setReferenceBc] = useState(source.numero)
+    return sourceLines
+      .map((line) => {
+        const quantiteMax = getLineMaxQuantity(line, resolvedSourceType)
+
+        return {
+          id: line.id,
+          produit_id: line.produit_id,
+          classement_id: line.classement_id,
+          ligne_commande_id: resolvedSourceType === 'commande' ? line.id : null,
+          ligne_vente_directe_id: resolvedSourceType === 'vente_directe' ? line.id : null,
+          produitLabel: line.produit?.designation ?? line.produit?.nomencla ?? '—',
+          classementLabel:
+            line.classement?.qualite_libelle ??
+            line.classement?.libelle ??
+            line.classement?.designation ??
+            line.classement?.qualite ??
+            '—',
+          quantiteMax,
+          quantiteInitiale: quantiteMax,
+        }
+      })
+      .filter((row) => row.quantiteMax !== null && row.quantiteMax > 0)
+  }, [isEditing, livraisonLines, sourceLines, resolvedSourceType])
+
+  const [referenceBc, setReferenceBc] = useState('')
   const [chauffeur, setChauffeur] = useState('')
   const [vehicule, setVehicule] = useState('')
   const [observations, setObservations] = useState('')
@@ -107,17 +139,26 @@ export function LivraisonForm({ sourceType, source, onSuccess }: LivraisonFormPr
 
   useEffect(() => {
     const nextQuantites = Object.fromEntries(
-      rows.map((row) => [row.id, String(row.quantiteMax)])
+      rows.map((row) => [row.id, String(row.quantiteInitiale)])
     ) as Record<number, string>
 
-    setReferenceBc(source.numero)
-    setChauffeur('')
-    setVehicule('')
-    setObservations('')
+    setReferenceBc(defaultValues?.reference_bc ?? source?.numero ?? '')
+    setChauffeur(defaultValues?.chauffeur ?? '')
+    setVehicule(defaultValues?.vehicule ?? '')
+    setObservations(defaultValues?.observations ?? '')
     setQuantites(nextQuantites)
     setSubmitError(null)
-    setDateLivraison(new Date().toISOString().slice(0, 10))
-  }, [rows, source.numero, source.id, sourceType])
+    setDateLivraison(defaultValues?.date_livraison ?? new Date().toISOString().slice(0, 10))
+ }, [
+  rows,
+  source?.numero,
+  defaultValues?.id,
+  defaultValues?.reference_bc,
+  defaultValues?.chauffeur,
+  defaultValues?.vehicule,
+  defaultValues?.observations,
+  defaultValues?.date_livraison,
+])
 
   const totalA_livrer = useMemo(
     () =>
@@ -128,29 +169,18 @@ export function LivraisonForm({ sourceType, source, onSuccess }: LivraisonFormPr
     [quantites, rows]
   )
 
-  const canSubmit = rows.length > 0 && !createLivraison.isPending
+  const isPending = createLivraison.isPending || updateLivraison.isPending
+  const canSubmit = rows.length > 0 && !isPending
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-
-    if (!source.client?.id) {
-      setSubmitError('Client introuvable sur le document source.')
-      return
-    }
-
-    if (rows.length === 0) {
-      setSubmitError('Aucune ligne livrable.')
-      return
-    }
-
-    const lignes = rows.map((row) => {
+  const buildLines = (): LivraisonLinePayload[] =>
+    rows.map((row) => {
       const quantity = parseQty(quantites[row.id] ?? '')
 
-      if (!Number.isFinite(quantity) || quantity <= 0) {
+      if (!Number.isFinite(quantity) || quantity < 0) {
         throw new Error(`Quantité invalide pour ${row.produitLabel}.`)
       }
 
-      if (quantity > row.quantiteMax) {
+      if (!isEditing && row.quantiteMax !== null && quantity > row.quantiteMax) {
         throw new Error(
           `La quantité de ${row.produitLabel} ne peut pas dépasser ${formatQty(row.quantiteMax)}.`
         )
@@ -165,24 +195,51 @@ export function LivraisonForm({ sourceType, source, onSuccess }: LivraisonFormPr
       }
     })
 
-    const payload: LivraisonCreatePayload = {
-      source_type: sourceType,
-      source_id: source.id,
-      client_id: source.client.id,
-      reference_bc: referenceBc.trim() || source.numero,
-      chauffeur: chauffeur.trim() || null,
-      vehicule: vehicule.trim() || null,
-      observations: observations.trim() || null,
-      date_livraison: dateLivraison || null,
-      lignes,
-    }
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
 
     try {
+      const lignes = buildLines()
+
       setSubmitError(null)
+
+      if (isEditing && defaultValues) {
+        await updateLivraison.mutateAsync({
+          id: defaultValues.id,
+          payload: {
+            reference_bc: referenceBc.trim() || null,
+            chauffeur: chauffeur.trim() || null,
+            vehicule: vehicule.trim() || null,
+            observations: observations.trim() || null,
+            date_livraison: dateLivraison || null,
+            lignes,
+          },
+        })
+        onSuccess?.()
+        return
+      }
+
+      if (!source || !sourceType || !source.client?.id) {
+        setSubmitError('Source ou client introuvable pour cette livraison.')
+        return
+      }
+
+      const payload: LivraisonCreatePayload = {
+        source_type: sourceType,
+        source_id: source.id,
+        client_id: source.client.id,
+        reference_bc: referenceBc.trim() || source.numero,
+        chauffeur: chauffeur.trim() || null,
+        vehicule: vehicule.trim() || null,
+        observations: observations.trim() || null,
+        date_livraison: dateLivraison || null,
+        lignes,
+      }
+
       await createLivraison.mutateAsync(payload)
       onSuccess?.()
-    } catch {
-      // Toast géré par le hook
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Impossible d’enregistrer la livraison.')
     }
   }
 
@@ -191,48 +248,42 @@ export function LivraisonForm({ sourceType, source, onSuccess }: LivraisonFormPr
       <div className="rounded-lg border border-surface-border bg-surface-subtle/50 p-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="info" dot>
-            {sourceType === 'commande' ? 'Commande' : 'Vente directe'}
+            {resolvedSourceType === 'commande' ? 'Commande' : 'Vente directe'}
           </Badge>
-          <span className="text-sm font-semibold text-steel-900">{source.numero}</span>
+          <span className="text-sm font-semibold text-steel-900">
+            {isEditing ? (defaultValues?.numero ?? 'Préparation') : source?.numero}
+          </span>
         </div>
+
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
           <div>
             <p className="text-xs uppercase tracking-wide text-steel-400">Client</p>
-            <p className="mt-1 text-sm font-medium text-steel-900">{source.client?.nom ?? '—'}</p>
+            <p className="mt-1 text-sm font-medium text-steel-900">
+              {defaultValues?.client?.nom ?? source?.client?.nom ?? '—'}
+            </p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-steel-400">Location</p>
-            <p className="mt-1 text-sm font-medium text-steel-900">{source.location?.nom ?? '—'}</p>
+            <p className="text-xs uppercase tracking-wide text-steel-400">Source</p>
+            <p className="mt-1 text-sm font-medium text-steel-900">
+              {isEditing
+                ? (defaultValues?.source?.numero ?? `#${defaultValues?.source_id}`)
+                : source?.numero}
+            </p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-steel-400">Date</p>
-            <p className="mt-1 text-sm font-medium text-steel-900">{formatDate(source.date)}</p>
+            <p className="text-xs uppercase tracking-wide text-steel-400">Date source</p>
+            <p className="mt-1 text-sm font-medium text-steel-900">
+              {source?.date ? formatDate(source.date) : '—'}
+            </p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-        <Input
-          label="Référence BC"
-          value={referenceBc}
-          onChange={(e) => setReferenceBc(e.target.value)}
-        />
-        <Input
-          label="Chauffeur"
-          value={chauffeur}
-          onChange={(e) => setChauffeur(e.target.value)}
-        />
-        <Input
-          label="Véhicule"
-          value={vehicule}
-          onChange={(e) => setVehicule(e.target.value)}
-        />
-        <Input
-            label="Date de livraison"
-            type="date"
-            value={dateLivraison}
-            onChange={(e) => setDateLivraison(e.target.value)}
-        />
+        <Input label="Référence BC" value={referenceBc} onChange={(e) => setReferenceBc(e.target.value)} />
+        <Input label="Chauffeur" value={chauffeur} onChange={(e) => setChauffeur(e.target.value)} />
+        <Input label="Véhicule" value={vehicule} onChange={(e) => setVehicule(e.target.value)} />
+        <Input label="Date de livraison" type="date" value={dateLivraison} onChange={(e) => setDateLivraison(e.target.value)} />
       </div>
 
       <div className="space-y-2">
@@ -257,9 +308,9 @@ export function LivraisonForm({ sourceType, source, onSuccess }: LivraisonFormPr
           <div>
             <p className="text-sm font-semibold text-steel-900">Lignes à livrer</p>
             <p className="text-xs text-steel-500">
-              {sourceType === 'commande'
-                ? 'Les quantités proposées correspondent au reliquat.'
-                : 'Les quantités proposées correspondent à la ligne source.'}
+              {isEditing
+                ? 'Modification possible tant que la livraison n’est pas confirmée.'
+                : 'Les quantités proposées correspondent au reliquat.'}
             </p>
           </div>
           <Badge variant="info" dot>
@@ -268,9 +319,7 @@ export function LivraisonForm({ sourceType, source, onSuccess }: LivraisonFormPr
         </div>
 
         {rows.length === 0 ? (
-          <div className="px-4 py-10 text-center text-sm text-steel-500">
-            Aucune ligne livrable.
-          </div>
+          <div className="px-4 py-10 text-center text-sm text-steel-500">Aucune ligne livrable.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -285,20 +334,16 @@ export function LivraisonForm({ sourceType, source, onSuccess }: LivraisonFormPr
               <tbody className="divide-y divide-surface-border">
                 {rows.map((row) => (
                   <tr key={row.id} className="hover:bg-surface-subtle/70">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-steel-900">
-                        {row.produitLabel}
-                      </div>
-                    </td>
+                    <td className="px-4 py-3 font-medium text-steel-900">{row.produitLabel}</td>
                     <td className="px-4 py-3 text-steel-600">{row.classementLabel}</td>
                     <td className="px-4 py-3 text-steel-600">
-                      {formatQty(row.quantiteMax)}
+                      {row.quantiteMax === null ? 'Modifiable' : formatQty(row.quantiteMax)}
                     </td>
                     <td className="px-4 py-3">
                       <Input
                         type="number"
-                        min="0.001"
-                        step="0.001"
+                        min="0"
+                        step="0.01"
                         value={quantites[row.id] ?? ''}
                         onChange={(e) =>
                           setQuantites((current) => ({
@@ -321,14 +366,12 @@ export function LivraisonForm({ sourceType, source, onSuccess }: LivraisonFormPr
           <Package className="h-4 w-4" />
           <span>Total à livrer</span>
         </div>
-        <span className="text-sm font-semibold text-steel-900">
-          {formatQty(totalA_livrer)}
-        </span>
+        <span className="text-sm font-semibold text-steel-900">{formatQty(totalA_livrer)}</span>
       </div>
 
       <div className="flex items-center justify-end gap-2 border-t border-surface-border pt-4">
-        <Button type="submit" loading={createLivraison.isPending} disabled={!canSubmit || rows.length === 0}>
-          Créer le BL
+        <Button type="submit" loading={isPending} disabled={!canSubmit}>
+          {isEditing ? 'Mettre à jour' : 'Créer le BL'}
         </Button>
       </div>
     </form>

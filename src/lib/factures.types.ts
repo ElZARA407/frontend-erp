@@ -139,6 +139,9 @@ export interface FacturePreviewLivraison {
   total_livraison: number
   lignes_count: number
   lignes: FacturePreviewLine[]
+  source_type?: 'commande' | 'vente_directe'
+  source_label?: string | null
+  source_numero?: string | null
 }
 
 export interface FacturePreview {

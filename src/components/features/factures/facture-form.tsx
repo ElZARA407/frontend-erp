@@ -29,6 +29,9 @@ type PreviewLivraisonComputed = {
   reference_facture: string | null
   lignes_count: number
   total_livraison: number
+  source_type?: 'commande' | 'vente_directe'
+  source_label?: string | null
+  source_numero?: string | null
 }
 
 function getErrorMessage(error: unknown): string {
@@ -169,6 +172,9 @@ export function FactureForm({ onSuccess, defaultLivraisonId }: FactureFormProps)
           reference_facture: source?.reference_facture ?? null,
           lignes_count: 1,
           total_livraison: ligne.total_ligne_edite,
+          source_type: source?.source_type,
+          source_label: source?.source_label ?? null,
+          source_numero: source?.source_numero ?? null,
         })
       }
     }
@@ -292,8 +298,8 @@ export function FactureForm({ onSuccess, defaultLivraisonId }: FactureFormProps)
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-border text-left text-xs uppercase tracking-wide text-steel-400">
-                  <th className="px-4 py-3">Choix</th>
                   <th className="px-4 py-3">BL</th>
+                  <th className="px-4 py-3">Source</th>
                   <th className="px-4 py-3">Client</th>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Statut</th>
@@ -321,6 +327,14 @@ export function FactureForm({ onSuccess, defaultLivraisonId }: FactureFormProps)
                         />
                       </td>
                       <td className="px-4 py-3 font-medium text-steel-900">{livraison.numero}</td>
+                      <td className="px-4 py-3 text-steel-600">
+                      <div className="font-medium text-steel-800">
+                        {livraison.source?.label ?? (livraison.source_type === 'commande' ? 'Commande' : 'Vente directe')}
+                      </div>
+                      <div className="text-xs text-steel-500">
+                        {livraison.source?.numero ?? `#${livraison.source_id}`}
+                      </div>
+                    </td>
                       <td className="px-4 py-3 text-steel-600">{livraison.client?.nom ?? '—'}</td>
                       <td className="px-4 py-3 text-steel-600">
                         {formatDate(livraison.date_livraison)}
