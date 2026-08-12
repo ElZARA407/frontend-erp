@@ -20,7 +20,11 @@ export const stockInitialSchema = z.object({
   entite_id: z.coerce.number().int().positive('L’article est requis'),
   classement_id: optionalClassementId,
   stock_total: z.coerce.number().min(0, 'Le stock initial ne peut pas etre negatif'),
-  motif: z.string().trim().max(500, 'Maximum 500 caracteres').optional(),
+  cout_unitaire_initial: z.coerce
+    .number()
+    .min(0, 'Le coût unitaire initial ne peut pas être négatif')
+    .optional(),
+    motif: z.string().trim().max(500, 'Maximum 500 caracteres').optional(),
 }).superRefine((values, ctx) => {
   if (values.entite_type === 'produit' && !values.classement_id) {
     ctx.addIssue({

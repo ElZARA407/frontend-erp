@@ -155,7 +155,7 @@ export function RhView() {
                     {postesPagination.data.map((poste) => (
                       <tr key={poste.id} className="hover:bg-surface-subtle/70">
                         <td className="px-4 py-3 font-medium text-steel-900">{poste.nom}</td>
-                        <td className="px-4 py-3 text-steel-600">{formatMGA(poste.taux_horaire)}/h</td>
+                        <td className="px-4 py-3 text-steel-600">{poste.taux_horaire}/h</td>
                         <td className="px-4 py-3 text-steel-600">
                           {poste.salaire_mensuel ? formatMGA(poste.salaire_mensuel) : '—'}
                         </td>

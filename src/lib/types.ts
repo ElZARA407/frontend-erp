@@ -169,6 +169,7 @@ export interface Stock {
   entite_type: 'matiere' | 'produit'
   entite_id: number
   stock_total: number
+  cout_unitaire_initial?: number | null
   en_rupture: boolean
   seuil?: number | null
   sous_seuil_alerte?: boolean
@@ -187,6 +188,8 @@ export interface MouvementStock {
   impact_stock: number
   reference_type: string
   reference_id: number
+  source_reference?: string | null
+  source_label?: string | null
   motif?: string | null
   stock_theorique?: number | null
   stock_physique?: number | null

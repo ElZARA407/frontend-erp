@@ -11,7 +11,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { Select } from '@/components/ui/select'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { ExcelImportDialog } from '@/components/ui/excel-import-dialog'
-import { formatQty } from '@/lib/utils'
+import { formatMGA, formatQty } from '@/lib/utils'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import { useImportStocks, useRuptures, useStocks } from '@/lib/hooks/use-stocks'
 import type { Stock } from '@/lib/types'
@@ -381,7 +381,7 @@ export function StocksView() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-surface-border">
-                          {['Localisation', 'Type', 'Article', 'Classement', 'Quantite', 'Seuil', 'Statut', 'Action'].map((label) => (
+                          {['Localisation', 'Type', 'Article', 'Classement', 'Quantite', 'Coût initial', 'Seuil', 'Statut', 'Action'].map((label) => (
                             <th
                               key={label}
                               className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
@@ -421,6 +421,11 @@ export function StocksView() {
                               >
                                 {formatQty(s.stock_total)}
                               </span>
+                            </td>
+                            <td className="px-4 py-3 text-steel-600">
+                              {s.cout_unitaire_initial !== null && s.cout_unitaire_initial !== undefined
+                                ? formatMGA(s.cout_unitaire_initial)
+                                : '—'}
                             </td>
                             <td className="px-4 py-3 text-steel-600">
                               {s.seuil !== null && s.seuil !== undefined ? formatQty(s.seuil) : '—'}

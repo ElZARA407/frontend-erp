@@ -144,6 +144,10 @@ export interface ReportMouvementRow {
   retours: number
   stock_depart: number
   stock_a_jour: number
+  cout_unitaire_pondere: number
+  valeur_stock: number
+  source_reference: string | null
+  source_label: string | null
   motif: string | null
   tiers: string | null
 }

@@ -324,7 +324,12 @@ export function MouvementStockView({
                       <td className="px-4 py-3 text-steel-600">{formatQty(m.quantite)}</td>
                       <td className="px-4 py-3 text-steel-600">{formatQty(m.impact_stock)}</td>
                       <td className="px-4 py-3 text-xs text-steel-500">
-                        {m.reference_type} #{m.reference_id}
+                        <div className="font-medium text-steel-800">
+                          {m.source_reference ?? `${m.reference_type} #${m.reference_id}`}
+                        </div>
+                        <div className="text-[11px] text-steel-400">
+                          {m.source_label ?? m.reference_type}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-steel-600">{m.motif ?? '—'}</td>
                       <td className="px-4 py-3 text-steel-600">{m.utilisateur?.nom ?? '—'}</td>

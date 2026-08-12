@@ -56,22 +56,22 @@ type DeliveryRow = {
   quantiteInitiale: number
 }
 
+const EMPTY_LINES: DeliverySourceLine[] = []
+const EMPTY_LIVRAISON_LINES: NonNullable<Livraison['lignes']> = []
+
 function parseQty(value: string): number {
   const normalized = value.trim().replace(',', '.')
   if (normalized === '') return Number.NaN
   return Number(normalized)
 }
 
-const EMPTY_LINES: DeliverySourceLine[] = []
-const EMPTY_LIVRAISON_LINES: NonNullable<Livraison['lignes']> = []
-
 function getLineMaxQuantity(line: DeliverySourceLine, sourceType: SourceType): number {
+  const remaining = typeof line.quantite_restante === 'number' ? line.quantite_restante : line.quantite
+
   if (sourceType === 'commande') {
-    const remaining = typeof line.quantite_restante === 'number' ? line.quantite_restante : line.quantite
     return Number.isFinite(remaining) ? remaining : 0
   }
 
-  const remaining = typeof line.quantite_restante === 'number' ? line.quantite_restante : line.quantite
   return Number.isFinite(remaining) ? remaining : 0
 }
 
@@ -129,6 +129,7 @@ export function LivraisonForm({ sourceType, source, defaultValues, onSuccess }: 
       .filter((row) => row.quantiteMax !== null && row.quantiteMax > 0)
   }, [isEditing, livraisonLines, sourceLines, resolvedSourceType])
 
+  const [selectedRows, setSelectedRows] = useState<Record<number, boolean>>({})
   const [referenceBc, setReferenceBc] = useState('')
   const [chauffeur, setChauffeur] = useState('')
   const [vehicule, setVehicule] = useState('')
@@ -142,41 +143,57 @@ export function LivraisonForm({ sourceType, source, defaultValues, onSuccess }: 
       rows.map((row) => [row.id, String(row.quantiteInitiale)])
     ) as Record<number, string>
 
+    const nextSelected = Object.fromEntries(
+      rows.map((row) => [row.id, isEditing || row.quantiteInitiale > 0])
+    ) as Record<number, boolean>
+
     setReferenceBc(defaultValues?.reference_bc ?? source?.numero ?? '')
     setChauffeur(defaultValues?.chauffeur ?? '')
     setVehicule(defaultValues?.vehicule ?? '')
     setObservations(defaultValues?.observations ?? '')
     setQuantites(nextQuantites)
+    setSelectedRows(nextSelected)
     setSubmitError(null)
     setDateLivraison(defaultValues?.date_livraison ?? new Date().toISOString().slice(0, 10))
- }, [
-  rows,
-  source?.numero,
-  defaultValues?.id,
-  defaultValues?.reference_bc,
-  defaultValues?.chauffeur,
-  defaultValues?.vehicule,
-  defaultValues?.observations,
-  defaultValues?.date_livraison,
-])
+  }, [
+    rows,
+    source?.numero,
+    isEditing,
+    defaultValues?.id,
+    defaultValues?.reference_bc,
+    defaultValues?.chauffeur,
+    defaultValues?.vehicule,
+    defaultValues?.observations,
+    defaultValues?.date_livraison,
+  ])
+
+  const selectedCount = rows.filter((row) => selectedRows[row.id]).length
 
   const totalA_livrer = useMemo(
     () =>
       rows.reduce((sum, row) => {
+        if (!selectedRows[row.id]) return sum
+
         const qty = parseQty(quantites[row.id] ?? '')
         return Number.isFinite(qty) ? sum + qty : sum
       }, 0),
-    [quantites, rows]
+    [quantites, rows, selectedRows]
   )
 
   const isPending = createLivraison.isPending || updateLivraison.isPending
-  const canSubmit = rows.length > 0 && !isPending
+  const canSubmit = selectedCount > 0 && !isPending
 
-  const buildLines = (): LivraisonLinePayload[] =>
-    rows.map((row) => {
+  const buildLines = (): LivraisonLinePayload[] => {
+    const selected = rows.filter((row) => selectedRows[row.id])
+
+    if (selected.length === 0) {
+      throw new Error('Sélectionne au moins une ligne à livrer.')
+    }
+
+    return selected.map((row) => {
       const quantity = parseQty(quantites[row.id] ?? '')
 
-      if (!Number.isFinite(quantity) || quantity < 0) {
+      if (!Number.isFinite(quantity) || quantity <= 0) {
         throw new Error(`Quantité invalide pour ${row.produitLabel}.`)
       }
 
@@ -194,6 +211,7 @@ export function LivraisonForm({ sourceType, source, defaultValues, onSuccess }: 
         quantite_livree: quantity,
       }
     })
+  }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -308,13 +326,11 @@ export function LivraisonForm({ sourceType, source, defaultValues, onSuccess }: 
           <div>
             <p className="text-sm font-semibold text-steel-900">Lignes à livrer</p>
             <p className="text-xs text-steel-500">
-              {isEditing
-                ? 'Modification possible tant que la livraison n’est pas confirmée.'
-                : 'Les quantités proposées correspondent au reliquat.'}
+              Coche uniquement les lignes à inclure dans ce BL. Les lignes décochées ne seront pas envoyées.
             </p>
           </div>
           <Badge variant="info" dot>
-            {rows.length} ligne(s)
+            {selectedCount} / {rows.length}
           </Badge>
         </div>
 
@@ -325,6 +341,7 @@ export function LivraisonForm({ sourceType, source, defaultValues, onSuccess }: 
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-border text-left text-xs uppercase tracking-wide text-steel-400">
+                  <th className="px-4 py-3">Livrer</th>
                   <th className="px-4 py-3">Article</th>
                   <th className="px-4 py-3">Classement</th>
                   <th className="px-4 py-3">Disponible</th>
@@ -332,29 +349,47 @@ export function LivraisonForm({ sourceType, source, defaultValues, onSuccess }: 
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border">
-                {rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-surface-subtle/70">
-                    <td className="px-4 py-3 font-medium text-steel-900">{row.produitLabel}</td>
-                    <td className="px-4 py-3 text-steel-600">{row.classementLabel}</td>
-                    <td className="px-4 py-3 text-steel-600">
-                      {row.quantiteMax === null ? 'Modifiable' : formatQty(row.quantiteMax)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={quantites[row.id] ?? ''}
-                        onChange={(e) =>
-                          setQuantites((current) => ({
-                            ...current,
-                            [row.id]: e.target.value,
-                          }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((row) => {
+                  const checked = !!selectedRows[row.id]
+
+                  return (
+                    <tr key={row.id} className={checked ? 'hover:bg-surface-subtle/70' : 'bg-surface-subtle/40 text-steel-400'}>
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) =>
+                            setSelectedRows((current) => ({
+                              ...current,
+                              [row.id]: event.target.checked,
+                            }))
+                          }
+                          className="h-4 w-4 rounded border-surface-border text-steel-700 focus:ring-steel-500"
+                        />
+                      </td>
+                      <td className="px-4 py-3 font-medium text-steel-900">{row.produitLabel}</td>
+                      <td className="px-4 py-3 text-steel-600">{row.classementLabel}</td>
+                      <td className="px-4 py-3 text-steel-600">
+                        {row.quantiteMax === null ? 'Modifiable' : formatQty(row.quantiteMax)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Input
+                          type="number"
+                          min="0.001"
+                          step="0.001"
+                          disabled={!checked}
+                          value={quantites[row.id] ?? ''}
+                          onChange={(e) =>
+                            setQuantites((current) => ({
+                              ...current,
+                              [row.id]: e.target.value,
+                            }))
+                          }
+                        />
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

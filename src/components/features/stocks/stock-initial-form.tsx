@@ -61,6 +61,7 @@ export function StockInitialForm({ onSuccess }: StockInitialFormProps) {
       entite_id: 0,
       classement_id: undefined,
       stock_total: 0,
+      cout_unitaire_initial: undefined,
       motif: 'inventaire',
     },
   })
@@ -90,6 +91,10 @@ export function StockInitialForm({ onSuccess }: StockInitialFormProps) {
       entite_id: Number(values.entite_id),
       classement_id: values.entite_type === 'produit' ? values.classement_id : undefined,
       stock_total: Number(values.stock_total),
+      cout_unitaire_initial:
+        values.cout_unitaire_initial !== undefined && Number.isFinite(Number(values.cout_unitaire_initial))
+          ? Number(values.cout_unitaire_initial)
+          : undefined,
       motif: values.motif?.trim() || 'inventaire',
     }
 
@@ -150,6 +155,16 @@ export function StockInitialForm({ onSuccess }: StockInitialFormProps) {
         placeholder="0"
         error={errors.stock_total?.message}
         {...register('stock_total', { valueAsNumber: true })}
+      />
+
+      <Input
+        type="number"
+        min="0"
+        step="0.0001"
+        label="Coût unitaire initial"
+        placeholder="0"
+        error={errors.cout_unitaire_initial?.message}
+        {...register('cout_unitaire_initial', { valueAsNumber: true })}
       />
 
       <Input

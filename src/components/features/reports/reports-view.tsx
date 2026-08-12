@@ -507,6 +507,8 @@ function MouvementsReport({
       if (sortBy === 'retours') return ((a.retours ?? 0) - (b.retours ?? 0)) * direction
       if (sortBy === 'stock_depart') return ((a.stock_depart ?? 0) - (b.stock_depart ?? 0)) * direction
       if (sortBy === 'stock_a_jour') return ((a.stock_a_jour ?? 0) - (b.stock_a_jour ?? 0)) * direction
+      if (sortBy === 'valeur_stock') return ((a.valeur_stock ?? 0) - (b.valeur_stock ?? 0)) * direction
+      if (sortBy === 'cout_unitaire') return ((a.cout_unitaire_pondere ?? 0) - (b.cout_unitaire_pondere ?? 0)) * direction
       if (sortBy === 'designation') {
         return String(a.designation ?? '').localeCompare(String(b.designation ?? ''), 'fr', { numeric: true }) * direction
       }
@@ -582,6 +584,8 @@ function MouvementsReport({
             { value: 'entrees', label: 'Entrées' },
             { value: 'retours', label: 'Retours' },
             { value: 'stock_a_jour', label: 'Stock à jour' },
+            { value: 'cout_unitaire', label: 'CMUP' },
+            { value: 'valeur_stock', label: 'Valeur stock' },
           ]}
           onSortByChange={onSortByChange}
           onSortDirChange={onSortDirChange}
@@ -647,7 +651,10 @@ function MouvementsReport({
                     <th className="px-3 py-2 text-right">Entrée fabrication</th>
                     <th className="px-3 py-2 text-right">Autres entrées</th>
                     <th className="px-3 py-2 text-right">Retours</th>
-                    <th className="px-3 py-2 text-right">Stock à jour</th>
+                    <th className="px-3 py-2 text-right">Stock final</th>
+                    <th className="px-3 py-2 text-right">CMUP</th>
+                    <th className="px-3 py-2 text-right">Valeur stock</th>
+                    <th className="px-3 py-2">Source</th>
                     <th className="px-3 py-2">Motif</th>
                     <th className="px-3 py-2">Client / fournisseur</th>
                   </tr>
@@ -666,7 +673,23 @@ function MouvementsReport({
                       <td className="px-3 py-2 text-right text-emerald-600">{formatQty(row.entree_fabrication)}</td>
                       <td className="px-3 py-2 text-right text-steel-700">{formatQty(row.autres_entrees)}</td>
                       <td className="px-3 py-2 text-right text-amber-600">{formatQty(row.retours)}</td>
-                      <td className="px-3 py-2 text-right font-semibold text-steel-900">{formatQty(row.stock_a_jour)}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-steel-900">
+                        {formatQty(row.stock_a_jour)}
+                      </td>
+                      <td className="px-3 py-2 text-right text-steel-600">
+                        {formatMGA(row.cout_unitaire_pondere)}
+                      </td>
+                      <td className="px-3 py-2 text-right font-semibold text-steel-900">
+                        {formatMGA(row.valeur_stock)}
+                      </td>
+                      <td className="px-3 py-2 text-steel-600">
+                        <div className="font-medium text-steel-800">
+                          {row.source_reference ?? '—'}
+                        </div>
+                        <div className="text-[11px] text-steel-400">
+                          {row.source_label ?? '—'}
+                        </div>
+                      </td>
                       <td className="px-3 py-2 text-steel-600">{row.motif ?? '—'}</td>
                       <td className="px-3 py-2 text-steel-600">{row.tiers ?? '—'}</td>
                     </tr>

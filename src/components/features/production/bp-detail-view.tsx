@@ -759,7 +759,7 @@ function SessionDetailsPanel({ session }: { session: SessionRow }) {
                   </p>
                 </div>
                 <p>Heures de travail:</p><Badge variant="info">{formatDurationHours(line.heures_effectives)}</Badge>
-                <p>TH:</p><Badge variant="info">{formatMGA(line.employe?.poste?.taux_horaire)}</Badge>
+                <p>TH:</p><Badge variant="info">{line.employe?.poste?.taux_horaire}</Badge>
                 <p>Cout:</p><Badge variant="info">{formatMGA(line.cout)}</Badge>
               </div>
             )}
