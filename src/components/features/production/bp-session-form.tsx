@@ -424,7 +424,7 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
               {evenementsArray.fields.map((field, index) => (
                 <div
                   key={field.id}
-                  className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 md:grid-cols-5"
+                  className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 sm:grid-cols-2 xl:grid-cols-5"
                 >
                   <Select
                     label="Type *"
@@ -543,7 +543,7 @@ function ObtenuRow({
   } = useFormContext<SessionBatchSchema>()
 
   return (
-    <div className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 md:grid-cols-5">
+    <div className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 sm:grid-cols-2 xl:grid-cols-5">
       <div className="rounded-md border border-surface-border bg-surface-subtle px-3 py-2 md:col-span-2">
         <p className="text-xs font-medium uppercase tracking-wide text-steel-400">
           Produit obtenu

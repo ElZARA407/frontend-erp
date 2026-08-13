@@ -25,6 +25,7 @@ import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { usePermissions } from '@/lib/hooks/use-permissions'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { SortControl, type SortDirection } from '@/components/ui/sort-control'
+import { TableScroll } from '@/components/ui/table-scroll'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -212,7 +213,8 @@ const [sortDir, setSortDir] = useState<SortDirection>('desc')
             <p className="text-sm font-medium">Aucun bon de réception</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <TableScroll minWidth="920px">
+            <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-surface-border">
                 {['Numéro', 'Fournisseur', 'Site', 'Date', 'Total', 'Statut', ''].map((h) => (
@@ -285,6 +287,7 @@ const [sortDir, setSortDir] = useState<SortDirection>('desc')
               ))}
             </tbody>
           </table>
+          </TableScroll>
         )}
 
         {paginate && (

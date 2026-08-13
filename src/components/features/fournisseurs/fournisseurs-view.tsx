@@ -20,6 +20,9 @@ import { useRouter } from 'next/navigation'
 import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { SortControl, type SortDirection } from '@/components/ui/sort-control'
+import { Upload } from 'lucide-react'
+import { ExcelImportDialog } from '@/components/ui/excel-import-dialog'
+import { useImportFournisseurs } from '@/lib/hooks/use-lot3'
 
 const PAGE_SIZE = 10
 
@@ -34,6 +37,9 @@ export function FournisseursView() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
   const [sortBy, setSortBy] = useState('date')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
+  const [showImportDialog, setShowImportDialog] = useState(false)
+  const importFournisseurs = useImportFournisseurs()
+  
 
   const [showDialog, setShowDialog] = useState(false)
   const [selectedFournisseur, setSelectedFournisseur] = useState<Fournisseur | null>(null)
@@ -74,9 +80,19 @@ export function FournisseursView() {
         title="Fournisseurs"
         subtitle="Gestion des fournisseurs"
         actions={
-          <Button icon={<Plus className="h-3.5 w-3.5" />} onClick={openCreate}>
-            Nouveau fournisseur
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              icon={<Upload className="h-3.5 w-3.5" />}
+              loading={importFournisseurs.isPending}
+              onClick={() => setShowImportDialog(true)}
+            >
+              Importer Excel
+            </Button>
+            <Button icon={<Plus className="h-3.5 w-3.5" />} onClick={openCreate}>
+              Nouveau fournisseur
+            </Button>
+          </div>
         }
       />
 
@@ -262,6 +278,20 @@ export function FournisseursView() {
     deleteFournisseur.mutate(confirmDeleteId, {
       onSuccess: () => setConfirmDeleteId(null),
     })
+  }}
+/>
+
+<ExcelImportDialog
+  open={showImportDialog}
+  onClose={() => setShowImportDialog(false)}
+  title="Importer des fournisseurs"
+  description="Importe les fournisseurs depuis une ou plusieurs feuilles Excel."
+  templateFileName="fournisseurs.xlsx"
+  defaultSheetNames={['fournisseurs']}
+  loading={importFournisseurs.isPending}
+  onImport={async (payload) => {
+    await importFournisseurs.mutateAsync(payload)
+    setShowImportDialog(false)
   }}
 />
     </div>

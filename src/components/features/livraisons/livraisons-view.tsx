@@ -28,6 +28,7 @@ import { usePermissions } from '@/lib/hooks/use-permissions'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 import { LivraisonForm } from './livraison-form'
+import { TableScroll } from '@/components/ui/table-scroll'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -223,6 +224,7 @@ export function LivraisonsView() {
             <p className="text-sm font-medium">Aucune livraison trouvée</p>
           </div>
         ) : (
+         <TableScroll minWidth="1120px">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-surface-border">
@@ -382,6 +384,7 @@ export function LivraisonsView() {
               })}
             </tbody>
           </table>
+          </TableScroll>
         )}
 
         {paginate && (

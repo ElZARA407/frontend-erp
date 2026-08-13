@@ -16,6 +16,9 @@ import type { BpSession } from '@/lib/types'
 import { useRouter } from 'next/navigation'
 import { usePermissions } from '@/lib/hooks/use-permissions'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import { Upload } from 'lucide-react'
+import { useImportProductionSessions } from '@/lib/hooks/use-production'
+import { ExcelImportDialog } from '@/components/ui/excel-import-dialog'
 
 interface ProductionDetailViewProps {
   bpId: number
@@ -215,6 +218,8 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
   const clotureBP = useClotureBP()
   const annulerBP = useAnnulerBP()
   const permissions = usePermissions()
+  const [showSessionImportDialog, setShowSessionImportDialog] = useState(false)
+  const importSessions = useImportProductionSessions()
 
   const sessions = Array.isArray(bp?.sessions) ? (bp.sessions as SessionRow[]) : []
 
@@ -288,13 +293,25 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
               </Button>
             )}
             {bp && bp.statut?.valeur !== 'annule' && bp.statut?.valeur !== 'cloture' && (
-              <Button
-                icon={<Plus className="h-3.5 w-3.5" />}
-                onClick={openSessionDialog}
-              >
-                Nouvelle session
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  icon={<Plus className="h-3.5 w-3.5" />}
+                  onClick={openSessionDialog}
+                >
+                  Nouvelle session
+                </Button>
+
+                <Button
+                  variant="outline"
+                  icon={<Upload className="h-3.5 w-3.5" />}
+                  loading={importSessions.isPending}
+                  onClick={() => setShowSessionImportDialog(true)}
+                >
+                  Importer sessions
+                </Button>
+              </div>
             )}
+            
             <Button
               onClick={() => router.back()}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-steel-700 hover:bg-surface-subtle"
@@ -619,6 +636,20 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
     validateSession.mutate(confirmAction.id, {
       onSuccess: () => setConfirmAction(null),
     })
+  }}
+/>
+
+<ExcelImportDialog
+  open={showSessionImportDialog}
+  onClose={() => setShowSessionImportDialog(false)}
+  title="Importer des sessions de production"
+  description="Crée des sessions ouvertes avec matières, produits obtenus, employés et événements depuis Excel."
+  templateFileName="sessions_production.xlsx"
+  defaultSheetNames={['sessions']}
+  loading={importSessions.isPending}
+  onImport={async (payload) => {
+    await importSessions.mutateAsync({ bpId, payload })
+    setShowSessionImportDialog(false)
   }}
 />
     </div>

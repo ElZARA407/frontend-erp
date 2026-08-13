@@ -88,6 +88,19 @@ export function useDeleteFournisseur() {
   })
 }
 
+export function useImportFournisseurs() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: lot3Api.fournisseurs.importExcel,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: LOT3_KEYS.fournisseurs })
+      toast.success('Import fournisseurs terminé.')
+    },
+    onError: (error) => notifyApiError(error, 'Erreur lors de l’import Excel des fournisseurs.'),
+  })
+}
+
 export function useCreateContrat() {
   const qc = useQueryClient()
   return useMutation({

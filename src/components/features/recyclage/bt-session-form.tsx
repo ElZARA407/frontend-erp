@@ -210,7 +210,7 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
             {sortiesArray.fields.map((field, index) => (
               <div
                 key={field.id}
-                className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 lg:grid-cols-[1fr_180px_180px_40px]"
+                className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 sm:grid-cols-2 xl:grid-cols-[1fr_180px_180px_40px]"
               >
                 <div>
                   <label className="mb-1 block text-xs font-medium text-steel-500">
@@ -283,7 +283,7 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
             {entreesArray.fields.map((field, index) => (
               <div
                 key={field.id}
-                className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 md:grid-cols-[1fr_180px_40px]"
+                className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 sm:grid-cols-2 xl:grid-cols-[1fr_180px_40px]"
               >
                 <Select
                   label="Matière broyée *"
@@ -347,7 +347,7 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
             {employesArray.fields.map((field, index) => (
               <div
                 key={field.id}
-                className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 md:grid-cols-[1fr_180px_40px]"
+                className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 sm:grid-cols-2 xl:grid-cols-[1fr_180px_40px]"
               >
                 <Select
                   label="Employé"
@@ -412,7 +412,7 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
             {evenementsArray.fields.map((field, index) => (
               <div
                 key={field.id}
-                className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 md:grid-cols-[180px_140px_140px_1fr_40px]"
+                className="grid grid-cols-1 gap-3 rounded-lg border border-surface-border p-3 sm:grid-cols-2 xl:grid-cols-[180px_140px_140px_1fr_40px]"
               >
                 <Select
                   label="Type"

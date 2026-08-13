@@ -45,6 +45,21 @@ export const lot3Api = {
       const { data } = await apiClient.delete<ApiResponse<null>>(`/commercial/fournisseurs/${id}`)
       return data
     },
+    importExcel: async ({ file, sheetNames }: { file: File; sheetNames: string[] }) => {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      sheetNames.forEach((sheetName) => {
+        formData.append('sheet_names[]', sheetName)
+      })
+
+      const { data } = await apiClient.post<ApiResponse<unknown>>(
+        '/commercial/fournisseurs/import',
+        formData
+      )
+
+      return data.data
+    },
   },
 
   contrats: {

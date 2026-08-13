@@ -19,6 +19,9 @@ import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { Select } from '@/components/ui/select'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { SortControl, type SortDirection } from '@/components/ui/sort-control'
+import { Upload } from 'lucide-react'
+import { ExcelImportDialog } from '@/components/ui/excel-import-dialog'
+import { useImportClients } from '@/lib/hooks/use-clients'
 
 const PAGE_SIZE = 10
 
@@ -34,6 +37,8 @@ export function ClientsView() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
   const [sortBy, setSortBy] = useState('date')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
+  const [showImportDialog, setShowImportDialog] = useState(false)
+  const importClients = useImportClients()
 
   const router = useRouter()
   const { data, isLoading } = useClients({
@@ -73,9 +78,19 @@ export function ClientsView() {
         title="Clients"
         subtitle={`${paginate?.total ?? 0} client${(paginate?.total ?? 0) > 1 ? 's' : ''}`}
         actions={
-          <Button onClick={openCreate} icon={<Plus className="h-3.5 w-3.5" />}>
-            Nouveau client
-          </Button>
+          <div>
+            <Button
+              variant="outline"
+              icon={<Upload className="h-3.5 w-3.5" />}
+              loading={importClients.isPending}
+              onClick={() => setShowImportDialog(true)}
+            >
+              Importer Excel
+            </Button>
+            <Button onClick={openCreate} icon={<Plus className="h-3.5 w-3.5" />}>
+              Nouveau client
+            </Button>
+          </div>
         }
       />
 
@@ -279,6 +294,19 @@ export function ClientsView() {
     deleteClient.mutate(confirmDeleteId, {
       onSuccess: () => setConfirmDeleteId(null),
     })
+  }}
+/>
+<ExcelImportDialog
+  open={showImportDialog}
+  onClose={() => setShowImportDialog(false)}
+  title="Importer des clients"
+  description="Importe les clients depuis une ou plusieurs feuilles Excel."
+  templateFileName="clients.xlsx"
+  defaultSheetNames={['clients']}
+  loading={importClients.isPending}
+  onImport={async (payload) => {
+    await importClients.mutateAsync(payload)
+    setShowImportDialog(false)
   }}
 />
     </div>

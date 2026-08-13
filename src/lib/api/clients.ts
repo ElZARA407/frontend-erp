@@ -17,6 +17,11 @@ export interface ClientFilters {
 sort_dir?: 'asc' | 'desc'
 }
 
+export interface ExcelImportPayload {
+  file: File
+  sheetNames: string[]
+}
+
 export const clientsApi = {
   list: async (filters: ClientFilters = {}) => {
     const { data } = await apiClient.get(`/commercial/clients${buildQueryString(filters)}`)
@@ -44,6 +49,22 @@ export const clientsApi = {
 
   encours: async (id: number) => {
     const { data } = await apiClient.get<ApiResponse<unknown>>(`/commercial/clients/${id}/encours`)
+    return data.data
+  },
+
+  importExcel: async ({ file, sheetNames }: ExcelImportPayload) => {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    sheetNames.forEach((sheetName) => {
+      formData.append('sheet_names[]', sheetName)
+    })
+
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      '/commercial/clients/import',
+      formData
+    )
+
     return data.data
   },
 }

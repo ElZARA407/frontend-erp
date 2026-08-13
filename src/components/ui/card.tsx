@@ -6,7 +6,8 @@ export function Card({ className, children, ...props }: React.HTMLAttributes<HTM
     <div
       {...props}
       className={cn(
-        'min-w-0 overflow-x-auto rounded-lg border border-surface-border bg-white shadow-card [&_table:not([class*="min-w-"])]:min-w-[760px]',
+        'min-w-0 overflow-hidden rounded-lg border border-surface-border bg-white shadow-card',
+        '[&_table:not([class*="min-w-"])]:min-w-[720px]',
         className
       )}
     >
@@ -20,7 +21,7 @@ export function CardHeader({ className, children, ...props }: React.HTMLAttribut
     <div
       {...props}
       className={cn(
-        'flex flex-col gap-3 border-b border-surface-border px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5',
+        'flex min-w-0 flex-col gap-3 border-b border-surface-border px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5',
         className
       )}
     >

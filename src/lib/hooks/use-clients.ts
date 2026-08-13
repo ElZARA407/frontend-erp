@@ -58,3 +58,16 @@ export function useDeleteClient() {
     onError: (error) => notifyApiError(error, 'Impossible de supprimer ce client.'),
   })
 }
+
+export function useImportClients() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: clientsApi.importExcel,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: CLIENTS_KEY })
+      toast.success('Import clients terminé.')
+    },
+    onError: (error) => notifyApiError(error, 'Erreur lors de l’import Excel des clients.'),
+  })
+}

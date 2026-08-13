@@ -201,3 +201,23 @@ export function useCoutMoyenBonProduction(bpId: number) {
     staleTime: 30_000,
   })
 }
+
+export function useImportProductionSessions() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      bpId,
+      payload,
+    }: {
+      bpId: number
+      payload: { file: File; sheetNames: string[] }
+    }) => productionApi.importSessions(bpId, payload),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
+      qc.invalidateQueries({ queryKey: ['production', variables.bpId] })
+      toast.success('Import sessions production terminé.')
+    },
+    onError: (error) => notifyApiError(error, 'Erreur lors de l’import Excel des sessions.'),
+  })
+}

@@ -22,6 +22,7 @@ import { CommandeForm } from './commande-form'
 import { LivraisonForm } from '../livraisons/livraison-form'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { SortControl, type SortDirection } from '@/components/ui/sort-control'
+import { TableScroll } from '@/components/ui/table-scroll'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -228,7 +229,8 @@ export function CommandesView() {
             <p className="text-sm font-medium">Aucune commande trouvée</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <TableScroll minWidth="980px">
+            <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-surface-border">
                 {['Numéro', 'Client', 'Date', 'Livraison prévue', 'Montant', 'Statut', ''].map((h) => (
@@ -296,7 +298,8 @@ export function CommandesView() {
                 )
               })}
             </tbody>
-          </table>
+            </table>
+        </TableScroll>
         )}
 
         {paginate && (

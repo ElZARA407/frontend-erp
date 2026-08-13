@@ -221,4 +221,23 @@ export const productionApi = {
 
     return data.data
   },
+
+  importSessions: async (
+    bpId: number,
+    { file, sheetNames }: { file: File; sheetNames: string[] }
+  ) => {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    sheetNames.forEach((sheetName) => {
+      formData.append('sheet_names[]', sheetName)
+    })
+
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `/production/bons-production/${bpId}/sessions/import`,
+      formData
+    )
+
+    return data.data
+  },
 }
