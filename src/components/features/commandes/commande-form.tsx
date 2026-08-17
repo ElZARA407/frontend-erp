@@ -34,16 +34,31 @@ interface CommandeFormProps {
 type CommandeFormValues = CommandeSchema
 type CommandeLineFormValues = CommandeFormValues['lignes'][number]
 
+
+function getFictifStock(item: {
+  stock_disponible_fictif?: number
+  stock_disponible?: number
+  stock_total?: number
+}) {
+  return Number(item.stock_disponible_fictif ?? item.stock_disponible ?? item.stock_total ?? 0)
+}
+
 function getAvailableClassements(product?: CatalogueProduct | null) {
   const stockList = Array.isArray(product?.stocks_par_qualite) ? product.stocks_par_qualite : []
 
   return stockList
-    .filter((item) => Number(item.stock_total) > 0 && Number(item.classement_id) > 0)
-    .map((item) => ({
-      value: Number(item.classement_id),
-      label: item.libelle ?? item.qualite ?? `Classement #${item.classement_id}`,
-      stock_total: Number(item.stock_total) || 0,
-    }))
+    .filter((item) => Number(item.classement_id) > 0)
+    .map((item) => {
+      const stockFictif = getFictifStock(item)
+
+      return {
+        value: Number(item.classement_id),
+        label: item.libelle ?? item.qualite ?? `Classement #${item.classement_id}`,
+        stock_total: stockFictif,
+        stock_reel: Number(item.stock_total) || 0,
+        stock_reserve: Number(item.stock_reserve) || 0,
+      }
+    })
 }
 
 function createEmptyLine(): CommandeLineFormValues {
@@ -54,6 +69,7 @@ function createEmptyLine(): CommandeLineFormValues {
     prix_unitaire: 0,
   }
 }
+
 
 export function CommandeForm({ onSuccess }: CommandeFormProps) {
   const createCommande = useCreateCommande()
@@ -71,6 +87,7 @@ export function CommandeForm({ onSuccess }: CommandeFormProps) {
     control,
     handleSubmit,
     setValue,
+    setError,
     getValues,
     formState: { errors },
   } = useForm<CommandeFormValues>({
@@ -199,6 +216,30 @@ const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.dat
   )
 
   const onSubmit = (values: CommandeFormValues) => {
+    let hasStockError = false
+
+    values.lignes.forEach((ligne, index) => {
+      const product = eligibleProducts.find((item) => item.id === Number(ligne.produit_id))
+      const classement = getAvailableClassements(product).find(
+        (item) => item.value === Number(ligne.classement_id),
+      )
+
+      const available = Number(classement?.stock_total ?? 0)
+      const quantity = Number(ligne.quantite ?? 0)
+
+      if (quantity > available) {
+        hasStockError = true
+        setError(`lignes.${index}.quantite`, {
+          type: 'manual',
+          message: `Stock disponible insuffisant. Disponible fictif : ${formatQty(available)}. Une partie du stock est déjà réservée par des commandes, ventes directes ou bons de sortie non livrés.`,
+        })
+      }
+    })
+
+    if (hasStockError) {
+      return
+    }
+
     const payload: CreateCommandePayload = {
       client_id: Number(values.client_id),
       date: values.date,
@@ -423,7 +464,7 @@ function CommandeLineRow({
             label="Classement *"
             options={classementOptions.map((option) => ({
               value: option.value,
-              label: `${option.label}${option.stock_total > 0 ? ` (${formatQty(option.stock_total)})` : ''}`,
+              label: `${option.label} (${formatQty(option.stock_total)})`,
             }))}
             placeholder={
               classementOptions.length

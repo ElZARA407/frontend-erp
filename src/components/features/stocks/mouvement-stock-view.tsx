@@ -279,10 +279,23 @@ export function MouvementStockView({
           </CardBody>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] text-sm">
+            <table className="w-full min-w-[1250px] text-sm">
               <thead>
                 <tr className="border-b border-surface-border">
-                  {['Date', 'Localisation', 'Type', 'Article', 'Classement', 'Quantité', 'Impact', 'Source', 'Motif', 'Utilisateur'].map((label) => (
+                  {[
+                    'Date',
+                    'Localisation',
+                    'Type',
+                    'Article',
+                    'Classement',
+                    'Stock départ',
+                    'Quantité',
+                    'Impact',
+                    'Stock à jour',
+                    'Source',
+                    'Motif',
+                    'Utilisateur',
+                  ].map((label) => (
                     <th
                       key={label}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
@@ -321,8 +334,16 @@ export function MouvementStockView({
                       <td className="px-4 py-3 text-steel-600">
                         {m.classement?.libelle ?? m.classement?.designation ?? '—'}
                       </td>
+                      <td className="px-4 py-3 text-steel-600">
+                        {m.stock_depart !== null && m.stock_depart !== undefined ? formatQty(m.stock_depart) : '—'}
+                      </td>
                       <td className="px-4 py-3 text-steel-600">{formatQty(m.quantite)}</td>
-                      <td className="px-4 py-3 text-steel-600">{formatQty(m.impact_stock)}</td>
+                      <td className={typeValue === 'sortie' ? 'px-4 py-3 text-red-600' : 'px-4 py-3 text-emerald-600'}>
+                        {formatQty(m.impact_stock)}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-steel-900">
+                        {m.stock_a_jour !== null && m.stock_a_jour !== undefined ? formatQty(m.stock_a_jour) : '—'}
+                      </td>
                       <td className="px-4 py-3 text-xs text-steel-500">
                         <div className="font-medium text-steel-800">
                           {m.source_reference ?? `${m.reference_type} #${m.reference_id}`}

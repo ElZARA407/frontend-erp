@@ -56,6 +56,8 @@ type StockProductOption = {
     value: number
     label: string
     stock_total: number
+    stock_reel: number
+    stock_reserve: number
   }>
 }
 
@@ -67,13 +69,19 @@ function createEmptyLine(): BonSortieLineFormValues {
   }
 }
 
+function getFictifStock(stock: Stock) {
+  return Number(stock.stock_disponible_fictif ?? stock.stock_disponible ?? stock.stock_total ?? 0)
+}
+
 function buildProductOptionsFromStocks(stocks: Stock[]): StockProductOption[] {
   const grouped = new Map<number, StockProductOption>()
 
   for (const stock of stocks) {
     if (stock.entite_type !== 'produit') continue
-    if (!stock.entite_id || Number(stock.stock_total) <= 0) continue
+    if (!stock.entite_id) continue
     if (!stock.classement?.id) continue
+
+    const stockFictif = getFictifStock(stock)
 
     const productId = Number(stock.entite_id)
     const designation = stock.entite?.designation ?? stock.entite?.nom ?? `Produit #${productId}`
@@ -87,7 +95,9 @@ function buildProductOptionsFromStocks(stocks: Stock[]): StockProductOption[] {
         stock.classement.designation ??
         stock.classement.qualite ??
         `Classement #${stock.classement.id}`,
-      stock_total: Number(stock.stock_total) || 0,
+      stock_total: stockFictif,
+      stock_reel: Number(stock.stock_total) || 0,
+      stock_reserve: Number(stock.stock_reserve) || 0,
     }
 
     if (existing) {
@@ -136,6 +146,7 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
     control,
     handleSubmit,
     setValue,
+    setError,
     getValues,
     formState: { errors },
   } = useForm<BonSortieFormValues>({
@@ -233,6 +244,30 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
   const totalQuantite = lignes.reduce((sum, ligne) => sum + (Number(ligne.quantite) || 0), 0)
 
   const onSubmit = (values: BonSortieFormValues) => {
+    let hasStockError = false
+
+    values.lignes.forEach((ligne, index) => {
+      const product = stockProductOptions.find((item) => item.id === Number(ligne.produit_id))
+      const classement = product?.classements.find(
+        (item) => item.value === Number(ligne.classement_id),
+      )
+
+      const available = Number(classement?.stock_total ?? 0)
+      const quantity = Number(ligne.quantite ?? 0)
+
+      if (quantity > available) {
+        hasStockError = true
+        setError(`lignes.${index}.quantite`, {
+          type: 'manual',
+          message: `Stock disponible insuffisant. Disponible fictif : ${formatQty(available)}. Ce stock est déjà réservé par des documents non livrés.`,
+        })
+      }
+    })
+
+    if (hasStockError) {
+      return
+    }
+
     const payload: BonSortieSchema = {
       location_id: Number(values.location_id),
       destination_location_id:
@@ -483,7 +518,7 @@ function BonSortieLineRow({
             placeholder={
               classementOptions.length
                 ? 'Choisir un classement'
-                : 'Choisir d’abord un produit avec stock'
+                : 'Choisir d’abord un produit'
             }
             error={errors.lignes?.[index]?.classement_id?.message}
             disabled={!classementOptions.length}

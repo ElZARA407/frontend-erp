@@ -677,7 +677,7 @@ function MouvementsReport({
                         {formatQty(row.stock_a_jour)}
                       </td>
                       <td className="px-3 py-2 text-right text-steel-600">
-                        {formatMGA(row.cout_unitaire_pondere)}
+                        {row.cout_unitaire_pondere}
                       </td>
                       <td className="px-3 py-2 text-right font-semibold text-steel-900">
                         {formatMGA(row.valeur_stock)}

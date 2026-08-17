@@ -45,6 +45,9 @@ export interface CatalogueProduct {
     qualite: string
     libelle: string
     stock_total: number
+    stock_disponible?: number
+    stock_reserve?: number
+    stock_disponible_fictif?: number
   }>
   created_at?: string
 }

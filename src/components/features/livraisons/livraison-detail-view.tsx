@@ -37,6 +37,10 @@ type LivraisonDetail = {
   lignes?: Array<{
     id: number
     quantite_livree: number
+    produit?: {
+      id: number
+      designation: string
+    } | null
     classement?: {
       id: number
       designation: string
@@ -298,7 +302,7 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-border">
-                  {['Classement', 'Quantité livrée', 'Ligne'].map((h) => (
+                  {['Produit', 'Quantité livrée', 'Ligne'].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
@@ -312,7 +316,7 @@ export function LivraisonDetailView({ livraisonId }: LivraisonDetailViewProps) {
                 {lignes.map((ligne) => (
                   <tr key={ligne.id} className="transition-colors hover:bg-surface-muted/60">
                     <td className="px-4 py-3 font-medium text-steel-900">
-                      {ligne.classement?.designation ?? '—'}
+                      {ligne.produit?.designation ?? '—'}
                     </td>
                     <td className="px-4 py-3 text-steel-600">{formatQty(ligne.quantite_livree)}</td>
                     <td className="px-4 py-3 text-xs text-steel-500">#{ligne.id}</td>

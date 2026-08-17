@@ -57,6 +57,8 @@ export interface ClassementProduit {
   actif: boolean
   stock_disponible?: number
   produit?: { id: number; nomencla: string; designation: string }
+  stock_reserve?: number
+  stock_disponible_fictif?: number
 }
 
 export interface Produit {
@@ -169,6 +171,9 @@ export interface Stock {
   entite_type: 'matiere' | 'produit'
   entite_id: number
   stock_total: number
+  stock_disponible?: number
+  stock_reserve?: number
+  stock_disponible_fictif?: number
   cout_unitaire_initial?: number | null
   en_rupture: boolean
   seuil?: number | null
@@ -188,6 +193,8 @@ export interface MouvementStock {
   impact_stock: number
   reference_type: string
   reference_id: number
+  stock_depart?: number | null
+  stock_a_jour?: number | null
   source_reference?: string | null
   source_label?: string | null
   motif?: string | null
