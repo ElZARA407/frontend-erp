@@ -136,6 +136,7 @@ const ACTION_MATRIX: Record<AppRole, Partial<Record<PermissionAction, boolean>>>
     view: true,
     create: true,
     update: true,
+    approve: true,
     cancel: true,
     export: true,
     deliver: true,

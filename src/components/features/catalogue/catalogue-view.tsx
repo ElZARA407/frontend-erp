@@ -27,7 +27,6 @@ import {
   useProducts,
 } from '@/lib/hooks/use-catalogue'
 import type {
-  CatalogueCategory,
   CatalogueMatiere,
   CatalogueProduct,
 } from '@/lib/catalogue.types'
@@ -40,6 +39,44 @@ import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 type CatalogueTab = 'categories' | 'produits' | 'matieres'
 
 const PAGE_SIZE = 10
+
+
+function getProductStockFictif(product: CatalogueProduct) {
+  const stocks = Array.isArray(product.stocks_par_qualite) ? product.stocks_par_qualite : []
+
+  return stocks.reduce(
+    (sum, stock) => sum + Number(stock.stock_disponible_fictif ?? stock.stock_disponible ?? stock.stock_total ?? 0),
+    0,
+  )
+}
+
+function getProductQualitesLabel(product: CatalogueProduct) {
+  const stocks = Array.isArray(product.stocks_par_qualite) ? product.stocks_par_qualite : []
+
+  if (stocks.length === 0) return 'Aucune qualité'
+
+  return stocks
+    .map((stock) => {
+      const label = stock.libelle ?? stock.qualite ?? `Q#${stock.classement_id}`
+      const qty = Number(stock.stock_disponible_fictif ?? stock.stock_disponible ?? stock.stock_total ?? 0)
+
+      return `${label} (${formatQty(qty)})`
+    })
+    .join(' / ')
+}
+
+function getProductPrixLabel(product: CatalogueProduct) {
+  const stocks = Array.isArray(product.stocks_par_qualite) ? product.stocks_par_qualite : []
+
+  if (stocks.length === 0) return '—'
+
+  return stocks
+    .map((stock) => {
+      const label = stock.libelle ?? stock.qualite ?? `Q#${stock.classement_id}`
+      return `${label}: ${formatMGA(Number(stock.prix_unitaire ?? 0))}`
+    })
+    .join(' / ')
+}
 
 export function CatalogueView() {
   const router = useRouter()
@@ -118,7 +155,6 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
   const productsPageData = productsPage?.data
   const matieresPageData = matieresPage?.data
 
-  const createCategory = useCreateCategory()
   const deleteCategory = useDeleteCategory()
   const deleteProduct = useDeleteProduct()
   const deleteMatiere = useDeleteMatiere()
@@ -471,8 +507,9 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
                         <th className="px-4 py-3">Nomencla</th>
                         <th className="px-4 py-3">Désignation</th>
                         <th className="px-4 py-3">Catégorie</th>
-                        <th className="px-4 py-3">Classements</th>
+                        <th className="px-4 py-3">Stock</th>
                         <th className="px-4 py-3">Actif</th>
+                        <th className="px-4 py-3">Prix unitaire</th>
                         <th className="px-4 py-3">Créé le</th>
                         <th className="px-4 py-3" />
                       </tr>
@@ -490,13 +527,14 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
                             <Badge variant="info">{product.categorie?.nom ?? '—'}</Badge>
                           </td>
                           <td className="px-4 py-3 text-steel-600">
-                            {product.stocks_par_qualite?.[0]?.libelle ?? 'Aucune qualité'}
+                            {getProductQualitesLabel(product)}
                           </td>
                           <td className="px-4 py-3">
                             <Badge variant={product.actif ? 'success' : 'muted'} dot>
                               {product.actif ? 'Actif' : 'Inactif'}
                             </Badge>
                           </td>
+                          <td className="px-4 py-3 text-steel-600">{getProductPrixLabel(product)}</td>
                           <td className="px-4 py-3 text-steel-500">
                             {formatDate(product.created_at)}
                           </td>

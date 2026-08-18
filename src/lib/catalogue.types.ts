@@ -41,6 +41,7 @@ export interface CatalogueProduct {
     nom: CatalogueCategoryName
   }
   stocks_par_qualite?: Array<{
+    prix_unitaire?: number
     classement_id: number
     qualite: string
     libelle: string
