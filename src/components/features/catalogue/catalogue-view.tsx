@@ -478,6 +478,7 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
               options={[
                 { value: 'date', label: 'Date' },
                 { value: 'designation', label: 'Désignation' },
+                { value: 'reference', label: 'Référence' },
               ]}
               onSortByChange={(value) => {
                 setProductSortBy(value)
@@ -679,6 +680,7 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
               options={[
                 { value: 'date', label: 'Date' },
                 { value: 'nom', label: 'Nom' },
+                { value: 'reference', label: 'Référence' },
               ]}
               onSortByChange={(value) => {
                 setMatiereSortBy(value)

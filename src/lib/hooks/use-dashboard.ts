@@ -1,13 +1,12 @@
-// src/lib/hooks/use-dashboard.ts
 import { useQuery } from '@tanstack/react-query'
-import { dashboardApi } from '../api/dashboard'
+import { dashboardApi, type DashboardFilters } from '../api/dashboard'
 
 export const DASHBOARD_KEY = ['dashboard'] as const
 
-export function useDashboard() {
+export function useDashboard(filters: DashboardFilters = {}) {
   return useQuery({
-    queryKey: DASHBOARD_KEY,
-    queryFn: dashboardApi.index,
+    queryKey: [...DASHBOARD_KEY, 'overview', filters],
+    queryFn: () => dashboardApi.index(filters),
     staleTime: 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
   })

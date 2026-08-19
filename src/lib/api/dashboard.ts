@@ -1,10 +1,19 @@
-// src/lib/api/dashboard.ts
 import apiClient from './client'
 import type { ApiResponse, DashboardAlerte, DashboardKpi, LegacyDashboardKpi } from '../types'
+import { buildQueryString } from '../utils'
+
+export interface DashboardFilters {
+  date_debut?: string
+  date_fin?: string
+  produit_id?: number
+  [key: string]: unknown
+}
 
 export const dashboardApi = {
-  index: async () => {
-    const { data } = await apiClient.get<ApiResponse<DashboardKpi>>('/dashboard')
+  index: async (filters: DashboardFilters = {}) => {
+    const { data } = await apiClient.get<ApiResponse<DashboardKpi>>(
+      `/dashboard${buildQueryString(filters)}`,
+    )
     return data.data
   },
 
@@ -30,7 +39,7 @@ export const dashboardApi = {
 
   pilotage: async () => {
     const { data } = await apiClient.get<ApiResponse<{ alertes: DashboardAlerte[]; generated_at: string }>>(
-      '/dashboard/pilotage'
+      '/dashboard/pilotage',
     )
     return data.data
   },

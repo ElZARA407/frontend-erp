@@ -399,6 +399,9 @@ export interface DashboardPoint {
   total?: number
   entrees?: number
   sorties?: number
+  quantite?: number
+  solde?: number
+  cumul?: number
 }
 
 export interface DashboardTopItem {
@@ -443,6 +446,7 @@ export interface DashboardKpi {
     produits_sous_minimum: number
     matieres_sous_minimum: number
     references_stock: number
+    
   }
   charts: {
     ventes_30_jours: DashboardPoint[]

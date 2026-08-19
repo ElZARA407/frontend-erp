@@ -1,192 +1,269 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, type HTMLAttributes } from 'react'
-import { ChevronDown, Search } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
+import { Check, ChevronDown, Search, X } from 'lucide-react'
 
-export interface SearchableSelectOption {
+export type SearchableSelectOption = {
   value: string | number
   label: string
   description?: string
   disabled?: boolean
 }
 
-interface SearchableSelectProps extends HTMLAttributes<HTMLDivElement> {
-  id?: string
+interface SearchableSelectProps {
   label?: string
-  error?: string
+  value?: string | number | null
   options: SearchableSelectOption[]
-  value: string | number | null | undefined
-  onValueChange: (value: string) => void
   placeholder?: string
   searchPlaceholder?: string
   noOptionsMessage?: string
+  error?: string
   disabled?: boolean
+  className?: string
+  onValueChange: (value: string | number | null) => void
 }
 
 export function SearchableSelect({
-  id,
   label,
-  error,
-  options,
   value,
-  onValueChange,
-  placeholder = 'Sélectionner...',
+  options,
+  placeholder = 'Sélectionner',
   searchPlaceholder = 'Rechercher...',
   noOptionsMessage = 'Aucun résultat.',
+  error,
   disabled = false,
-  className,
-  ...props
+  className = '',
+  onValueChange,
 }: SearchableSelectProps) {
   const rootRef = useRef<HTMLDivElement | null>(null)
-  const inputRef = useRef<HTMLInputElement | null>(null)
-  const [open, setOpen] = useState(false)
-  const [query, setQuery] = useState('')
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
 
-  const selectId = id ?? `searchable-select-${label?.toLowerCase().replace(/\s+/g, '-') ?? 'field'}`
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({})
+
+  const normalizedValue = value === undefined || value === null ? '' : String(value)
+
   const selectedOption = useMemo(
-    () => options.find((option) => String(option.value) === String(value)) ?? null,
-    [options, value],
+    () => options.find((option) => String(option.value) === normalizedValue),
+    [normalizedValue, options],
   )
 
   const filteredOptions = useMemo(() => {
-    const needle = query.trim().toLowerCase()
+    const term = search.trim().toLowerCase()
 
-    if (!needle) {
-      return options
-    }
+    if (!term) return options
 
     return options.filter((option) => {
-      const haystack = [option.label, option.description]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
+      const label = option.label.toLowerCase()
+      const description = option.description?.toLowerCase() ?? ''
 
-      return haystack.includes(needle)
+      return label.includes(term) || description.includes(term)
     })
-  }, [options, query])
+  }, [options, search])
 
   useEffect(() => {
-    if (!open) {
-      setQuery('')
-      return
+    if (!open || !triggerRef.current) return
+
+    const updatePosition = () => {
+      const rect = triggerRef.current?.getBoundingClientRect()
+      if (!rect) return
+
+      const viewportHeight = window.innerHeight
+      const maxHeight = 280
+      const spaceBelow = viewportHeight - rect.bottom - 8
+      const spaceAbove = rect.top - 8
+      const shouldOpenUp = spaceBelow < 180 && spaceAbove > spaceBelow
+
+      setDropdownStyle({
+        left: rect.left,
+        width: rect.width,
+        maxHeight,
+        top: shouldOpenUp ? undefined : rect.bottom + 4,
+        bottom: shouldOpenUp ? viewportHeight - rect.top + 4 : undefined,
+      })
     }
 
-    inputRef.current?.focus()
+    updatePosition()
+
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
   }, [open])
 
   useEffect(() => {
+    if (!open) return
+
+    const timer = window.setTimeout(() => {
+      searchInputRef.current?.focus()
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+
     const handlePointerDown = (event: MouseEvent) => {
-      if (!rootRef.current) return
-      if (!rootRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+
+      if (rootRef.current?.contains(target)) return
+
+      const dropdown = document.getElementById('searchable-select-dropdown')
+      if (dropdown?.contains(target)) return
+
+      setOpen(false)
+      setSearch('')
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
         setOpen(false)
+        setSearch('')
+        triggerRef.current?.focus()
       }
     }
 
     document.addEventListener('mousedown', handlePointerDown)
-    return () => document.removeEventListener('mousedown', handlePointerDown)
-  }, [])
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [open])
+
+  const handleSelect = (option: SearchableSelectOption) => {
+    if (option.disabled) return
+
+    onValueChange(option.value)
+    setOpen(false)
+    setSearch('')
+  }
+
+  const handleClear = () => {
+    onValueChange(null)
+    setSearch('')
+  }
 
   return (
-    <div ref={rootRef} className={cn('flex min-w-0 flex-col gap-1.5', className)} {...props}>
+    <div ref={rootRef} className={className}>
       {label && (
-        <label htmlFor={selectId} className="text-xs font-medium text-steel-700">
+        <label className="mb-1.5 block text-sm font-medium text-steel-700">
           {label}
         </label>
       )}
 
       <div className="relative">
         <button
-          id={selectId}
+          ref={triggerRef}
           type="button"
           disabled={disabled}
-          aria-haspopup="listbox"
-          aria-expanded={open}
           onClick={() => {
-            if (disabled) return
-            setOpen((prev) => !prev)
-            setQuery('')
+            if (!disabled) setOpen((current) => !current)
           }}
-          className={cn(
-            'flex h-9 w-full items-center justify-between gap-3 rounded-md border border-surface-border bg-white px-3 text-left text-sm',
-            'transition-colors focus:border-steel-500 focus:outline-none focus:ring-1 focus:ring-steel-500/30',
-            'disabled:cursor-not-allowed disabled:opacity-60',
-            error && 'border-red-400 focus:border-red-500 focus:ring-red-500/20',
-            open && 'border-steel-500 ring-1 ring-steel-500/30',
-            !selectedOption && 'text-steel-400',
-          )}
+          className={[
+            'flex h-10 w-full items-center justify-between gap-2 rounded-md border bg-white px-3 text-left text-sm outline-none transition',
+            error
+              ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-100'
+              : 'border-surface-border focus:border-primary-500 focus:ring-2 focus:ring-primary-100',
+            disabled
+              ? 'cursor-not-allowed bg-surface-subtle text-steel-400'
+              : 'text-steel-900 hover:border-primary-300',
+          ].join(' ')}
         >
-          <span className="min-w-0 flex-1 truncate">
-            {selectedOption ? selectedOption.label : placeholder}
+          <span className={selectedOption ? 'truncate' : 'truncate text-steel-400'}>
+            {selectedOption?.label ?? placeholder}
           </span>
-          <ChevronDown
-            className={cn('h-4 w-4 flex-none text-steel-400 transition-transform', open && 'rotate-180')}
-          />
+
+          <span className="flex shrink-0 items-center gap-1">
+            {selectedOption && !disabled && (
+              <span
+                role="button"
+                tabIndex={-1}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  handleClear()
+                }}
+                className="rounded p-0.5 text-steel-400 hover:bg-surface-subtle hover:text-steel-700"
+              >
+                <X className="h-3.5 w-3.5" />
+              </span>
+            )}
+            <ChevronDown
+              className={[
+                'h-4 w-4 text-steel-400 transition-transform',
+                open ? 'rotate-180' : '',
+              ].join(' ')}
+            />
+          </span>
         </button>
 
-        {open && !disabled && (
-          <div className="absolute z-30 mt-1 w-full rounded-md border border-surface-border bg-white shadow-lg">
+        {open && (
+          <div
+            id="searchable-select-dropdown"
+            style={dropdownStyle}
+            className="fixed z-[9999] overflow-hidden rounded-md border border-surface-border bg-white shadow-xl"
+          >
             <div className="border-b border-surface-border p-2">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-steel-400" />
+              <div className="flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-2">
+                <Search className="h-3.5 w-3.5 shrink-0 text-steel-400" />
                 <input
-                  ref={inputRef}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
-                      e.preventDefault()
-                      setOpen(false)
-                    }
-
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      const first = filteredOptions[0]
-                      if (first && !first.disabled) {
-                        onValueChange(String(first.value))
-                        setOpen(false)
-                        setQuery('')
-                      }
-                    }
-                  }}
+                  ref={searchInputRef}
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
                   placeholder={searchPlaceholder}
-                  className={cn(
-                    'h-8 w-full rounded-md border border-surface-border bg-white pl-9 pr-3 text-sm',
-                    'placeholder:text-steel-400 focus:border-steel-500 focus:outline-none focus:ring-1 focus:ring-steel-500/30',
-                  )}
+                  className="h-full min-w-0 flex-1 border-0 bg-transparent text-sm text-steel-900 outline-none placeholder:text-steel-400"
                 />
               </div>
             </div>
 
-            <div className="max-h-64 overflow-y-auto py-1">
+            <div className="max-h-[240px] overflow-y-auto py-1">
               {filteredOptions.length === 0 ? (
-                <p className="px-3 py-4 text-sm text-steel-400">{noOptionsMessage}</p>
+                <div className="px-3 py-6 text-center text-sm text-steel-400">
+                  {noOptionsMessage}
+                </div>
               ) : (
                 filteredOptions.map((option) => {
-                  const isSelected = String(option.value) === String(value)
+                  const selected = String(option.value) === normalizedValue
 
                   return (
                     <button
                       key={String(option.value)}
                       type="button"
                       disabled={option.disabled}
-                      onClick={() => {
-                        if (option.disabled) return
-                        onValueChange(String(option.value))
-                        setOpen(false)
-                        setQuery('')
-                      }}
-                      className={cn(
-                        'flex w-full flex-col gap-0.5 px-3 py-2 text-left text-sm transition-colors',
-                        'hover:bg-surface-subtle',
-                        isSelected && 'bg-surface-subtle text-steel-900',
-                        option.disabled && 'cursor-not-allowed opacity-50',
-                      )}
+                      onClick={() => handleSelect(option)}
+                      className={[
+                        'flex w-full items-start justify-between gap-3 px-3 py-2 text-left text-sm transition',
+                        selected ? 'bg-primary-50 text-primary-700' : 'text-steel-700',
+                        option.disabled
+                          ? 'cursor-not-allowed opacity-50'
+                          : 'hover:bg-surface-subtle',
+                      ].join(' ')}
                     >
-                      <span className="truncate font-medium">{option.label}</span>
-                      {option.description && (
-                        <span className="truncate text-xs text-steel-500">{option.description}</span>
-                      )}
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">
+                          {option.label}
+                        </span>
+                        {option.description && (
+                          <span className="mt-0.5 block truncate text-xs text-steel-400">
+                            {option.description}
+                          </span>
+                        )}
+                      </span>
+
+                      {selected && <Check className="mt-0.5 h-4 w-4 shrink-0" />}
                     </button>
                   )
                 })
@@ -196,7 +273,7 @@ export function SearchableSelect({
         )}
       </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   )
 }

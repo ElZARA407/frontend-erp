@@ -33,7 +33,7 @@ const ENTITY_OPTIONS = [
 ]
 
 const STOCK_MODE_OPTIONS: Array<{ value: StockMode; label: string }> = [
-  { value: 'inventaire', label: 'Inventaire' },
+  { value: 'inventaire', label: 'Disponible' },
   { value: 'ruptures', label: 'Rupture' },
 ]
 
@@ -347,8 +347,10 @@ export function StocksView() {
               sortBy={stockSortBy}
               sortDir={stockSortDir}
               options={[
+                { value: 'reference', label: 'Référence' },
                 { value: 'date', label: 'Dernière mise à jour' },
                 { value: 'quantite', label: 'Quantité' },
+                { value: 'designation', label: 'Désignation' },
                 { value: 'type', label: 'Type article' },
               ]}
               onSortByChange={(value) => {
