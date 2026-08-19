@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm, type Resolver } from 'react-hook-form'
+import { useForm, type Resolver,useWatch } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -49,7 +49,7 @@ export function StockInitialForm({ onSuccess }: StockInitialFormProps) {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     reset,
     formState: { errors },
@@ -66,7 +66,7 @@ export function StockInitialForm({ onSuccess }: StockInitialFormProps) {
     },
   })
 
-  const entiteType = watch('entite_type')
+  const entiteType = useWatch({ control, name: 'entite_type' })
 
   useEffect(() => {
     setValue('entite_id', 0, { shouldValidate: true, shouldDirty: true })

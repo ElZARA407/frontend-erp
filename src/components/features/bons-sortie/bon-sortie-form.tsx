@@ -139,7 +139,10 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
   const { data: locationsData } = useLocations()
 
   const clients = Array.isArray(clientsPage?.data?.data) ? clientsPage.data.data : []
-  const locations = Array.isArray(locationsData) ? locationsData : []
+  const locations = useMemo(
+    () => (Array.isArray(locationsData) ? locationsData : []),
+    [locationsData],
+  )
 
   const {
     register,
@@ -176,7 +179,10 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
     page: 1,
   })
 
-  const stocks = Array.isArray(stocksPage?.data?.data) ? stocksPage.data.data : []
+  const stocks = useMemo(
+    () => (Array.isArray(stocksPage?.data?.data) ? stocksPage.data.data : []),
+    [stocksPage],
+  )
   const stockProductOptions = useMemo(() => buildProductOptionsFromStocks(stocks), [stocks])
 
   const productOptions = useMemo(
@@ -449,7 +455,10 @@ function BonSortieLineRow({
     [produitId, products],
   )
 
-  const classementOptions = selectedProduct?.classements ?? []
+    const classementOptions = useMemo(
+    () => selectedProduct?.classements ?? [],
+    [selectedProduct],
+  )
 
   useEffect(() => {
     if (!classementOptions.length) {
@@ -513,7 +522,7 @@ function BonSortieLineRow({
             label="Classement *"
             options={classementOptions.map((option) => ({
               value: option.value,
-              label: `${option.label} (${formatQty(option.stock_total)})`,
+              label: `dispo: ${option.label} (${formatQty(option.stock_total)})`,
             }))}
             placeholder={
               classementOptions.length

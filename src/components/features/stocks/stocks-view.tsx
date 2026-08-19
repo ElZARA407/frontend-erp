@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { AlertTriangle, ArrowDownUp,Plus, Box, Search, SlidersHorizontal, Upload } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
@@ -129,6 +129,15 @@ export function StocksView() {
 
   const importStocks = useImportStocks()
 
+  // Réinitialise toutes les paginations. Appelée directement depuis les
+  // event handlers (onChange/onClick) plutôt que depuis un useEffect,
+  // pour éviter les setState en cascade lors du render.
+  function resetAllPages() {
+    setStockPage(1)
+    setRupturePage(1)
+    setMovementPage(1)
+  }
+
   const stockFilters = useMemo(
     () => ({
       location_id: stockLocationId ? Number(stockLocationId) : undefined,
@@ -166,21 +175,6 @@ export function StocksView() {
 
   const rupturePagination = rupturesData?.data
   const ruptures = Array.isArray(rupturePagination?.data) ? rupturePagination.data : []
-
-  useEffect(() => {
-    setStockPage(1)
-    setRupturePage(1)
-    setMovementPage(1)
-  }, [
-    search,
-    stockLocationId,
-    stockEntiteType,
-    stockEntiteId,
-    includeZero,
-    stockMode,
-    stockSortBy,
-    stockSortDir,
-  ])
 
   const handleImportStocks = async ({
     file,
@@ -254,7 +248,10 @@ export function StocksView() {
           label="Recherche globale"
           placeholder="Article, localisation, source, motif, reference..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            resetAllPages()
+          }}
           icon={<Search className="h-3.5 w-3.5" />}
           className="max-w-xl"
         />
@@ -271,8 +268,7 @@ export function StocksView() {
                 size="sm"
                 onClick={() => {
                   setStockMode(value)
-                  if (value === 'inventaire') setStockPage(1)
-                  if (value === 'ruptures') setRupturePage(1)
+                  resetAllPages()
                 }}
               >
                 {label}
@@ -288,8 +284,7 @@ export function StocksView() {
               value={stockLocationId}
               onChange={(e) => {
                 setStockLocationId(e.target.value)
-                setStockPage(1)
-                setRupturePage(1)
+                resetAllPages()
               }}
             />
 
@@ -301,8 +296,7 @@ export function StocksView() {
               onChange={(e) => {
                 setStockEntiteType(e.target.value)
                 setStockEntiteId(null)
-                setStockPage(1)
-                setRupturePage(1)
+                resetAllPages()
               }}
             />
 
@@ -322,8 +316,7 @@ export function StocksView() {
               disabled={!stockEntiteType}
               onValueChange={(value) => {
                 setStockEntiteId(value ? Number(value) : null)
-                setStockPage(1)
-                setRupturePage(1)
+                resetAllPages()
               }}
             />
 
@@ -336,8 +329,7 @@ export function StocksView() {
               ]}
               onChange={(e) => {
                 setIncludeZero(e.target.value === 'true')
-                setStockPage(1)
-                setRupturePage(1)
+                resetAllPages()
               }}
             />
           </div>
@@ -355,13 +347,11 @@ export function StocksView() {
               ]}
               onSortByChange={(value) => {
                 setStockSortBy(value)
-                setStockPage(1)
-                setRupturePage(1)
+                resetAllPages()
               }}
               onSortDirChange={(value) => {
                 setStockSortDir(value)
-                setStockPage(1)
-                setRupturePage(1)
+                resetAllPages()
               }}
             />
           </div>

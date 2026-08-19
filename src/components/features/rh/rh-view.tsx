@@ -299,7 +299,7 @@ export function RhView() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-surface-border">
-                    {(Array.isArray(employes) ? employes : (employes as any)?.data || []).map((employe: RhEmploye) => (
+                    {employes?.map((employe: RhEmploye) => (
                         <tr key={employe.id} className="hover:bg-surface-subtle/70">
                           <td className="px-4 py-3 font-medium text-steel-900">{employe.matricule}</td>
                           <td className="px-4 py-3 text-steel-600">{employe.nom_complet ?? `${employe.prenom} ${employe.nom}`}</td>

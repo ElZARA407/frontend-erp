@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
-import { useForm,type Resolver } from 'react-hook-form'
+import { useForm,type Resolver,useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Dialog } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -36,7 +36,7 @@ export function AjustementDialog({ open, onClose, stock }: AjustementDialogProps
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     formState: { errors },
   } = useForm<AjustementStockValues>({
     resolver: zodResolver(ajustementStockSchema) as unknown as Resolver<AjustementStockValues>,
@@ -49,7 +49,7 @@ export function AjustementDialog({ open, onClose, stock }: AjustementDialogProps
     }
   }, [open, initialValues, reset])
 
-  const stockPhysique = watch('stock_physique')
+  const stockPhysique = useWatch({ control, name: 'stock_physique' })
   const ecart = (Number(stockPhysique) || 0) - (stock?.stock_total ?? 0)
 
   const onSubmit = (values: AjustementStockValues) => {

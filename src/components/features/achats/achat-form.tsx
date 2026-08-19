@@ -29,7 +29,10 @@ export function AchatForm({ onSuccess }: AchatFormProps) {
 
   const fournisseurs = Array.isArray(fournisseursPage?.data?.data) ? fournisseursPage.data.data : []
   const locations = Array.isArray(locationsData) ? locationsData : []
-  const matieres = Array.isArray(matieresPage?.data?.data) ? matieresPage.data.data : []
+  const matieres = useMemo(
+    () => (Array.isArray(matieresPage?.data?.data) ? matieresPage.data.data : []),
+    [matieresPage],
+  )
 
   const matiereOptions = useMemo(
     () =>

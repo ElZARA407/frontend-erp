@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import {  useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { FlaskConical, Layers3, Package, PencilLine, Plus, Trash2, Upload } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
@@ -17,7 +17,6 @@ import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import {
   useCategories,
-  useCreateCategory,
   useDeleteCategory,
   useDeleteMatiere,
   useDeleteProduct,
@@ -41,14 +40,6 @@ type CatalogueTab = 'categories' | 'produits' | 'matieres'
 const PAGE_SIZE = 10
 
 
-function getProductStockFictif(product: CatalogueProduct) {
-  const stocks = Array.isArray(product.stocks_par_qualite) ? product.stocks_par_qualite : []
-
-  return stocks.reduce(
-    (sum, stock) => sum + Number(stock.stock_disponible_fictif ?? stock.stock_disponible ?? stock.stock_total ?? 0),
-    0,
-  )
-}
 
 function getProductQualitesLabel(product: CatalogueProduct) {
   const stocks = Array.isArray(product.stocks_par_qualite) ? product.stocks_par_qualite : []
@@ -182,29 +173,29 @@ const [matiereDateFin, setMatiereDateFin] = useState('')
     }
   }, [categoriesList, categoryPage])
 
-  useEffect(() => {
-    setProductPage(1)
-  }, [
-    productSearch,
-    productCategoryId,
-    productActive,
-    productLocationId,
-    productStockState,
-    productDateDebut,
-    productDateFin,
-  ])
+  // useEffect(() => {
+  //   setProductPage(1)
+  // }, [
+  //   productSearch,
+  //   productCategoryId,
+  //   productActive,
+  //   productLocationId,
+  //   productStockState,
+  //   productDateDebut,
+  //   productDateFin,
+  // ])
 
-  useEffect(() => {
-    setMatierePage(1)
-  }, [
-    matiereSearch,
-    matiereType,
-    matiereActive,
-    matiereLocationId,
-    matiereStockState,
-    matiereDateDebut,
-    matiereDateFin,
-  ])
+  // useEffect(() => {
+  //   setMatierePage(1)
+  // }, [
+  //   matiereSearch,
+  //   matiereType,
+  //   matiereActive,
+  //   matiereLocationId,
+  //   matiereStockState,
+  //   matiereDateDebut,
+  //   matiereDateFin,
+  // ])
 
   const headerActions =
     tab === 'categories' ? (

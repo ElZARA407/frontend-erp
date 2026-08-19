@@ -1,7 +1,7 @@
 // src/components/features/contrats/contrats-view.tsx
 'use client'
 
-import { useMemo, useState } from 'react'
+import {  useState } from 'react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ import { useProducts } from '@/lib/hooks/use-catalogue'
 import { useContrats, useDeleteContrat, useToggleContratActif } from '@/lib/hooks/use-lot3'
 import type { Contrat } from '@/lib/lot3.types'
 import { ContratForm } from './contrat-form'
-import { Plus, PencilLine, ShieldCheck, ShieldOff, Trash2 } from 'lucide-react'
+import { Plus, ShieldCheck, ShieldOff, Trash2 } from 'lucide-react'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
@@ -57,16 +57,6 @@ export function ContratsView() {
   const contrats = Array.isArray(contratsPage?.data?.data) ? contratsPage.data.data : []
   const pagination = contratsPage?.data
 
-  const classementOptions = useMemo(
-    () =>
-      produits.flatMap((produit) =>
-        (produit.stocks_par_qualite ?? []).map((classement) => ({
-          value: classement.classement_id,
-          label: `${produit.nomencla} - ${classement.libelle}`,
-        }))
-      ),
-    [produits]
-  )
 
   return (
     <div className="space-y-5">

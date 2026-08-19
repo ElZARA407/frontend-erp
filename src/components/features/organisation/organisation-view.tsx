@@ -253,7 +253,7 @@ export function OrganisationView() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-border">
-                    {(Array.isArray(users) ? users : (users as any)?.data || []).map((user: OrganisationUtilisateur) => (
+                    {users.map((user: OrganisationUtilisateur) => (
                       <tr key={user.id} className="hover:bg-surface-subtle/70">
                         <td className="px-4 py-3 font-medium text-steel-900">{user.nom}</td>
                         <td className="px-4 py-3 text-steel-600">{user.email}</td>

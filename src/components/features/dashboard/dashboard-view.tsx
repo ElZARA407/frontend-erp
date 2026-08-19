@@ -85,7 +85,7 @@ export function DashboardView() {
   const charts = dashboard?.charts
   const alertes = Array.isArray(dashboard?.alertes) ? dashboard.alertes : []
   const ventes = ((charts?.ventes_30_jours ?? []) as AnyPoint[])
-  const stockFlux = ((charts?.stock_entrees_sorties ?? []) as AnyPoint[])
+  // const stockFlux = ((charts?.stock_entrees_sorties ?? []) as AnyPoint[])
 
   if (isLoading && !dashboard) {
     return (

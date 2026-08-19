@@ -77,11 +77,14 @@ export function CommandeForm({ onSuccess }: CommandeFormProps) {
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { data: locationsData } = useLocations()
   
-
-  const clients = Array.isArray(clientsPage?.data?.data) ? clientsPage.data.data : []
-  const locations = Array.isArray(locationsData) ? locationsData : []
-  
-
+  const clients = useMemo(
+    () => (Array.isArray(clientsPage?.data?.data) ? clientsPage.data.data : []),
+    [clientsPage],
+  )
+  const locations = useMemo(
+    () => (Array.isArray(locationsData) ? locationsData : []),
+    [locationsData],
+  )
   const {
     register,
     control,
@@ -112,7 +115,10 @@ export function CommandeForm({ onSuccess }: CommandeFormProps) {
     location_id: locationId || undefined,
   })
 
-const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.data : []
+  const products = useMemo(
+    () => (Array.isArray(productsPage?.data?.data) ? productsPage.data.data : []),
+    [productsPage],
+  )
 
   const eligibleProducts = useMemo(
     () => products.filter((product) => getAvailableClassements(product).length > 0),
@@ -205,15 +211,15 @@ const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.dat
     }
   }, [clients, defaultLine, getValues, locations, setValue])
 
-  const lignes = useWatch({ control, name: 'lignes' }) ?? []
-  const total = useMemo(
-    () =>
-      lignes.reduce(
-        (sum, ligne) => sum + (Number(ligne.quantite) || 0) * (Number(ligne.prix_unitaire) || 0),
-        0,
-      ),
-    [lignes],
-  )
+      const watchedLignes = useWatch({ control, name: 'lignes' })
+      const total = useMemo(
+        () =>
+          (watchedLignes ?? []).reduce(
+            (sum, ligne) => sum + (Number(ligne.quantite) || 0) * (Number(ligne.prix_unitaire) || 0),
+            0,
+          ),
+        [watchedLignes],
+      )
 
   const onSubmit = (values: CommandeFormValues) => {
     let hasStockError = false
@@ -464,7 +470,7 @@ function CommandeLineRow({
             label="Classement *"
             options={classementOptions.map((option) => ({
               value: option.value,
-              label: `${option.label} (${formatQty(option.stock_total)})`,
+              label: `dispo: ${option.label} (${formatQty(option.stock_total)})`,
             }))}
             placeholder={
               classementOptions.length

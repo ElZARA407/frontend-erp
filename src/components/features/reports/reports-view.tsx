@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState,useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import {
   AlertTriangle,
   BarChart3,
@@ -68,6 +68,13 @@ export function ReportsView() {
       [permissions]
     )
 
+    // Onglet effectivement affiché : celui sélectionné s'il est visible,
+    // sinon le premier onglet visible. Calculé pendant le rendu plutôt
+    // que corrigé après coup dans un effet.
+    const activeTab = visibleTabs.some((item) => item.key === tab)
+      ? tab
+      : (visibleTabs[0]?.key ?? tab)
+
     const [mouvementEntiteType, setMouvementEntiteType] = useState<'produit' | 'matiere'>('produit')
     const [mouvementEntiteId, setMouvementEntiteId] = useState<number | null>(null)
     const [mouvementMotif, setMouvementMotif] = useState('')
@@ -83,20 +90,14 @@ export function ReportsView() {
   () => ({
     date_debut: dateDebut || undefined,
     date_fin: dateFin || undefined,
-    mouvement_entite_type: tab === 'mouvements' ? mouvementEntiteType : undefined,
-    mouvement_entite_id: tab === 'mouvements' && mouvementEntiteId ? mouvementEntiteId : undefined,
-    mouvement_motif: tab === 'mouvements' && mouvementMotif ? mouvementMotif : undefined,
+    mouvement_entite_type: activeTab === 'mouvements' ? mouvementEntiteType : undefined,
+    mouvement_entite_id: activeTab === 'mouvements' && mouvementEntiteId ? mouvementEntiteId : undefined,
+    mouvement_motif: activeTab === 'mouvements' && mouvementMotif ? mouvementMotif : undefined,
   }),
-  [dateDebut, dateFin, tab, mouvementEntiteType, mouvementEntiteId, mouvementMotif]
+  [dateDebut, dateFin, activeTab, mouvementEntiteType, mouvementEntiteId, mouvementMotif]
 )
 
   const { data, isLoading } = useReports(filters)
-
-  useEffect(() => {
-    if (visibleTabs.length > 0 && !visibleTabs.some((item) => item.key === tab)) {
-      setTab(visibleTabs[0].key)
-    }
-  }, [tab, visibleTabs])
 
   return (
     <div className="space-y-5">
@@ -112,7 +113,7 @@ export function ReportsView() {
             loading={exportReport.isPending}
             onClick={() =>
                 exportReport.mutate({
-                section: tab as ReportExportSection,
+                section: activeTab as ReportExportSection,
                 filters,
                 })
             }
@@ -142,7 +143,7 @@ export function ReportsView() {
               key={key}
               type="button"
               size="sm"
-              variant={tab === key ? 'primary' : 'outline'}
+              variant={activeTab === key ? 'primary' : 'outline'}
               icon={<Icon className="h-3.5 w-3.5" />}
               onClick={() => setTab(key)}
             >
@@ -178,12 +179,12 @@ export function ReportsView() {
         </div>
       ) : (
         <>
-          {tab === 'commercial' && <CommercialReport data={data} />}
-          {tab === 'stock' && <StockReport data={data} />}
-          {tab === 'production' && <ProductionReport data={data} />}
-          {tab === 'recyclage' && <RecyclageReport data={data} />}
-          {tab === 'finance' && <FinanceReport data={data} />}
-          {tab === 'mouvements' && (
+          {activeTab === 'commercial' && <CommercialReport data={data} />}
+          {activeTab === 'stock' && <StockReport data={data} />}
+          {activeTab === 'production' && <ProductionReport data={data} />}
+          {activeTab === 'recyclage' && <RecyclageReport data={data} />}
+          {activeTab === 'finance' && <FinanceReport data={data} />}
+          {activeTab === 'mouvements' && (
             <MouvementsReport
               data={data}
               entiteType={mouvementEntiteType}
@@ -495,27 +496,28 @@ function MouvementsReport({
   onSortByChange: (value: string) => void
   onSortDirChange: (value: SortDirection) => void
 }) {
-  const mouvements = data?.mouvements
-  const lignesRaw = Array.isArray(mouvements?.lignes) ? mouvements.lignes : []
+    const mouvements = data?.mouvements
 
-  const lignes = useMemo(() => {
-    return [...lignesRaw].sort((a, b) => {
-      const direction = sortDir === 'asc' ? 1 : -1
+    const lignes = useMemo(() => {
+      const lignesRaw = Array.isArray(mouvements?.lignes) ? mouvements.lignes : []
 
-      if (sortBy === 'sorties') return ((a.sorties ?? 0) - (b.sorties ?? 0)) * direction
-      if (sortBy === 'entrees') return (((a.entree_fabrication ?? 0) + (a.autres_entrees ?? 0)) - ((b.entree_fabrication ?? 0) + (b.autres_entrees ?? 0))) * direction
-      if (sortBy === 'retours') return ((a.retours ?? 0) - (b.retours ?? 0)) * direction
-      if (sortBy === 'stock_depart') return ((a.stock_depart ?? 0) - (b.stock_depart ?? 0)) * direction
-      if (sortBy === 'stock_a_jour') return ((a.stock_a_jour ?? 0) - (b.stock_a_jour ?? 0)) * direction
-      if (sortBy === 'valeur_stock') return ((a.valeur_stock ?? 0) - (b.valeur_stock ?? 0)) * direction
-      if (sortBy === 'cout_unitaire') return ((a.cout_unitaire_pondere ?? 0) - (b.cout_unitaire_pondere ?? 0)) * direction
-      if (sortBy === 'designation') {
-        return String(a.designation ?? '').localeCompare(String(b.designation ?? ''), 'fr', { numeric: true }) * direction
-      }
+      return [...lignesRaw].sort((a, b) => {
+        const direction = sortDir === 'asc' ? 1 : -1
 
-      return String(a.date_mouvement ?? '').localeCompare(String(b.date_mouvement ?? '')) * direction
-    })
-  }, [lignesRaw, sortBy, sortDir])
+        if (sortBy === 'sorties') return ((a.sorties ?? 0) - (b.sorties ?? 0)) * direction
+        if (sortBy === 'entrees') return (((a.entree_fabrication ?? 0) + (a.autres_entrees ?? 0)) - ((b.entree_fabrication ?? 0) + (b.autres_entrees ?? 0))) * direction
+        if (sortBy === 'retours') return ((a.retours ?? 0) - (b.retours ?? 0)) * direction
+        if (sortBy === 'stock_depart') return ((a.stock_depart ?? 0) - (b.stock_depart ?? 0)) * direction
+        if (sortBy === 'stock_a_jour') return ((a.stock_a_jour ?? 0) - (b.stock_a_jour ?? 0)) * direction
+        if (sortBy === 'valeur_stock') return ((a.valeur_stock ?? 0) - (b.valeur_stock ?? 0)) * direction
+        if (sortBy === 'cout_unitaire') return ((a.cout_unitaire_pondere ?? 0) - (b.cout_unitaire_pondere ?? 0)) * direction
+        if (sortBy === 'designation') {
+          return String(a.designation ?? '').localeCompare(String(b.designation ?? ''), 'fr', { numeric: true }) * direction
+        }
+
+        return String(a.date_mouvement ?? '').localeCompare(String(b.date_mouvement ?? '')) * direction
+      })
+    }, [mouvements, sortBy, sortDir])
 
   const articleOptions =
     entiteType === 'produit'
@@ -570,7 +572,7 @@ function MouvementsReport({
           placeholder="Tous les motifs"
           searchPlaceholder="Rechercher un motif..."
           noOptionsMessage="Aucun motif trouvé."
-          onValueChange={(value) => onMotifChange(value)}
+          onValueChange={(value) => onMotifChange(value ? String(value) : '')}
         />
 
         <SortControl

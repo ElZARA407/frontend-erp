@@ -57,14 +57,6 @@ export function AchatsView() {
   const {exportPdf, isExporting} = usePdfExport()
   const router = useRouter()
   const permissions = usePermissions()
-  const [confirmAction, setConfirmAction] = useState<null | {
-  title: string
-  description: string
-  confirmLabel: string
-  variant?: 'primary' | 'danger'
-  loading?: boolean
-  onConfirm: () => void
-}>(null)
 const [confirmValidateId, setConfirmValidateId] = useState<number | null>(null)
 const [sortBy, setSortBy] = useState('date')
 const [sortDir, setSortDir] = useState<SortDirection>('desc')

@@ -78,7 +78,10 @@ export function VenteDirecteForm({ onSuccess }: VenteDirecteFormProps) {
   const { data: locationsData } = useLocations()
 
   const clients = Array.isArray(clientsPage?.data?.data) ? clientsPage.data.data : []
-  const locations = Array.isArray(locationsData) ? locationsData : []
+  const locations = useMemo(
+    () => (Array.isArray(locationsData) ? locationsData : []),
+    [locationsData],
+  )
   
 
   const {
@@ -110,7 +113,10 @@ export function VenteDirecteForm({ onSuccess }: VenteDirecteFormProps) {
     location_id: locationId || undefined,
   })
 
-  const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.data : []
+    const products = useMemo(
+    () => (Array.isArray(productsPage?.data?.data) ? productsPage.data.data : []),
+    [productsPage],
+  )
 
   const eligibleProducts = useMemo(
     () => products.filter((product) => getAvailableClassements(product).length > 0),
@@ -434,7 +440,7 @@ function VenteDirecteLineRow({
             label="Classement *"
             options={classementOptions.map((option) => ({
               value: option.value,
-              label: `${option.label} (${formatQty(option.stock_total)})`,
+              label: `dispo: ${option.label} (${formatQty(option.stock_total)})`,
             }))}
             placeholder={
               classementOptions.length
