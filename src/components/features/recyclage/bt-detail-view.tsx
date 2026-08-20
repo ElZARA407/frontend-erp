@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import {  useMemo, useState, type ReactNode } from 'react'
 import {
   ArrowLeft,
   BadgeInfo,
@@ -117,20 +117,21 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
   const validateSession = useValidateBtSession()
   const clotureBt = useClotureBonTransformation()
 
-  const sessions = Array.isArray(sessionsData) ? sessionsData : []
+    const sessions = useMemo(
+      () => (Array.isArray(sessionsData) ? sessionsData : []),
+      [sessionsData],
+    )
 
-  useEffect(() => {
-    if (selectedSessionId !== null) return
-    if (!sessions.length) return
+    const effectiveSessionId =
+      selectedSessionId !== null && sessions.some((session) => session.id === selectedSessionId)
+        ? selectedSessionId
+        : (sessions[0]?.id ?? null)
 
-    setSelectedSessionId(sessions[0].id)
-  }, [selectedSessionId, sessions])
+    const selectedSession = useMemo(() => {
+      if (!sessions.length) return null
 
-  const selectedSession = useMemo(() => {
-    if (!sessions.length) return null
-
-    return sessions.find((session) => session.id === selectedSessionId) ?? sessions[0] ?? null
-  }, [selectedSessionId, sessions])
+      return sessions.find((session) => session.id === effectiveSessionId) ?? sessions[0] ?? null
+    }, [effectiveSessionId, sessions])
 
   const quantitePrevue = bt?.quantite_entree ?? 0
   const quantiteConsommee = bt?.quantite_nette_consomme ?? 0
@@ -358,7 +359,7 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
                     <tr
                       key={session.id}
                       className={`transition-colors hover:bg-surface-muted/60 ${
-                        selectedSessionId === session.id ? 'bg-surface-subtle/70' : ''
+                        effectiveSessionId === session.id ? 'bg-surface-subtle/70' : ''
                       }`}
                     >
                       <td className="px-4 py-3 font-medium text-steel-900">
@@ -383,7 +384,7 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
                           <Button
-                            variant={selectedSessionId === session.id ? 'primary' : 'ghost'}
+                            variant={effectiveSessionId === session.id ? 'primary' : 'ghost'}
                             size="sm"
                             icon={<BadgeInfo className="h-3.5 w-3.5" />}
                             onClick={() => setSelectedSessionId(session.id)}

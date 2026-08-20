@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ArrowLeft, BadgeInfo, CheckCircle2, Clock3, Factory, Package, Plus, Receipt, TrendingUp, XCircle } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
@@ -221,18 +221,20 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
   const [showSessionImportDialog, setShowSessionImportDialog] = useState(false)
   const importSessions = useImportProductionSessions()
 
-  const sessions = Array.isArray(bp?.sessions) ? (bp.sessions as SessionRow[]) : []
+   const sessions = useMemo(
+    () => (Array.isArray(bp?.sessions) ? (bp.sessions as SessionRow[]) : []),
+    [bp],
+  )
 
-  useEffect(() => {
-    if (selectedSessionId !== null) return
-    if (!sessions.length) return
-    setSelectedSessionId(sessions[0].id)
-  }, [selectedSessionId, sessions])
+  const effectiveSessionId =
+    selectedSessionId !== null && sessions.some((session) => session.id === selectedSessionId)
+      ? selectedSessionId
+      : (sessions[0]?.id ?? null)
 
   const selectedSession = useMemo(() => {
     if (!sessions.length) return null
-    return sessions.find((session) => session.id === selectedSessionId) ?? sessions[0] ?? null
-  }, [selectedSessionId, sessions])
+    return sessions.find((session) => session.id === effectiveSessionId) ?? sessions[0] ?? null
+  }, [effectiveSessionId, sessions])
 
   const openSessionDialog = () => {
     setShowSessionDialog(true)
@@ -269,7 +271,7 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
   return (
     <div className="space-y-5">
       <PageHeader
-        title={bp?.numero ?? `BP #${bpId}`}
+        title={bp?.numero ?? `OF #${bpId}`}
         subtitle={bp ? `Produit ${bp.produit?.designation ?? '—'}` : 'Chargement...'}
         actions={
           <div className="flex flex-wrap gap-2">
@@ -519,7 +521,7 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
                     <tr
                       key={session.id}
                       className={`transition-colors hover:bg-surface-muted/60 ${
-                        selectedSessionId === session.id ? 'bg-surface-subtle/60' : ''
+                        effectiveSessionId === session.id ? 'bg-surface-subtle/60' : ''
                       }`}
                     >
                       <td className="px-4 py-3 font-medium text-steel-900">
@@ -549,7 +551,7 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
                           <Button
-                            variant={selectedSessionId === session.id ? 'primary' : 'ghost'}
+                            variant={effectiveSessionId === session.id ? 'primary' : 'ghost'}
                             size="sm"
                             icon={<BadgeInfo className="h-3.5 w-3.5" />}
                             onClick={() => setSelectedSessionId(session.id)}

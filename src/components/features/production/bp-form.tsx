@@ -30,9 +30,18 @@ export function BpForm({ onSuccess }: BpFormProps) {
   const { data: productsPage, isLoading: productsLoading } = useProducts({ actif: true, per_page: 100 })
   const { data: machinesData, isLoading: machinesLoading } = useMachines()
 
-  const locations = Array.isArray(locationsData) ? locationsData : []
-  const products = Array.isArray(productsPage?.data?.data) ? productsPage.data.data : []
-  const machines = Array.isArray(machinesData) ? machinesData : []
+  const locations = useMemo(
+    () => (Array.isArray(locationsData) ? locationsData : []),
+    [locationsData],
+  )
+  const products = useMemo(
+    () => (Array.isArray(productsPage?.data?.data) ? productsPage.data.data : []),
+    [productsPage],
+  )
+  const machines = useMemo(
+    () => (Array.isArray(machinesData) ? machinesData : []),
+    [machinesData],
+  )
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
@@ -59,7 +68,6 @@ export function BpForm({ onSuccess }: BpFormProps) {
     register,
     handleSubmit,
     reset,
-    getValues,
     setValue,
     formState: { errors: bpErrors },
   } = useForm<BonProductionSchema>({
@@ -200,7 +208,7 @@ export function BpForm({ onSuccess }: BpFormProps) {
 
       <section className="space-y-4 rounded-lg border border-surface-border bg-white p-4">
         <div>
-          <h3 className="text-sm font-semibold text-steel-900">Création d'Ordre des Fabrications</h3>
+          <h3 className="text-sm font-semibold text-steel-900">Création d Ordre des Fabrications</h3>
           <p className="text-xs text-steel-500">
             Le formulaire est conçu pour rester lisible en paysage et éviter les débordements.
           </p>

@@ -78,7 +78,10 @@ function createEvenementRow(): SessionBatchSchema['evenements'][number] {
 export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateFormProps) {
   const { mutateAsync: createSession, isPending } = useCreateSession()
   const { data: locationsData, isLoading: locationsLoading } = useLocations()
-  const locations = Array.isArray(locationsData) ? locationsData : []
+  const locations = useMemo(
+    () => (Array.isArray(locationsData) ? locationsData : []),
+    [locationsData],
+  )
   const { data: machinesData, isLoading: machinesLoading } = useMachines()
   const bpLocationId = bp?.location?.id ?? locations[0]?.id ?? 0
 
@@ -89,19 +92,30 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
   })
 
   const { data: employesPage, isLoading: employesLoading } = useEmployes({ actif: true, per_page: 100 })
-  const { data: classmentsData, isLoading: classmentsLoading } = useClassments()
+  const { data: classmentsData } = useClassments()
 
-  const machines = Array.isArray(machinesData) ? machinesData : []
-  const matieres = Array.isArray(matieresPage?.data?.data) ? matieresPage.data.data : []
+  const machines = useMemo(
+    () => (Array.isArray(machinesData) ? machinesData : []),
+    [machinesData],
+  )
+  const matieres = useMemo(
+    () => (Array.isArray(matieresPage?.data?.data) ? matieresPage.data.data : []),
+    [matieresPage],
+  )
   const bpProduit = bp?.produit ?? null
-  const bpProduitId = bpProduit?.id ?? 0
   const bpProduitLabel = bpProduit
     ? `${bpProduit.nomencla ?? ''} - ${bpProduit.designation ?? 'Produit'}`
     : 'Produit de l’OF'
 
-  const employes = Array.isArray(employesPage?.data?.data) ? employesPage.data.data : []
-  
-  const classments = Array.isArray(classmentsData) ? classmentsData.filter((item) => item.actif) : []
+  const employes = useMemo(
+    () => (Array.isArray(employesPage?.data?.data) ? employesPage.data.data : []),
+    [employesPage],
+  )
+
+  const classments = useMemo(
+    () => (Array.isArray(classmentsData) ? classmentsData.filter((item) => item.actif) : []),
+    [classmentsData],
+  )
 
   const defaultValues = useMemo(() => buildDefaultValues(bp), [bp])
   const initializedRef = useRef(false)
@@ -537,7 +551,6 @@ function ObtenuRow({
   onRemove: () => void
 }) {
   const {
-    control,
     register,
     formState: { errors },
   } = useFormContext<SessionBatchSchema>()

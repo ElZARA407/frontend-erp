@@ -36,9 +36,13 @@ export const achatsApi = {
     vehicule?: string
     observations?: string
     lignes: Array<{
-      matiere_id: number
+      article_type: 'matiere' | 'produit'
+      matiere_id?: number
+      produit_id?: number
+      classement_id?: number
       quantite: number
       prix_unitaire: number
+      observations_ligne?: string
     }>
   }) => {
     const { data } = await apiClient.post<ApiResponse<JournalAchat>>('/achats/bons-reception', payload)

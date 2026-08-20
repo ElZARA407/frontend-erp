@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import {  useMemo, useState } from 'react'
 import { ArrowLeft, Calculator, CalendarRange, Factory, Package, ReceiptText, TrendingUp } from 'lucide-react'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { PageHeader } from '@/components/layout/page-header'
@@ -94,40 +94,38 @@ export function CoutMoyenView({ mode }: CoutMoyenViewProps) {
     return Array.isArray(rows) ? rows : []
   }, [bpsPage])
 
-  const [selectedProduitId, setSelectedProduitId] = useState<number | null>(null)
-  const [selectedBpId, setSelectedBpId] = useState<number | null>(null)
-  const [dateDebut, setDateDebut] = useState('')
-  const [dateFin, setDateFin] = useState('')
+    const [selectedProduitId, setSelectedProduitId] = useState<number | null>(null)
+    const [selectedBpId, setSelectedBpId] = useState<number | null>(null)
+    const [dateDebut, setDateDebut] = useState('')
+    const [dateFin, setDateFin] = useState('')
 
-  useEffect(() => {
-    if (isProduitMode && !selectedProduitId && products.length > 0) {
-      setSelectedProduitId(products[0].id)
-    }
-  }, [isProduitMode, products, selectedProduitId])
+    const effectiveProduitId =
+      selectedProduitId !== null && products.some((item: Produit) => item.id === selectedProduitId)
+        ? selectedProduitId
+        : (products[0]?.id ?? null)
 
-  useEffect(() => {
-    if (!isProduitMode && !selectedBpId && bps.length > 0) {
-      setSelectedBpId(bps[0].id)
-    }
-  }, [isProduitMode, bps, selectedBpId])
+    const effectiveBpId =
+      selectedBpId !== null && bps.some((item: BonProduction) => item.id === selectedBpId)
+        ? selectedBpId
+        : (bps[0]?.id ?? null)
 
-  const productParams = useMemo(
-    () => ({
-      date_debut: isProduitMode && dateDebut ? dateDebut : undefined,
-      date_fin: isProduitMode && dateFin ? dateFin : undefined,
-    }),
-    [isProduitMode, dateDebut, dateFin],
-  )
+    const productParams = useMemo(
+      () => ({
+        date_debut: isProduitMode && dateDebut ? dateDebut : undefined,
+        date_fin: isProduitMode && dateFin ? dateFin : undefined,
+      }),
+      [isProduitMode, dateDebut, dateFin],
+    )
 
-  const productQuery = useCoutMoyenProduit(selectedProduitId ?? 0, productParams)
-  const bpQuery = useCoutMoyenBonProduction(selectedBpId ?? 0)
+  const productQuery = useCoutMoyenProduit(effectiveProduitId ?? 0, productParams)
+  const bpQuery = useCoutMoyenBonProduction(effectiveBpId ?? 0)
 
   const result = (isProduitMode ? productQuery.data : bpQuery.data) as Resultat | undefined
   const isResultLoading = isProduitMode ? productQuery.isLoading : bpQuery.isLoading
   const isListLoading = isProduitMode ? productsLoading : bpsLoading
 
-  const selectedProduct = products.find((item: Produit) => item.id === selectedProduitId) ?? null
-  const selectedBp = bps.find((item: BonProduction) => item.id === selectedBpId) ?? null
+  const selectedProduct = products.find((item: Produit) => item.id === effectiveProduitId) ?? null
+  const selectedBp = bps.find((item: BonProduction) => item.id === effectiveBpId) ?? null
 
   const productOptions = useMemo(
     () =>
@@ -201,7 +199,7 @@ export function CoutMoyenView({ mode }: CoutMoyenViewProps) {
               <SearchableSelect
                 label="Produit"
                 options={productOptions}
-                value={selectedProduitId ?? ''}
+                value={effectiveProduitId ?? ''}
                 onValueChange={(value) => setSelectedProduitId(Number(value))}
                 placeholder={products.length ? 'Choisir un produit' : 'Aucun produit disponible'}
                 searchPlaceholder="Rechercher une nomencla ou désignation..."
@@ -243,7 +241,7 @@ export function CoutMoyenView({ mode }: CoutMoyenViewProps) {
             <SearchableSelect
               label="Bon de production"
               options={bpOptions}
-              value={selectedBpId ?? ''}
+              value={effectiveBpId ?? ''}
               onValueChange={(value) => setSelectedBpId(Number(value))}
               placeholder={bps.length ? 'Choisir un BP' : 'Aucun BP disponible'}
               searchPlaceholder="Rechercher un numéro, produit ou site..."

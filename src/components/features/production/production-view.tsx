@@ -123,7 +123,7 @@ export function ProductionView() {
             </Link>
 
             <Button onClick={() => setShowCreate(true)} icon={<Plus className="h-3.5 w-3.5" />}>
-              Nouveau BP
+              Nouveau OF
             </Button>
             
           </div>

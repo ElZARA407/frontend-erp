@@ -298,7 +298,7 @@ const [sortDir, setSortDir] = useState<SortDirection>('desc')
         open={showCreate}
         onClose={() => setShowCreate(false)}
         title="Nouveau bon de réception"
-        size="xl"
+        size="wide"
       >
         <AchatForm onSuccess={() => setShowCreate(false)} />
       </Dialog>

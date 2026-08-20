@@ -80,10 +80,14 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
   const { data: employesPage } = useEmployes({ actif: true, per_page: 200 })
 
   const machines = normalizeArray<Machine>(machinesData)
-  const matieresBroyees = Array.isArray(matieresBroyeesPage?.data?.data)
-    ? matieresBroyeesPage.data.data
-    : []
-  const employes = Array.isArray(employesPage?.data?.data) ? employesPage.data.data : []
+  const matieresBroyees = useMemo(
+    () => (Array.isArray(matieresBroyeesPage?.data?.data) ? matieresBroyeesPage.data.data : []),
+    [matieresBroyeesPage],
+  )
+  const employes = useMemo(
+    () => (Array.isArray(employesPage?.data?.data) ? employesPage.data.data : []),
+    [employesPage],
+  )
 
   const machineOptions = useMemo(
     () => machines.map((machine) => ({ value: machine.id, label: machine.nom })),

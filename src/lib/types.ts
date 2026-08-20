@@ -233,12 +233,27 @@ export interface JournalAchat {
   observations: string | null
   fournisseur?: { id: number; nom: string }
   location?: { id: number; nom: string }
+  created_at: string
   lignes?: Array<{
     id: number
-    matiere: { id: number; nom: string; reference: string; unite: string }
+    article_type: 'matiere' | 'produit'
+    matiere_id?: number | null
+    produit_id?: number | null
+    classement_id?: number | null
+    article?: {
+      id?: number | null
+      reference?: string | null
+      designation?: string | null
+      unite?: string | null
+      categorie?: string | null
+    } | null
+    matiere?: { id: number; nom: string; reference: string; unite: string } | null
+    produit?: { id: number; nomencla: string; designation: string; unite: string; categorie?: string | null } | null
+    classement?: { id: number; qualite?: string | null; libelle?: string | null } | null
     quantite: number
     prix_unitaire: number
     total_ligne: number
+    observations_ligne?: string | null
   }>
 }
 

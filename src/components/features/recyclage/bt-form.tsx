@@ -48,7 +48,10 @@ export function BtForm({ onSuccess }: BtFormProps) {
 
   const locations = normalizeArray<Location>(locationsData)
   const machines = normalizeArray<Machine>(machinesData)
-  const matieresBrutes = Array.isArray(matieresBrutesPage?.data?.data) ? matieresBrutesPage.data.data : []
+  const matieresBrutes = useMemo(
+  () => (Array.isArray(matieresBrutesPage?.data?.data) ? matieresBrutesPage.data.data : []),
+  [matieresBrutesPage],
+)
 
   const locationOptions = useMemo(
     () =>
