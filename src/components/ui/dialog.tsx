@@ -25,38 +25,42 @@ export function Dialog({ open, onClose, title, children, size = 'md' }: DialogPr
   useEffect(() => {
     if (!open) return
 
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-
-    document.addEventListener('keydown', handler)
     document.body.style.overflow = 'hidden'
 
     return () => {
-      document.removeEventListener('keydown', handler)
       document.body.style.overflow = ''
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
-      <div className="absolute inset-0 bg-steel-950/40 backdrop-blur-sm" onClick={onClose} />
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dialog-title"
+    >
+      <div className="absolute inset-0 bg-steel-950/40 backdrop-blur-sm" />
 
       <div
         className={cn(
           'relative z-10 flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] min-w-0 flex-col overflow-hidden rounded-xl border border-surface-border bg-white shadow-xl sm:max-h-[92dvh] sm:w-full',
-          sizes[size]
+          sizes[size],
         )}
       >
         <div className="flex items-start justify-between gap-3 border-b border-surface-border px-4 py-3.5 sm:px-5 sm:py-4">
-          <h2 className="min-w-0 break-words text-base font-semibold text-steel-900">
+          <h2
+            id="dialog-title"
+            className="min-w-0 break-words text-base font-semibold text-steel-900"
+          >
             {title}
           </h2>
+
           <button
             type="button"
             onClick={onClose}
+            aria-label="Fermer"
             className="shrink-0 rounded-md p-1 text-steel-400 transition-colors hover:bg-surface-subtle hover:text-steel-600"
           >
             <X className="h-4 w-4" />

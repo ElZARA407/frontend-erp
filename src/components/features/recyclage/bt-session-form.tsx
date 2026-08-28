@@ -1,9 +1,16 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
-import { useFieldArray, useForm, type Resolver } from 'react-hook-form'
+import {
+  useFieldArray,
+  useForm,
+  useWatch,
+  type FieldErrors,
+  type Resolver,
+} from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { AlertTriangle, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -16,10 +23,7 @@ import type { BonTransformation } from '@/lib/recyclage.types'
 import type { CatalogueMatiere } from '@/lib/catalogue.types'
 import type { Machine } from '@/lib/types'
 import type { RhEmploye } from '@/lib/rh.types'
-import {
-  btSessionSchema,
-  type BtSessionSchema,
-} from '@/lib/schemas/recyclage.schema'
+import { btSessionSchema, type BtSessionSchema } from '@/lib/schemas/recyclage.schema'
 
 interface BtSessionFormProps {
   bt: BonTransformation
@@ -36,7 +40,6 @@ function normalizeArray<T>(value: unknown): T[] {
 
     if (root.data && typeof root.data === 'object') {
       const nested = root.data as { data?: unknown }
-
       if (Array.isArray(nested.data)) return nested.data as T[]
     }
   }
@@ -72,6 +75,56 @@ function buildDefaultValues(bt: BonTransformation): BtSessionSchema {
   }
 }
 
+function buildTransformationWarning(values: BtSessionSchema) {
+  const sorties = Array.isArray(values.sorties) ? values.sorties : []
+  const entrees = Array.isArray(values.entrees) ? values.entrees : []
+
+  const quantiteUtilisee = sorties.reduce(
+    (sum, line) => sum + (Number(line.quantite_utilisee) || 0),
+    0,
+  )
+
+  const quantiteRestituee = sorties.reduce(
+    (sum, line) => sum + (Number(line.quantite_restituee) || 0),
+    0,
+  )
+
+  const quantiteNette = Math.max(0, quantiteUtilisee - quantiteRestituee)
+
+  const quantiteBroyee = entrees.reduce(
+    (sum, line) => sum + (Number(line.quantite) || 0),
+    0,
+  )
+
+  if (quantiteNette <= 0 || quantiteBroyee <= 0) return null
+
+  const perte = quantiteNette - quantiteBroyee
+  const rendement = quantiteNette > 0 ? (quantiteBroyee / quantiteNette) * 100 : 0
+
+  if (perte < 0) {
+    return `Attention : la quantité broyée obtenue (${quantiteBroyee}) dépasse la quantité nette consommée (${quantiteNette}). Vérifiez la saisie.`
+  }
+
+  if (rendement < 85) {
+    return `Attention : rendement faible (${rendement.toFixed(2)}%). Quantité nette consommée : ${quantiteNette}, quantité broyée : ${quantiteBroyee}, perte : ${perte}.`
+  }
+
+  return null
+}
+
+function onInvalidBtSession(errors: FieldErrors<BtSessionSchema>) {
+  const firstMessage =
+    errors.date_session?.message ||
+    errors.machine_id?.message ||
+    errors.sorties?.root?.message ||
+    errors.entrees?.root?.message ||
+    errors.employes?.root?.message ||
+    errors.evenements?.root?.message ||
+    'Le formulaire contient des erreurs. Vérifiez les sections obligatoires.'
+
+  toast.error(String(firstMessage))
+}
+
 export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
   const { mutate: createSession, isPending } = useCreateBtSession()
 
@@ -80,10 +133,12 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
   const { data: employesPage } = useEmployes({ actif: true, per_page: 200 })
 
   const machines = normalizeArray<Machine>(machinesData)
+
   const matieresBroyees = useMemo(
     () => (Array.isArray(matieresBroyeesPage?.data?.data) ? matieresBroyeesPage.data.data : []),
     [matieresBroyeesPage],
   )
+
   const employes = useMemo(
     () => (Array.isArray(employesPage?.data?.data) ? employesPage.data.data : []),
     [employesPage],
@@ -91,7 +146,7 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
 
   const machineOptions = useMemo(
     () => machines.map((machine) => ({ value: machine.id, label: machine.nom })),
-    [machines]
+    [machines],
   )
 
   const matiereOptions = useMemo(
@@ -100,7 +155,7 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
         value: matiere.id,
         label: `${matiere.reference} - ${matiere.nom}`,
       })),
-    [matieresBroyees]
+    [matieresBroyees],
   )
 
   const employeOptions = useMemo(
@@ -113,7 +168,7 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
           label: employe.nom_complet?.trim() || fullName || `Employé #${employe.id}`,
         }
       }),
-    [employes]
+    [employes],
   )
 
   const {
@@ -132,6 +187,19 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
   const employesArray = useFieldArray({ control, name: 'employes' })
   const evenementsArray = useFieldArray({ control, name: 'evenements' })
 
+  const watchedSorties = useWatch({ control, name: 'sorties' })
+  const watchedEntrees = useWatch({ control, name: 'entrees' })
+
+  const transformationWarning = useMemo(
+    () =>
+      buildTransformationWarning({
+        ...buildDefaultValues(bt),
+        sorties: watchedSorties ?? [],
+        entrees: watchedEntrees ?? [],
+      }),
+    [bt, watchedEntrees, watchedSorties],
+  )
+
   useEffect(() => {
     reset(buildDefaultValues(bt))
   }, [bt, reset])
@@ -147,12 +215,12 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
           reset(buildDefaultValues(bt))
           onSuccess?.()
         },
-      }
+      },
     )
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit, onInvalidBtSession)} className="space-y-5">
       <Card>
         <CardBody className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -168,7 +236,7 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
               placeholder="Choisir une machine"
               options={machineOptions}
               error={errors.machine_id?.message}
-              {...register('machine_id')}
+              {...register('machine_id', { valueAsNumber: true })}
             />
           </div>
 
@@ -230,7 +298,9 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
                   type="number"
                   step="0.001"
                   error={errors.sorties?.[index]?.quantite_utilisee?.message}
-                  {...register(`sorties.${index}.quantite_utilisee` as const)}
+                  {...register(`sorties.${index}.quantite_utilisee` as const, {
+                    valueAsNumber: true,
+                  })}
                 />
 
                 <Input
@@ -238,7 +308,9 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
                   type="number"
                   step="0.001"
                   error={errors.sorties?.[index]?.quantite_restituee?.message}
-                  {...register(`sorties.${index}.quantite_restituee` as const)}
+                  {...register(`sorties.${index}.quantite_restituee` as const, {
+                    valueAsNumber: true,
+                  })}
                 />
 
                 <div className="flex items-end">
@@ -256,6 +328,10 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
           </div>
         </CardBody>
       </Card>
+
+      {errors.sorties?.root?.message && (
+        <p className="text-xs text-red-600">{errors.sorties.root.message}</p>
+      )}
 
       <Card>
         <CardBody className="space-y-4">
@@ -294,7 +370,9 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
                   placeholder="Choisir la matière"
                   options={matiereOptions}
                   error={errors.entrees?.[index]?.matiere_id?.message}
-                  {...register(`entrees.${index}.matiere_id` as const)}
+                  {...register(`entrees.${index}.matiere_id` as const, {
+                    valueAsNumber: true,
+                  })}
                 />
 
                 <Input
@@ -302,7 +380,9 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
                   type="number"
                   step="0.001"
                   error={errors.entrees?.[index]?.quantite?.message}
-                  {...register(`entrees.${index}.quantite` as const)}
+                  {...register(`entrees.${index}.quantite` as const, {
+                    valueAsNumber: true,
+                  })}
                 />
 
                 <div className="flex items-end">
@@ -320,6 +400,17 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
           </div>
         </CardBody>
       </Card>
+
+      {errors.entrees?.root?.message && (
+        <p className="text-xs text-red-600">{errors.entrees.root.message}</p>
+      )}
+
+      {transformationWarning && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{transformationWarning}</span>
+        </div>
+      )}
 
       <Card>
         <CardBody className="space-y-4">
@@ -358,7 +449,9 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
                   placeholder="Choisir un employé"
                   options={employeOptions}
                   error={errors.employes?.[index]?.employe_id?.message}
-                  {...register(`employes.${index}.employe_id` as const)}
+                  {...register(`employes.${index}.employe_id` as const, {
+                    valueAsNumber: true,
+                  })}
                 />
 
                 <Input
@@ -366,7 +459,9 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
                   type="number"
                   step="0.01"
                   error={errors.employes?.[index]?.heures_brutes?.message}
-                  {...register(`employes.${index}.heures_brutes` as const)}
+                  {...register(`employes.${index}.heures_brutes` as const, {
+                    valueAsNumber: true,
+                  })}
                 />
 
                 <div className="flex items-end">
@@ -383,6 +478,10 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
           </div>
         </CardBody>
       </Card>
+
+      {errors.employes?.root?.message && (
+        <p className="text-xs text-red-600">{errors.employes.root.message}</p>
+      )}
 
       <Card>
         <CardBody className="space-y-4">
@@ -465,6 +564,10 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
           </div>
         </CardBody>
       </Card>
+
+      {errors.evenements?.root?.message && (
+        <p className="text-xs text-red-600">{errors.evenements.root.message}</p>
+      )}
 
       <div className="flex justify-end gap-2 border-t border-surface-border pt-4">
         <Button type="submit" loading={isPending}>

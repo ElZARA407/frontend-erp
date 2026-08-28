@@ -346,6 +346,19 @@ export function AchatForm({ onSuccess }: { onSuccess?: () => void }) {
             <p className="text-xs font-medium uppercase tracking-wide text-steel-400">Total BR</p>
             <p className="mt-1 text-lg font-semibold text-steel-900">{formatMGA(total)}</p>
           </div>
+
+          <Button type="button" variant="outline" size="sm" onClick={() => setShowProductDialog(true)}>
+                NOUVEAU PRODUIT MCH
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                icon={<Plus className="h-3.5 w-3.5" />}
+                onClick={() => append(createEmptyLine())}
+              >
+                Ajouter lignes
+              </Button>
           <Button type="submit" loading={createAchat.isPending}>
             Créer le BR
           </Button>

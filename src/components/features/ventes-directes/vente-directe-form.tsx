@@ -331,6 +331,15 @@ export function VenteDirecteForm({ onSuccess }: VenteDirecteFormProps) {
       </div>
 
       <div className="flex justify-end border-t border-surface-border pt-4">
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            icon={<Plus className="h-3.5 w-3.5" />}
+            onClick={() => append(defaultLine)}
+          >
+            Ajouter ligne
+          </Button>
         <Button type="submit" loading={createVente.isPending}>
           Créer la vente directe
         </Button>

@@ -48,12 +48,23 @@ export const btSessionSchema = z.object({
       heures_brutes: optionalNumber,
     })
   ).optional(),
-  evenements: z.array(
+    evenements: z.array(
     z.object({
       type_evenement: z.enum(['broyage', 'pause', 'panne', 'autre']),
       heure_debut: z.string().min(1, 'L’heure de début est requise'),
-      heure_fin: optionalText,
+      heure_fin: z.string().min(1, 'L’heure de fin est requise'),
       description: optionalText,
+    }).superRefine((value, ctx) => {
+      const start = value.heure_debut
+      const end = value.heure_fin
+
+      if (start && end && end <= start) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['heure_fin'],
+          message: 'L’heure de fin doit être après l’heure de début',
+        })
+      }
     })
   ).optional(),
 })

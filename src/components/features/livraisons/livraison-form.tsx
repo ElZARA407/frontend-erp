@@ -301,7 +301,13 @@ export function LivraisonForm({ sourceType, source, defaultValues, onSuccess }: 
         <Input label="Référence BC" value={referenceBc} onChange={(e) => setReferenceBc(e.target.value)} />
         <Input label="Chauffeur" value={chauffeur} onChange={(e) => setChauffeur(e.target.value)} />
         <Input label="Véhicule" value={vehicule} onChange={(e) => setVehicule(e.target.value)} />
-        <Input label="Date de livraison" type="date" value={dateLivraison} onChange={(e) => setDateLivraison(e.target.value)} />
+        <Input
+          label="Date de livraison"
+          type="date"
+          min={new Date().toISOString().slice(0, 10)}
+          value={dateLivraison}
+          onChange={(e) => setDateLivraison(e.target.value)}
+        />
       </div>
 
       <div className="space-y-2">

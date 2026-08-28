@@ -7,11 +7,14 @@ import {
   useFieldArray,
   useForm,
   useFormContext,
+  useWatch,
+  type FieldErrors,
   type Resolver,
 } from 'react-hook-form'
+import { toast } from 'sonner'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Clock3, Factory, FlaskConical, Plus, Trash2, UserRound } from 'lucide-react'
+import { AlertTriangle, Clock3, Factory, FlaskConical, Plus, Trash2, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -46,7 +49,7 @@ function createMatiereRow(defaultMatiereId: number): SessionBatchSchema['matiere
   return {
     matiere_id: defaultMatiereId,
     quantite_utilisee: 1,
-    quantite_restituee: undefined,
+    quantite_restituee: 0,
   }
 }
 
@@ -70,9 +73,79 @@ function createEvenementRow(): SessionBatchSchema['evenements'][number] {
   return {
     type_evenement: 'production',
     heure_debut: '',
-    heure_fin: undefined,
+    heure_fin: '',
     description: undefined,
   }
+}
+
+function isPieceUnit(unit?: string | null) {
+  const normalized = String(unit ?? '')
+    .trim()
+    .toLowerCase()
+    .replace('.', '')
+
+  return [
+    'piece',
+    'pièce',
+    'pieces',
+    'pièces',
+    'pcs',
+    'pc',
+    'u',
+    'unite',
+    'unité',
+    'unit',
+    'units',
+  ].includes(normalized)
+}
+
+function buildPieceWarning(
+  matieres: CatalogueMatiere[],
+  lines: SessionBatchSchema['matieres'],
+  obtenus: SessionBatchSchema['obtenus'],
+) {
+  const pieceMatiereIds = new Set(
+    matieres.filter((matiere) => isPieceUnit(matiere.unite)).map((matiere) => Number(matiere.id)),
+  )
+
+  const pieceLines = lines.filter((line) => pieceMatiereIds.has(Number(line.matiere_id)))
+
+  if (pieceLines.length === 0) return null
+
+  const quantiteUtilisee = pieceLines.reduce(
+    (sum, line) => sum + (Number(line.quantite_utilisee) || 0),
+    0,
+  )
+
+  const quantiteRestituee = pieceLines.reduce(
+    (sum, line) => sum + (Number(line.quantite_restituee) || 0),
+    0,
+  )
+
+  const quantiteObtenue = obtenus.reduce(
+    (sum, line) => sum + (Number(line.quantite_produite) || 0),
+    0,
+  )
+
+  const attendu = quantiteRestituee + quantiteObtenue
+  const ecart = quantiteUtilisee - attendu
+
+  if (Math.abs(ecart) < 0.0001) return null
+
+  return `Attention : les matières en pièce totalisent ${quantiteUtilisee}. Restitué + obtenu = ${attendu}. Écart constaté : ${ecart}. Vérifiez si la saisie est volontaire.`
+}
+
+function onInvalidSession(errors: FieldErrors<SessionBatchSchema>) {
+  const firstMessage =
+    errors.date_session?.message ||
+    errors.machine_id?.message ||
+    errors.matieres?.root?.message ||
+    errors.obtenus?.root?.message ||
+    errors.employes?.root?.message ||
+    errors.evenements?.root?.message ||
+    'Le formulaire contient des erreurs. Vérifiez les sections obligatoires.'
+
+  toast.error(String(firstMessage))
 }
 
 export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateFormProps) {
@@ -194,6 +267,14 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
   const employesArray = useFieldArray({ control, name: 'employes' })
   const evenementsArray = useFieldArray({ control, name: 'evenements' })
 
+  const watchedMatieres = useWatch({ control, name: 'matieres' })
+  const watchedObtenus = useWatch({ control, name: 'obtenus' })
+
+  const pieceWarning = useMemo(
+    () => buildPieceWarning(matieres, watchedMatieres ?? [], watchedObtenus ?? []),
+    [matieres, watchedMatieres, watchedObtenus],
+  )
+
   const onSubmit = async (values: SessionBatchSchema) => {
     await createSession({ bpId, payload: values })
     reset(buildDefaultValues(bp))
@@ -204,7 +285,7 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <form onSubmit={handleSubmit(onSubmit, onInvalidSession)} className="space-y-5">
         <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Input
             label="Date session *"
@@ -308,6 +389,9 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
             </div>
           )}
         </SectionBlock>
+          {errors.matieres?.root?.message && (
+  <p className="text-xs text-red-600">{errors.matieres.root.message}</p>
+)}
 
         <SectionBlock
           title="Produits obtenus"
@@ -347,6 +431,15 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
             </div>
           )}
         </SectionBlock>
+          {errors.obtenus?.root?.message && (
+  <p className="text-xs text-red-600">{errors.obtenus.root.message}</p>
+)}
+        {pieceWarning && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{pieceWarning}</span>
+          </div>
+        )}
 
         <SectionBlock
           title="Équipes et employés"
@@ -414,6 +507,9 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
             </div>
           )}
         </SectionBlock>
+         {errors.employes?.root?.message && (
+  <p className="text-xs text-red-600">{errors.employes.root.message}</p>
+)}
 
         <SectionBlock
           title="Événements de production"
@@ -484,6 +580,9 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
             </div>
           )}
         </SectionBlock>
+                {errors.evenements?.root?.message && (
+          <p className="text-xs text-red-600">{errors.evenements.root.message}</p>
+        )}
 
         <div className="flex items-center justify-end gap-2 border-t border-surface-border pt-4">
           <Button type="submit" loading={isPending} disabled={!canCreateSession}>

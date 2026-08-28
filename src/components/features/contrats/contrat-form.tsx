@@ -308,6 +308,16 @@ export function ContratForm({ clients, produits, onSuccess }: ContratFormProps) 
           Total contractuel : <span className="font-semibold text-steel-900">{formatMGA(total)}</span>
         </p>
 
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            icon={<Plus className="h-3.5 w-3.5" />}
+            onClick={() => append(defaultLine(produits))}
+          >
+            Ajouter lignes
+          </Button>
+
         <Button type="submit" loading={createContrat.isPending}>
           Créer le contrat
         </Button>

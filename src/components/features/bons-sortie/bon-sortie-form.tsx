@@ -413,6 +413,15 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
       </div>
 
       <div className="flex justify-end border-t border-surface-border pt-4">
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            icon={<Plus className="h-3.5 w-3.5" />}
+            onClick={() => append(createEmptyLine())}
+          >
+            Ajouter lignes
+          </Button>
         <Button type="submit" loading={createBonSortie.isPending}>
           Créer le bon de sortie
         </Button>

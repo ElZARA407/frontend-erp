@@ -273,16 +273,6 @@ export function CommandeForm({ onSuccess }: CommandeFormProps) {
           error={errors.client_id?.message}
           {...register('client_id', { valueAsNumber: true })}
         />
-        {/* <Select
-          label="Échéance paiement *"
-          options={[
-            { value: 15, label: '15 jours' },
-            { value: 30, label: '30 jours' },
-            { value: 60, label: '60 jours' },
-          ]}
-          error={errors.echeance?.message}
-          {...register('echeance', { valueAsNumber: true })}
-        /> */}
         <Input
           label="Échéance paiement *"
           type="number"
@@ -303,6 +293,7 @@ export function CommandeForm({ onSuccess }: CommandeFormProps) {
         <Input
           label="Livraison prévue"
           type="date"
+          min={new Date().toISOString().slice(0, 10)}
           error={errors.date_livraison_prevue?.message}
           {...register('date_livraison_prevue')}
         />
@@ -359,7 +350,18 @@ export function CommandeForm({ onSuccess }: CommandeFormProps) {
         )}
       </div>
 
+
+
       <div className="flex justify-end border-t border-surface-border pt-4">
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            icon={<Plus className="h-3.5 w-3.5" />}
+            onClick={() => append({ ...defaultLine })}
+          >
+            Ajouter lignes
+          </Button>
         <Button type="submit" loading={createCommande.isPending}>
           Créer la commande
         </Button>
