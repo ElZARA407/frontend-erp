@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, Copy, Plus, ShoppingCart, Truck } from 'lucide-react'
+import { AlertTriangle, Copy, Pencil, Plus, ShoppingCart, Truck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
@@ -23,6 +23,7 @@ import { LivraisonForm } from '../livraisons/livraison-form'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 import { TableScroll } from '@/components/ui/table-scroll'
+import { usePermissions } from '@/lib/hooks/use-permissions'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -59,6 +60,8 @@ export function CommandesView() {
   const [sortBy, setSortBy] = useState('date')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
+  const permissions = usePermissions()
+const [editingCommande, setEditingCommande] = useState<Commande | null>(null)
   const { data: clientsPage } = useClients({ actif: true, per_page: 200 })
   const { data: locationsData } = useLocations()
 
@@ -107,7 +110,6 @@ export function CommandesView() {
         }
       />
 
-      {/* <div className="flex flex-wrap items-center gap-3"> */}
         <div className="space-y-3">
           <div className="flex flex-wrap items-end gap-3">
             <Input
@@ -269,6 +271,25 @@ export function CommandesView() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {(() => {
+                          const editDecision = permissions.canEditDocument('commande', cmd.statut)
+
+                          if (!editDecision.allowed) return null
+
+                          return (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={<Pencil className="h-3.5 w-3.5" />}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setEditingCommande(cmd)
+                              }}
+                            >
+                              {editDecision.label}
+                            </Button>
+                          )
+                        })()}
                         {canDeliverCommande && (
                           <Button
                             variant="outline"
@@ -338,6 +359,24 @@ export function CommandesView() {
           />
         )}
       </Dialog>
+
+      <Dialog
+  open={editingCommande !== null}
+  onClose={() => setEditingCommande(null)}
+  title={
+    editingCommande
+      ? `Modifier ${editingCommande.numero}`
+      : 'Modifier la commande'
+  }
+  size="wide"
+>
+  {editingCommande && (
+    <CommandeForm
+      defaultValues={editingCommande}
+      onSuccess={() => setEditingCommande(null)}
+    />
+  )}
+</Dialog>
       <ConfirmationDialog
   open={confirmDuplicateId !== null}
   title="Duplication"

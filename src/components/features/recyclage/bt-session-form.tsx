@@ -18,8 +18,8 @@ import { Select } from '@/components/ui/select'
 import { useMachines } from '@/lib/hooks/use-production'
 import { useMatieres } from '@/lib/hooks/use-catalogue'
 import { useEmployes } from '@/lib/hooks/use-rh'
-import { useCreateBtSession } from '@/lib/hooks/use-recyclage'
-import type { BonTransformation } from '@/lib/recyclage.types'
+import { useCreateBtSession, useUpdateBtSession } from '@/lib/hooks/use-recyclage'
+import type { BonTransformation, RecyclageSession } from '@/lib/recyclage.types'
 import type { CatalogueMatiere } from '@/lib/catalogue.types'
 import type { Machine } from '@/lib/types'
 import type { RhEmploye } from '@/lib/rh.types'
@@ -27,8 +27,17 @@ import { btSessionSchema, type BtSessionSchema } from '@/lib/schemas/recyclage.s
 
 interface BtSessionFormProps {
   bt: BonTransformation
+  session?: RecyclageSession | null
+  mode?: 'create' | 'edit'
   onSuccess?: () => void
 }
+
+function normalizeTimeForInput(value?: string | null): string {
+  if (!value) return ''
+  return String(value).slice(0, 5)
+}
+
+type RecyclageSessionEventType = NonNullable<BtSessionSchema['evenements']>[number]['type_evenement']
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -125,8 +134,10 @@ function onInvalidBtSession(errors: FieldErrors<BtSessionSchema>) {
   toast.error(String(firstMessage))
 }
 
-export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
+export function BtSessionForm({ bt, session, mode = 'create', onSuccess }: BtSessionFormProps) {
   const { mutate: createSession, isPending } = useCreateBtSession()
+  const updateSession = useUpdateBtSession()
+  const isEditing = mode === 'edit' && Boolean(session?.id)
 
   const { data: machinesData } = useMachines({ actif: true })
   const { data: matieresBroyeesPage } = useMatieres({ type: 'broyee', per_page: 200 })
@@ -179,7 +190,42 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
     formState: { errors },
   } = useForm<BtSessionSchema>({
     resolver: zodResolver(btSessionSchema) as unknown as Resolver<BtSessionSchema>,
-    defaultValues: buildDefaultValues(bt),
+    defaultValues: session
+  ? {
+      date_session: session.date_session ?? new Date().toISOString().slice(0, 10),
+      machine_id: session.machine_id ?? bt.machine_id ?? 0,
+      sorties: Array.isArray(session.matieres)
+        ? session.matieres
+            .filter((line) => line.type === 'sortie')
+            .map((line) => ({
+              quantite_utilisee: Number(line.quantite) || 0,
+              quantite_restituee: Number(line.quantite_restituee) || 0,
+            }))
+        : buildDefaultValues(bt).sorties,
+      entrees: Array.isArray(session.matieres)
+        ? session.matieres
+            .filter((line) => line.type === 'entree')
+            .map((line) => ({
+              matiere_id: Number(line.matiere?.id ?? 0),
+              quantite: Number(line.quantite) || 0,
+            }))
+        : buildDefaultValues(bt).entrees,
+      employes: Array.isArray(session.employes)
+        ? session.employes.map((line) => ({
+            employe_id: Number(line.employe?.id ?? 0),
+            heures_brutes: Number(line.heures_brutes) || 0,
+          }))
+        : [],
+      evenements: Array.isArray(session.evenements)
+        ? session.evenements.map((line) => ({
+            type_evenement: line.type_evenement as RecyclageSessionEventType,
+            heure_debut: normalizeTimeForInput(line.heure_debut),
+            heure_fin: normalizeTimeForInput(line.heure_fin),
+            description: line.description ?? '',
+          }))
+        : buildDefaultValues(bt).evenements,
+    }
+  : buildDefaultValues(bt),
   })
 
   const sortiesArray = useFieldArray({ control, name: 'sorties' })
@@ -205,6 +251,21 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
   }, [bt, reset])
 
   const onSubmit = (payload: BtSessionSchema) => {
+    if (isEditing && session?.id) {
+      updateSession.mutate(
+        {
+          sessionId: session.id,
+          payload,
+        },
+        {
+          onSuccess: () => {
+            onSuccess?.()
+          },
+        },
+      )
+      return
+    }
+
     createSession(
       {
         btId: bt.id,
@@ -570,8 +631,8 @@ export function BtSessionForm({ bt, onSuccess }: BtSessionFormProps) {
       )}
 
       <div className="flex justify-end gap-2 border-t border-surface-border pt-4">
-        <Button type="submit" loading={isPending}>
-          Créer la session
+        <Button type="submit" loading={isPending || updateSession.isPending}>
+          {isEditing ? 'Modifier la session complète' : 'Créer la session'}
         </Button>
       </div>
     </form>

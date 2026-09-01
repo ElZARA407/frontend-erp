@@ -22,6 +22,22 @@ export function useBonTransformations(filters: RecyclageFilters = {}) {
   })
 }
 
+export function useUpdateBtSession() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ sessionId, payload }: { sessionId: number; payload: Partial<BtSessionPayload> }) =>
+      recyclageApi.sessions.update(sessionId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.bons })
+      qc.invalidateQueries({ queryKey: RECYCLAGE_KEYS.sessions })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Session de transformation mise à jour.')
+    },
+    onError: (error) => notifyApiError(error, 'Impossible de modifier cette session.'),
+  })
+}
+
 export function useBonTransformation(id: number) {
   return useQuery({
     queryKey: [...RECYCLAGE_KEYS.bons, id],

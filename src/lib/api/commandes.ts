@@ -17,18 +17,25 @@ export interface CommandeFilters {
 sort_dir?: 'asc' | 'desc'
 }
 
+export interface CommandeLinePayload {
+  id?: number
+  produit_id: number
+  classement_id: number
+  quantite: number
+  prix_unitaire: number
+}
+
 export interface CreateCommandePayload {
   client_id: number
   date: string
   date_livraison_prevue?: string
   location_id: number
   echeance: number
-  lignes: Array<{
-    produit_id: number
-    classement_id: number
-    quantite: number
-    prix_unitaire: number
-  }>
+  lignes: CommandeLinePayload[]
+}
+
+export type UpdateCommandePayload = Partial<Omit<CreateCommandePayload, 'lignes'>> & {
+  lignes?: CommandeLinePayload[]
 }
 
 export const commandesApi = {
@@ -49,7 +56,7 @@ export const commandesApi = {
     return data.data
   },
 
-  update: async (id: number, payload: Partial<Commande>) => {
+  update: async (id: number, payload: UpdateCommandePayload) => {
     const { data } = await apiClient.put<ApiResponse<Commande>>(`/commercial/commandes/${id}`, payload)
     return data.data
   },

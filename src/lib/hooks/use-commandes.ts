@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { commandesApi, type CommandeFilters, type CreateCommandePayload } from '../api/commandes'
 import { notifyApiError } from '../api-error'
+import { Commande } from '../types'
 
 export const COMMANDES_KEY = ['commandes']
 
@@ -42,5 +43,21 @@ export function useDuplicateCommande() {
       qc.invalidateQueries({ queryKey: COMMANDES_KEY })
       toast.success('Commande dupliquée.')
     },
+  })
+}
+
+export function useUpdateCommande() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Partial<CreateCommandePayload> }) =>
+      commandesApi.update(id, payload as Partial<Commande>),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: COMMANDES_KEY })
+      qc.invalidateQueries({ queryKey: [...COMMANDES_KEY, variables.id] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Commande modifiée.')
+    },
+    onError: (error) => notifyApiError(error, 'Impossible de modifier cette commande.'),
   })
 }

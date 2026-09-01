@@ -29,6 +29,9 @@ import {
 } from '@/lib/hooks/use-recyclage'
 import type { RecyclageSession, RecyclageSessionEvenement, RecyclageSessionMatiere } from '@/lib/recyclage.types'
 import { BtSessionForm } from './bt-session-form'
+import { Pencil } from 'lucide-react'
+import { usePermissions } from '@/lib/hooks/use-permissions'
+import { BtUpdateForm } from './bt-update-form'
 
 interface BtDetailViewProps {
   btId: number
@@ -111,6 +114,9 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
   const [showSessionDialog, setShowSessionDialog] = useState(false)
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
+  const permissions = usePermissions()
+  const [editingBt, setEditingBt] = useState(false)
+  const [editingSession, setEditingSession] = useState<RecyclageSession | null>(null)
 
   const { data: bt, isLoading } = useBonTransformation(btId)
   const { data: sessionsData, isLoading: loadingSessions } = useBtSessions(btId)
@@ -196,6 +202,15 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
         subtitle={bt ? `Matière brute ${bt.matiere_brute?.nom ?? '—'}` : 'Chargement...'}
         actions={
           <div className="flex flex-wrap gap-2">
+            {bt && permissions.canEditDocument('bon_transformation', bt.statut).allowed && (
+              <Button
+                variant="outline"
+                icon={<Pencil className="h-3.5 w-3.5" />}
+                onClick={() => setEditingBt(true)}
+              >
+                {permissions.canEditDocument('bon_transformation', bt.statut).label}
+              </Button>
+            )}
             {bt && canCloturer && (
               <Button
                 icon={<CheckCircle2 className="h-3.5 w-3.5" />}
@@ -206,7 +221,7 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
               </Button>
             )}
 
-            {bt && !['annule', 'cloture'].includes(bt.statut.valeur) && (
+            {bt && permissions.can('create') && ['ouvert', 'en_cours'].includes(bt.statut.valeur) && (
               <Button
                 icon={<Plus className="h-3.5 w-3.5" />}
                 onClick={() => setShowSessionDialog(true)}
@@ -391,8 +406,18 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
                           >
                             Détails
                           </Button>
+                          {permissions.canEditDocument('bt_session', session.statut).allowed && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<Pencil className="h-3.5 w-3.5" />}
+                            onClick={() => setEditingSession(session)}
+                          >
+                            {permissions.canEditDocument('bt_session', session.statut).label}
+                          </Button>
+                        )}
 
-                          {session.statut === 'ouverte' && (
+                          {permissions.can('validate') && session.statut === 'ouverte' && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -426,6 +451,35 @@ export function BtDetailView({ btId }: BtDetailViewProps) {
           <BtSessionForm
             bt={bt}
             onSuccess={() => setShowSessionDialog(false)}
+          />
+        )}
+      </Dialog>
+      <Dialog
+        open={editingBt}
+        onClose={() => setEditingBt(false)}
+        title={bt ? `Modifier ${bt.numero}` : 'Modifier OT'}
+        size="lg"
+      >
+        {bt && (
+          <BtUpdateForm
+            bt={bt}
+            onSuccess={() => setEditingBt(false)}
+          />
+        )}
+      </Dialog>
+
+      <Dialog
+        open={editingSession !== null}
+        onClose={() => setEditingSession(null)}
+        title={editingSession ? `Modifier ${editingSession.session_numero}` : 'Modifier session'}
+        size="wide"
+      >
+        {editingSession && bt && (
+          <BtSessionForm
+            bt={bt}
+            session={editingSession}
+            mode="edit"
+            onSuccess={() => setEditingSession(null)}
           />
         )}
       </Dialog>

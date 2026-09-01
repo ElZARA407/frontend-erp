@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Calculator, CheckCircle, Factory, Plus, XCircle } from 'lucide-react'
+import { Calculator, CheckCircle, Factory, Pencil, Plus, XCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAnnulerBP, useBonsProduction, useClotureBP, useMachines } from '@/lib/hooks/use-production'
 import { useLocations } from '@/lib/hooks/use-organisation'
@@ -24,6 +24,7 @@ import type { CatalogueProduct } from '@/lib/catalogue.types'
 import { usePermissions } from '@/lib/hooks/use-permissions'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { SortControl, type SortDirection } from '@/components/ui/sort-control'
+import { BpUpdateForm } from './bp-update-form'
 
 function normalizeArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[]
@@ -55,6 +56,7 @@ export function ProductionView() {
   const [locationId, setLocationId] = useState('')
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
+  const [editingBp, setEditingBp] = useState<BonProduction | null>(null)
   const [confirmAction, setConfirmAction] = useState<null | {
   type: 'annuler' | 'cloturer'
   id: number
@@ -308,7 +310,26 @@ export function ProductionView() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {bp.statut.valeur === 'ouvert' && (
+                        {(() => {
+                          const editDecision = permissions.canEditDocument('bon_production', bp.statut)
+
+                          if (!editDecision.allowed) return null
+
+                          return (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={<Pencil className="h-3.5 w-3.5" />}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setEditingBp(bp)
+                              }}
+                            >
+                              {editDecision.label}
+                            </Button>
+                          )
+                        })()}
+                        {permissions.can('cancel') && bp.statut.valeur === 'ouvert' && (
                           <Button
                             variant="danger"
                             size="sm"
@@ -322,7 +343,7 @@ export function ProductionView() {
                             Annuler
                           </Button>
                         )}
-                        {bp.statut.valeur === 'en_cours' && bp.taux_realisation >= 100 && (
+                        {permissions.can('validate') && bp.statut.valeur === 'en_cours' && bp.taux_realisation >= 100 && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -365,6 +386,21 @@ export function ProductionView() {
       >
         <BpForm onSuccess={() => setShowCreate(false)} />
       </Dialog>
+
+        <Dialog
+  open={editingBp !== null}
+  onClose={() => setEditingBp(null)}
+  title={editingBp ? `Modifier ${editingBp.numero}` : 'Modifier OF'}
+  size="lg"
+>
+  {editingBp && (
+    <BpUpdateForm
+      bp={editingBp}
+      onSuccess={() => setEditingBp(null)}
+    />
+  )}
+</Dialog>
+
       <ConfirmationDialog
   open={confirmAction !== null}
   title={confirmAction?.type === 'annuler' ? 'Annulation' : 'Clôture'}

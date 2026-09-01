@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { CheckCircle2, FileDown, Package, Plus, Search, Trash2 } from 'lucide-react'
+import { CheckCircle2, FileDown, Package, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +27,7 @@ import { usePermissions } from '@/lib/hooks/use-permissions'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
+
 const PAGE_SIZE = 10
 
 const statutOptions = [
@@ -46,6 +47,7 @@ export function BonsSortieView() {
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
   const [sortBy, setSortBy] = useState('date')
+  const [editingBon, setEditingBon] = useState<BonSortie | null>(null)
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
   const [confirmAction, setConfirmAction] = useState<null | {
   type: 'valider' | 'supprimer'
@@ -232,6 +234,26 @@ export function BonsSortieView() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+
+                        {(() => {
+                          const editDecision = permissions.canEditDocument('bon_sortie', bon.statut)
+
+                          if (!editDecision.allowed) return null
+
+                          return (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={<Pencil className="h-3.5 w-3.5" />}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setEditingBon(bon)
+                              }}
+                            >
+                              {editDecision.label}
+                            </Button>
+                          )
+                        })()}
                         
                         {permissions.can('validate') && (
                           bon.statut === 'brouillon' && (
@@ -302,6 +324,20 @@ export function BonsSortieView() {
       >
         <BonSortieForm onSuccess={() => setShowCreate(false)} />
       </Dialog>
+        <Dialog
+  open={editingBon !== null}
+  onClose={() => setEditingBon(null)}
+  title={editingBon ? `Modifier ${editingBon.numero}` : 'Modifier le bon de sortie'}
+  size="xl"
+>
+  {editingBon && (
+    <BonSortieForm
+      defaultValues={editingBon}
+      onSuccess={() => setEditingBon(null)}
+    />
+  )}
+</Dialog>
+
       <ConfirmationDialog
   open={confirmAction !== null}
   title={confirmAction?.type === 'valider' ? 'Validation' : 'Suppression'}

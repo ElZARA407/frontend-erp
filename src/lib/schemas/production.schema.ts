@@ -3,7 +3,6 @@ import {
   hasDuplicateBy,
   optionalLongText,
   optionalPositiveNumber,
-  optionalText,
 } from './schema-utils'
 
 function timeToMinutes(value?: string | null) {

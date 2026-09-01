@@ -289,3 +289,95 @@ export function canSeeDashboardWidget(
 export function getVisibleRoles(): AppRole[] {
   return [...ALL_ROLES]
 }
+
+export type BusinessDocumentType =
+  | 'commande'
+  | 'vente_directe'
+  | 'livraison'
+  | 'bon_sortie'
+  | 'bon_production'
+  | 'bp_session'
+  | 'bon_transformation'
+  | 'bt_session'
+  | 'calcul'
+
+export type EditDecision = {
+  allowed: boolean
+  mode: 'normal' | 'admin_correction' | 'readonly'
+  label: string
+  reason?: string
+}
+
+function readStatusValue(status: unknown): string {
+  if (!status) return ''
+
+  if (typeof status === 'string') return status
+
+  if (typeof status === 'object' && status !== null) {
+    const record = status as { valeur?: unknown; value?: unknown }
+
+    if (typeof record.valeur === 'string') return record.valeur
+    if (typeof record.value === 'string') return record.value
+  }
+
+  return ''
+}
+
+function isAdminRole(role: string | null | undefined) {
+  return normalizeRole(role) === 'admin'
+}
+
+function isEditableBeforeValidation(type: BusinessDocumentType, status: string): boolean {
+  if (type === 'commande') return status === 'non_livree'
+  if (type === 'vente_directe') return status === 'brouillon'
+  if (type === 'livraison') return status === 'prepare'
+  if (type === 'bon_sortie') return status === 'brouillon'
+  if (type === 'bon_production') return status === 'ouvert'
+  if (type === 'bp_session') return status === 'ouverte'
+  if (type === 'bon_transformation') return status === 'ouvert'
+  if (type === 'bt_session') return status === 'ouverte'
+
+  return false
+}
+
+export function canEditBusinessDocument(
+  role: string | null | undefined,
+  type: BusinessDocumentType,
+  status: unknown,
+): EditDecision {
+  const normalizedStatus = readStatusValue(status)
+
+  if (type === 'calcul') {
+    return {
+      allowed: false,
+      mode: 'readonly',
+      label: 'Lecture seule',
+      reason: 'Les calculs sont générés automatiquement et ne doivent pas être modifiés manuellement.',
+    }
+  }
+
+  if (isEditableBeforeValidation(type, normalizedStatus)) {
+    return {
+      allowed: canPerform(role, 'update'),
+      mode: 'normal',
+      label: 'Modifier',
+      reason: canPerform(role, 'update') ? undefined : 'Votre rôle ne permet pas cette modification.',
+    }
+  }
+
+  if (isAdminRole(role)) {
+    return {
+      allowed: true,
+      mode: 'admin_correction',
+      label: 'Correction admin',
+      reason: 'Document déjà validé ou confirmé. Toute correction doit rester tracée.',
+    }
+  }
+
+  return {
+    allowed: false,
+    mode: 'readonly',
+    label: 'Non modifiable',
+    reason: 'Ce document est déjà validé, confirmé, clôturé ou livré.',
+  }
+}

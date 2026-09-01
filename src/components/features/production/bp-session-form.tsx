@@ -21,18 +21,24 @@ import { Select } from '@/components/ui/select'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import { useEmployes } from '@/lib/hooks/use-rh'
 import { useCreateSession, useMachines } from '@/lib/hooks/use-production'
+import { useUpdateBpSession } from '@/lib/hooks/use-production'
 import { useClassments, useMatieres } from '@/lib/hooks/use-catalogue'
 import { sessionSchema, type SessionBatchSchema } from '@/lib/schemas/production.schema'
-import type { BonProduction } from '@/lib/types'
+import type { BonProduction, BpSession } from '@/lib/types'
 import type { CatalogueMatiere } from '@/lib/catalogue.types'
 import type { RhEmploye } from '@/lib/rh.types'
 
 interface BpSessionCreateFormProps {
   bp?: BonProduction | null
   bpId: number
+  session?: BpSession | null
+  mode?: 'create' | 'edit'
   onSuccess?: () => void
 }
-
+function normalizeTimeForInput(value?: string | null): string {
+  if (!value) return ''
+  return String(value).slice(0, 5)
+}
 function buildDefaultValues(bp?: BonProduction | null): SessionBatchSchema {
   return {
     date_session: new Date().toISOString().slice(0, 10),
@@ -148,8 +154,16 @@ function onInvalidSession(errors: FieldErrors<SessionBatchSchema>) {
   toast.error(String(firstMessage))
 }
 
-export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateFormProps) {
+export function BpSessionCreateForm({
+  bp,
+  bpId,
+  session,
+  mode = 'create',
+  onSuccess,
+}: BpSessionCreateFormProps) {
   const { mutateAsync: createSession, isPending } = useCreateSession()
+  const updateSession = useUpdateBpSession()
+  const isEditing = mode === 'edit' && Boolean(session?.id)
   const { data: locationsData, isLoading: locationsLoading } = useLocations()
   const locations = useMemo(
     () => (Array.isArray(locationsData) ? locationsData : []),
@@ -190,7 +204,44 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
     [classmentsData],
   )
 
-  const defaultValues = useMemo(() => buildDefaultValues(bp), [bp])
+  const defaultValues = useMemo<SessionBatchSchema>(() => {
+    if (!session) return buildDefaultValues(bp)
+
+    return {
+      date_session: session.date_session ?? new Date().toISOString().slice(0, 10),
+      machine_id: session.machine_id ?? bp?.machine_id ?? 0,
+      cout_electricite: Number(session.cout_electricite) || undefined,
+      matieres: Array.isArray(session.matieres)
+        ? session.matieres.map((line) => ({
+            matiere_id: Number(line.matiere_id ?? line.matiere?.id ?? 0),
+            quantite_utilisee: Number(line.quantite_utilisee) || 0,
+            quantite_restituee: Number(line.quantite_restituee) || 0,
+          }))
+        : [],
+      obtenus: Array.isArray(session.obtenus)
+        ? session.obtenus.map((line) => ({
+            produit_id: Number(line.produit_id ?? line.produit?.id ?? bp?.produit?.id ?? 0),
+            classement_id: Number(line.classement_id ?? line.classement?.id ?? 0),
+            quantite_produite: Number(line.quantite_produite) || 0,
+            destination_location_id: Number(line.destination_location_id ?? line.destination?.id ?? bp?.location?.id ?? 0),
+          }))
+        : [],
+      employes: Array.isArray(session.employes)
+        ? session.employes.map((line) => ({
+            employe_id: Number(line.employe_id ?? line.employe?.id ?? 0),
+            heures_brutes: Number(line.heures_brutes) || undefined,
+          }))
+        : [],
+      evenements: Array.isArray(session.evenements)
+        ? session.evenements.map((line) => ({
+            type_evenement: line.type_evenement as SessionBatchSchema['evenements'][number]['type_evenement'],
+            heure_debut: normalizeTimeForInput(line.heure_debut),
+            heure_fin: normalizeTimeForInput(line.heure_fin),
+            description: line.description ?? undefined,
+          }))
+        : [],
+    }
+  }, [bp, session])
   const initializedRef = useRef(false)
 
   const methods = useForm<SessionBatchSchema>({
@@ -276,6 +327,15 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
   )
 
   const onSubmit = async (values: SessionBatchSchema) => {
+    if (isEditing && session?.id) {
+      await updateSession.mutateAsync({
+        sessionId: session.id,
+        payload: values,
+      })
+      onSuccess?.()
+      return
+    }
+
     await createSession({ bpId, payload: values })
     reset(buildDefaultValues(bp))
     onSuccess?.()
@@ -585,8 +645,12 @@ export function BpSessionCreateForm({ bp, bpId, onSuccess }: BpSessionCreateForm
         )}
 
         <div className="flex items-center justify-end gap-2 border-t border-surface-border pt-4">
-          <Button type="submit" loading={isPending} disabled={!canCreateSession}>
-            Créer la session complète
+          <Button
+            type="submit"
+            loading={isPending || updateSession.isPending}
+            disabled={!canCreateSession}
+          >
+            {isEditing ? 'Modifier la session complète' : 'Créer la session complète'}
           </Button>
         </div>
       </form>

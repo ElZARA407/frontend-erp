@@ -67,3 +67,19 @@ export function useAnnulerVenteDirecte() {
     onError: (error) => notifyApiError(error, 'Impossible d’annuler cette vente directe.'),
   })
 }
+
+export function useUpdateVenteDirecte() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Partial<VenteDirectePayload> }) =>
+      ventesDirectesApi.update(id, payload),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: VENTES_DIRECTES_KEYS.ventes })
+      qc.invalidateQueries({ queryKey: [...VENTES_DIRECTES_KEYS.ventes, variables.id] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Vente directe modifiée.')
+    },
+    onError: (error) => notifyApiError(error, 'Impossible de modifier cette vente directe.'),
+  })
+}

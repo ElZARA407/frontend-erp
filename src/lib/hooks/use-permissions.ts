@@ -3,12 +3,14 @@ import { usePathname } from 'next/navigation'
 import { useAuthStore } from '../stores/auth.store'
 import {
   canAccessRoute,
+  canEditBusinessDocument,
   canPerform,
   canSeeDashboardWidget,
   canSeeReportTab,
-  ReportTabPermission,
+  type BusinessDocumentType,
   type DashboardWidget,
   type PermissionAction,
+  type ReportTabPermission,
 } from '../permissions'
 
 export function useCurrentRole() {
@@ -24,10 +26,7 @@ export function useCanRoute(path?: string) {
   const pathname = usePathname()
   const role = useCurrentRole()
 
-  return useMemo(
-    () => canAccessRoute(role, path ?? pathname),
-    [role, path, pathname]
-  )
+  return useMemo(() => canAccessRoute(role, path ?? pathname), [role, path, pathname])
 }
 
 export function useCanDashboardWidget(widget: DashboardWidget) {
@@ -46,8 +45,10 @@ export function usePermissions() {
       canRoute: (path: string) => canAccessRoute(role, path),
       canReportTab: (tab: ReportTabPermission) => canSeeReportTab(role, tab),
       canDashboardWidget: (widget: DashboardWidget) => canSeeDashboardWidget(role, widget),
+      canEditDocument: (type: BusinessDocumentType, status: unknown) =>
+        canEditBusinessDocument(role, type, status),
       currentPathAllowed: canAccessRoute(role, pathname),
     }),
-    [role, pathname]
+    [role, pathname],
   )
-} 
+}

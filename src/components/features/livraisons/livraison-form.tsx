@@ -304,7 +304,7 @@ export function LivraisonForm({ sourceType, source, defaultValues, onSuccess }: 
         <Input
           label="Date de livraison"
           type="date"
-          min={new Date().toISOString().slice(0, 10)}
+          min={isEditing ? undefined : new Date().toISOString().slice(0, 10)}
           value={dateLivraison}
           onChange={(e) => setDateLivraison(e.target.value)}
         />

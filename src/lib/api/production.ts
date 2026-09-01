@@ -43,6 +43,13 @@ export interface BpEvenementPayload {
   description?: string
 }
 
+export interface BonProductionUpdatePayload {
+  machine_id?: number
+  quantite_cible?: number
+}
+
+export type BpSessionUpdatePayload = BpSessionCreatePayload
+
 export interface ProductionCostSessionDetail {
   bp_session_id: number
   bp_session_numero: string
@@ -238,6 +245,21 @@ export const productionApi = {
       formData
     )
 
+    return data.data
+  },
+    update: async (id: number, payload: BonProductionUpdatePayload) => {
+    const { data } = await apiClient.put<ApiResponse<BonProduction>>(
+      `/production/bons-production/${id}`,
+      payload
+    )
+    return data.data
+  },
+
+  updateSession: async (sessionId: number, payload: BpSessionUpdatePayload) => {
+    const { data } = await apiClient.put<ApiResponse<BpSession>>(
+      `/production/sessions/${sessionId}`,
+      payload
+    )
     return data.data
   },
 }

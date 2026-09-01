@@ -21,14 +21,15 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import { useClients } from '@/lib/hooks/use-clients'
 import { useStocks } from '@/lib/hooks/use-stocks'
-import { useCreateBonSortie } from '@/lib/hooks/use-bons-sortie'
+import { useCreateBonSortie, useUpdateBonSortie } from '@/lib/hooks/use-bons-sortie'
 import { MOTIFS_SORTIE } from '@/lib/constants'
 import { formatQty } from '@/lib/utils'
 import { bonSortieSchema, type BonSortieSchema } from '@/lib/schemas/bons-sortie.schema'
-import type { BonSortieMotif } from '@/lib/bons-sortie.types'
+import type { BonSortie, BonSortieMotif } from '@/lib/bons-sortie.types'
 import type { Stock } from '@/lib/types'
 
 interface BonSortieFormProps {
+  defaultValues?: BonSortie
   onSuccess?: () => void
 }
 
@@ -132,8 +133,10 @@ function detailLabelForMotif(motif: BonSortieMotif): string {
   return 'Détail'
 }
 
-export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
+export function BonSortieForm({ defaultValues, onSuccess }: BonSortieFormProps) {
   const createBonSortie = useCreateBonSortie()
+  const updateBonSortie = useUpdateBonSortie()
+  const isEditing = Boolean(defaultValues?.id)
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { data: locationsData } = useLocations()
@@ -155,15 +158,21 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
   } = useForm<BonSortieFormValues>({
     resolver: zodResolver(bonSortieSchema) as unknown as Resolver<BonSortieFormValues>,
     defaultValues: {
-      location_id: 0,
-      destination_location_id: undefined,
-      date: new Date().toISOString().slice(0, 10),
-      motif: 'consommation_interne',
-      client_id: undefined,
-      motif_detail: '',
-      observations: '',
-      lignes: [createEmptyLine()],
-    },
+    location_id: defaultValues?.location?.id ?? 0,
+    destination_location_id: defaultValues?.destination_location?.id,
+    date: defaultValues?.date ?? new Date().toISOString().slice(0, 10),
+    motif: defaultValues?.motif ?? 'consommation_interne',
+    client_id: defaultValues?.client?.id,
+    motif_detail: defaultValues?.motif_detail ?? '',
+    observations: defaultValues?.observations ?? '',
+    lignes: Array.isArray(defaultValues?.lignes) && defaultValues.lignes.length > 0
+      ? defaultValues.lignes.map((ligne) => ({
+          produit_id: Number(ligne.produit_id),
+          classement_id: Number(ligne.classement_id),
+          quantite: Number(ligne.quantite),
+        }))
+      : [createEmptyLine()],
+  },
     mode: 'onSubmit',
     reValidateMode: 'onChange',
   })
@@ -290,6 +299,11 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
       })),
     }
 
+    if (isEditing && defaultValues?.id) {
+      updateBonSortie.mutate({ id: defaultValues.id, payload }, { onSuccess })
+      return
+    }
+
     createBonSortie.mutate(payload, { onSuccess })
   }
 
@@ -373,15 +387,9 @@ export function BonSortieForm({ onSuccess }: BonSortieFormProps) {
               Les produits affichés dépendent du stock disponible dans la localisation source.
             </p>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            icon={<Plus className="h-3.5 w-3.5" />}
-            onClick={() => append(createEmptyLine())}
-          >
-            Ajouter
-          </Button>
+        <Button type="submit" loading={createBonSortie.isPending || updateBonSortie.isPending}>
+          {isEditing ? 'Modifier le bon de sortie' : 'Créer le bon de sortie'}
+        </Button>
         </div>
 
         <div className="space-y-4 p-4">

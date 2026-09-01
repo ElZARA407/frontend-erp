@@ -1,8 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { useState } from 'react'
-import { Eye, Plus, RotateCcw, ShoppingCart, Truck, CheckCircle2 } from 'lucide-react'
+import { Eye, Plus, RotateCcw, ShoppingCart, Truck, CheckCircle2, Pencil } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -27,9 +26,11 @@ import { usePermissions } from '@/lib/hooks/use-permissions'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 
+
 export function VentesDirectesView() {
   const [page, setPage] = useState(1)
   const [statut, setStatut] = useState<string>('')
+  const [editingVente, setEditingVente] = useState<VenteDirecte | null>(null)
   const [clientId, setClientId] = useState<string>('')
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
@@ -220,6 +221,25 @@ export function VentesDirectesView() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {(() => {
+                          const editDecision = permissions.canEditDocument('vente_directe', vente.statut)
+
+                          if (!editDecision.allowed) return null
+
+                          return (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={<Pencil className="h-3.5 w-3.5" />}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setEditingVente(vente)
+                              }}
+                            >
+                              {editDecision.label}
+                            </Button>
+                          )
+                        })()}
                         {canDeliver(vente) && (
                           <Button
                             variant="outline"
@@ -310,6 +330,20 @@ export function VentesDirectesView() {
               setShowLivraison(false)
               setSelectedVente(null)
             }}
+          />
+        )}
+      </Dialog>
+
+      <Dialog
+        open={editingVente !== null}
+        onClose={() => setEditingVente(null)}
+        title={editingVente ? `Modifier ${editingVente.numero}` : 'Modifier la vente directe'}
+        size="wide"
+      >
+        {editingVente && (
+          <VenteDirecteForm
+            defaultValues={editingVente}
+            onSuccess={() => setEditingVente(null)}
           />
         )}
       </Dialog>

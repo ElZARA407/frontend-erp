@@ -292,6 +292,71 @@ export interface BpSession {
   quantite_totale_produite?: number
   production_moyenne_heure?: number
   machine?: Machine
+  matieres?: Array<{
+    id: number
+    bp_session_id?: number
+    matiere_id: number
+    quantite_utilisee: number
+    quantite_restituee: number
+    cout_matiere?: number
+    matiere?: {
+      id: number
+      reference: string
+      nom: string
+      unite?: string
+      prix_moyen?: number
+    } | null
+  }>
+  obtenus?: Array<{
+    id: number
+    bp_session_id?: number
+    produit_id: number
+    classement_id: number
+    quantite_produite: number
+    destination_location_id: number
+    produit?: {
+      id: number
+      nomencla: string
+      designation: string
+    } | null
+    classement?: ClassementProduit | null
+    destination?: {
+      id: number
+      nom: string
+    } | null
+  }>
+  employes?: Array<{
+    id: number
+    bp_session_id?: number
+    employe_id: number
+    heures_brutes: number
+    heures_effectives?: number
+    taux_horaire?: number
+    cout?: number
+    employe?: {
+      id: number
+      nom?: string
+      prenom?: string | null
+      nom_complet?: string | null
+      matricule?: string | null
+      poste?: {
+        id: number
+        nom: string
+      } | null
+    } | null
+  }>
+  evenements?: Array<{
+    id: number
+    bp_session_id?: number
+    type_evenement: 'production' | 'pause' | 'panne' | 'autre' | string
+    heure_debut: string
+    heure_fin: string | null
+    description?: string | null
+    operateur?: {
+      id: number
+      nom: string
+    } | null
+  }>
   calcul?: BpSessionCalcul
 }
 

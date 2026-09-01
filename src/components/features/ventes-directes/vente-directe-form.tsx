@@ -20,13 +20,16 @@ import { Select } from '@/components/ui/select'
 import { useClients } from '@/lib/hooks/use-clients'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import { useProducts } from '@/lib/hooks/use-catalogue'
-import { useCreateVenteDirecte } from '@/lib/hooks/use-ventes-directes'
+import { useCreateVenteDirecte, useUpdateVenteDirecte } from '@/lib/hooks/use-ventes-directes'
 import { formatMGA, formatQty } from '@/lib/utils'
 import { venteDirecteSchema, type VenteDirecteSchema } from '@/lib/schemas/ventes-directes.schema'
 import type { CatalogueProduct } from '@/lib/catalogue.types'
 import { SearchableSelect } from '@/components/ui/searchable-select'
+import type { VenteDirecte } from '@/lib/ventes-directes.types'
+
 
 interface VenteDirecteFormProps {
+  defaultValues?: VenteDirecte
   onSuccess?: () => void
 }
 
@@ -71,8 +74,10 @@ function createEmptyLine(): VenteDirecteLineFormValues {
   }
 }
 
-export function VenteDirecteForm({ onSuccess }: VenteDirecteFormProps) {
+export function VenteDirecteForm({ defaultValues, onSuccess }: VenteDirecteFormProps) {
   const createVente = useCreateVenteDirecte()
+  const updateVente = useUpdateVenteDirecte()
+  const isEditing = Boolean(defaultValues?.id)
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { data: locationsData } = useLocations()
@@ -95,11 +100,18 @@ export function VenteDirecteForm({ onSuccess }: VenteDirecteFormProps) {
   } = useForm<VenteDirecteFormValues>({
     resolver: zodResolver(venteDirecteSchema) as unknown as Resolver<VenteDirecteFormValues>,
     defaultValues: {
-      client_id: 0,
-      date: new Date().toISOString().slice(0, 10),
-      location_id: 0,
-      lignes: [createEmptyLine()],
-    },
+    client_id: defaultValues?.client?.id ?? 0,
+    date: defaultValues?.date ?? new Date().toISOString().slice(0, 10),
+    location_id: defaultValues?.location?.id ?? 0,
+    lignes: Array.isArray(defaultValues?.lignes) && defaultValues.lignes.length > 0
+      ? defaultValues.lignes.map((ligne) => ({
+          produit_id: Number(ligne.produit_id),
+          classement_id: Number(ligne.classement_id),
+          quantite: Number(ligne.quantite),
+          prix_unitaire: Number(ligne.prix_unitaire),
+        }))
+      : [createEmptyLine()],
+  },
     mode: 'onSubmit',
     reValidateMode: 'onChange',
   })
@@ -251,6 +263,11 @@ export function VenteDirecteForm({ onSuccess }: VenteDirecteFormProps) {
   if (hasStockError) {
     return
   }
+    if (isEditing && defaultValues?.id) {
+      updateVente.mutate({ id: defaultValues.id, payload: values }, { onSuccess })
+      return
+    }
+
     createVente.mutate(values, { onSuccess })
   }
 
@@ -340,8 +357,8 @@ export function VenteDirecteForm({ onSuccess }: VenteDirecteFormProps) {
           >
             Ajouter ligne
           </Button>
-        <Button type="submit" loading={createVente.isPending}>
-          Créer la vente directe
+        <Button type="submit" loading={createVente.isPending || updateVente.isPending}>
+          {isEditing ? 'Modifier la vente directe' : 'Créer la vente directe'}
         </Button>
       </div>
     </form>

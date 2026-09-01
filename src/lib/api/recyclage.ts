@@ -19,6 +19,7 @@ export const recyclageApi = {
     return extractPaginatedResponse<BonTransformation>(data)
   },
 
+
   get: async (id: number) => {
     const { data } = await apiClient.get<ApiResponse<BonTransformation>>(
       `/recyclage/bons-transformation/${id}`
@@ -68,6 +69,14 @@ export const recyclageApi = {
     validate: async (sessionId: number) => {
       const { data } = await apiClient.post<ApiResponse<RecyclageSession>>(
         `/recyclage/bt-sessions/${sessionId}/valider`
+      )
+      return data.data
+    },
+
+     update: async (sessionId: number, payload: Partial<BtSessionPayload>) => {
+      const { data } = await apiClient.put<ApiResponse<RecyclageSession>>(
+        `/recyclage/bt-sessions/${sessionId}`,
+        payload
       )
       return data.data
     },

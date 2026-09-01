@@ -19,6 +19,8 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { Upload } from 'lucide-react'
 import { useImportProductionSessions } from '@/lib/hooks/use-production'
 import { ExcelImportDialog } from '@/components/ui/excel-import-dialog'
+import { Pencil } from 'lucide-react'
+import { BpUpdateForm } from './bp-update-form'
 
 interface ProductionDetailViewProps {
   bpId: number
@@ -208,6 +210,8 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
   const [showSessionDialog, setShowSessionDialog] = useState(false)
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null)
   const router = useRouter()
+  const [editingBp, setEditingBp] = useState(false)
+  const [editingSession, setEditingSession] = useState<BpSession | null>(null)
   const [confirmAction, setConfirmAction] = useState<null | {
   type: 'annuler-bp' | 'cloturer-bp' | 'valider-session'
   id: number
@@ -275,6 +279,15 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
         subtitle={bp ? `Produit ${bp.produit?.designation ?? '—'}` : 'Chargement...'}
         actions={
           <div className="flex flex-wrap gap-2">
+            {bp && permissions.canEditDocument('bon_production', bp.statut).allowed && (
+              <Button
+                variant="outline"
+                icon={<Pencil className="h-3.5 w-3.5" />}
+                onClick={() => setEditingBp(true)}
+              >
+                {permissions.canEditDocument('bon_production', bp.statut).label}
+              </Button>
+            )}
             {bp && canAnnuler && (
               <Button
                 variant="danger"
@@ -294,7 +307,7 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
                 Clôturer
               </Button>
             )}
-            {bp && bp.statut?.valeur !== 'annule' && bp.statut?.valeur !== 'cloture' && (
+            {bp && permissions.can('create') && ['ouvert', 'en_cours'].includes(bp.statut.valeur) && (
               <div className="flex flex-wrap gap-2">
                 <Button
                   icon={<Plus className="h-3.5 w-3.5" />}
@@ -558,6 +571,17 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
                           >
                             Détails
                           </Button>
+
+                          {permissions.canEditDocument('bp_session', session.statut).allowed && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={<Pencil className="h-3.5 w-3.5" />}
+                              onClick={() => setEditingSession(session)}
+                            >
+                              {permissions.canEditDocument('bp_session', session.statut).label}
+                            </Button>
+                          )}
                           {permissions.can('validate') && (
                           session.statut === 'ouverte' && (
                             <Button
@@ -597,6 +621,37 @@ export function ProductionDetailView({ bpId }: ProductionDetailViewProps) {
           onSuccess={() => setShowSessionDialog(false)}
         />
       </Dialog>
+
+      <Dialog
+  open={editingBp}
+  onClose={() => setEditingBp(false)}
+  title={bp ? `Modifier ${bp.numero}` : 'Modifier OF'}
+  size="lg"
+>
+  {bp && (
+    <BpUpdateForm
+      bp={bp}
+      onSuccess={() => setEditingBp(false)}
+    />
+  )}
+</Dialog>
+
+<Dialog
+  open={editingSession !== null}
+  onClose={() => setEditingSession(null)}
+  title={editingSession ? `Modifier ${editingSession.session_numero}` : 'Modifier session'}
+  size="wide"
+>
+  {editingSession && bp && (
+    <BpSessionCreateForm
+      bp={bp}
+      bpId={bp.id}
+      session={editingSession}
+      mode="edit"
+      onSuccess={() => setEditingSession(null)}
+    />
+  )}
+</Dialog>
       <ConfirmationDialog
   open={confirmAction !== null}
   title={

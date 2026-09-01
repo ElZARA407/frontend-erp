@@ -21,19 +21,30 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useClients } from '@/lib/hooks/use-clients'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import { useProducts } from '@/lib/hooks/use-catalogue'
-import { useCreateCommande } from '@/lib/hooks/use-commandes'
+import { useCreateCommande, useUpdateCommande } from '@/lib/hooks/use-commandes'
 import { formatMGA, formatQty } from '@/lib/utils'
-import { commandeSchema, type CommandeSchema } from '@/lib/schemas/commande.schema'
+import {
+  commandeSchema,
+  commandeUpdateSchema,
+  type CommandeSchema,
+} from '@/lib/schemas/commande.schema'
 import type { CreateCommandePayload } from '@/lib/api/commandes'
 import type { CatalogueProduct } from '@/lib/catalogue.types'
+import { Commande } from '@/lib/types'
+
 
 interface CommandeFormProps {
+  defaultValues?: Commande
   onSuccess?: () => void
 }
 
-type CommandeFormValues = CommandeSchema
-type CommandeLineFormValues = CommandeFormValues['lignes'][number]
+type CommandeLineFormValues = CommandeSchema['lignes'][number] & {
+  id?: number
+}
 
+type CommandeFormValues = Omit<CommandeSchema, 'lignes'> & {
+  lignes: CommandeLineFormValues[]
+}
 
 function getFictifStock(item: {
   stock_disponible_fictif?: number
@@ -63,6 +74,7 @@ function getAvailableClassements(product?: CatalogueProduct | null) {
 
 function createEmptyLine(): CommandeLineFormValues {
   return {
+    id: undefined,
     produit_id: 0,
     classement_id: 0,
     quantite: 1,
@@ -71,8 +83,10 @@ function createEmptyLine(): CommandeLineFormValues {
 }
 
 
-export function CommandeForm({ onSuccess }: CommandeFormProps) {
+export function CommandeForm({ defaultValues, onSuccess }: CommandeFormProps) {
   const createCommande = useCreateCommande()
+  const updateCommande = useUpdateCommande()
+  const isEditing = Boolean(defaultValues?.id)
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { data: locationsData } = useLocations()
@@ -94,15 +108,23 @@ export function CommandeForm({ onSuccess }: CommandeFormProps) {
     getValues,
     formState: { errors },
   } = useForm<CommandeFormValues>({
-    resolver: zodResolver(commandeSchema) as unknown as Resolver<CommandeFormValues>,
+    resolver: zodResolver(isEditing ? commandeUpdateSchema : commandeSchema) as unknown as Resolver<CommandeFormValues>,
     defaultValues: {
-      client_id: 0,
-      date: new Date().toISOString().slice(0, 10),
-      date_livraison_prevue: '',
-      location_id: 0,
-      echeance: 30,
-      lignes: [createEmptyLine()],
-    },
+    client_id: defaultValues?.client?.id ?? 0,
+    date: defaultValues?.date ?? new Date().toISOString().slice(0, 10),
+    date_livraison_prevue: defaultValues?.date_livraison_prevue ?? '',
+    location_id: defaultValues?.location?.id ?? 0,
+    echeance: defaultValues?.echeance ?? 30,
+    lignes: Array.isArray(defaultValues?.lignes) && defaultValues.lignes.length > 0
+      ? defaultValues.lignes.map((ligne) => ({
+          id: Number(ligne.id),
+          produit_id: Number(ligne.produit_id),
+          classement_id: Number(ligne.classement_id),
+          quantite: Number(ligne.quantite),
+          prix_unitaire: Number(ligne.prix_unitaire),
+        }))
+      : [createEmptyLine()],
+  },
     mode: 'onSubmit',
     reValidateMode: 'onChange',
   })
@@ -253,11 +275,17 @@ export function CommandeForm({ onSuccess }: CommandeFormProps) {
       location_id: Number(values.location_id),
       echeance: Number(values.echeance),
       lignes: values.lignes.map((ligne) => ({
+        id: ligne.id ? Number(ligne.id) : undefined,
         produit_id: Number(ligne.produit_id),
         classement_id: Number(ligne.classement_id),
         quantite: Number(ligne.quantite),
         prix_unitaire: Number(ligne.prix_unitaire),
       })),
+    }
+
+    if (isEditing && defaultValues?.id) {
+      updateCommande.mutate({ id: defaultValues.id, payload }, { onSuccess })
+      return
     }
 
     createCommande.mutate(payload, { onSuccess })
@@ -293,7 +321,7 @@ export function CommandeForm({ onSuccess }: CommandeFormProps) {
         <Input
           label="Livraison prévue"
           type="date"
-          min={new Date().toISOString().slice(0, 10)}
+          min={isEditing ? undefined : new Date().toISOString().slice(0, 10)}
           error={errors.date_livraison_prevue?.message}
           {...register('date_livraison_prevue')}
         />
@@ -362,8 +390,8 @@ export function CommandeForm({ onSuccess }: CommandeFormProps) {
           >
             Ajouter lignes
           </Button>
-        <Button type="submit" loading={createCommande.isPending}>
-          Créer la commande
+        <Button type="submit" loading={createCommande.isPending || updateCommande.isPending}>
+          {isEditing ? 'Modifier la commande' : 'Créer la commande'}
         </Button>
       </div>
     </form>

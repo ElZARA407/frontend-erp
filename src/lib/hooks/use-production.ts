@@ -9,6 +9,8 @@ import {
   type BpObtenuPayload,
   type BpSessionCreatePayload,
   type MachinePayload,
+    type BonProductionUpdatePayload,
+  type BpSessionUpdatePayload,
 } from '../api/production'
 import type { BonProductionSchema } from '../schemas/production.schema'
 import { notifyApiError } from '../api-error'
@@ -51,6 +53,37 @@ export function useCreateMachine() {
       toast.success('Machine créée.')
     },
     onError: (error) => notifyApiError(error, 'Erreur lors de la création de la machine.'),
+  })
+}
+
+export function useUpdateBonProduction() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: BonProductionUpdatePayload }) =>
+      productionApi.update(id, payload),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
+      qc.invalidateQueries({ queryKey: [...PRODUCTION_KEY, variables.id] })
+      qc.invalidateQueries({ queryKey: DASHBOARD_KEY })
+      toast.success('Bon de production mis à jour.')
+    },
+    onError: (error) => notifyApiError(error, 'Impossible de modifier ce bon de production.'),
+  })
+}
+
+export function useUpdateBpSession() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ sessionId, payload }: { sessionId: number; payload: BpSessionUpdatePayload }) =>
+      productionApi.updateSession(sessionId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: PRODUCTION_KEY })
+      qc.invalidateQueries({ queryKey: DASHBOARD_KEY })
+      toast.success('Session mise à jour.')
+    },
+    onError: (error) => notifyApiError(error, 'Impossible de modifier cette session.'),
   })
 }
 

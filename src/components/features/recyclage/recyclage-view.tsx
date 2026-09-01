@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Factory, CheckCircle2 } from 'lucide-react'
+import { Plus, Factory, CheckCircle2, Pencil } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Pagination } from '@/components/ui/pagination'
 import { TableSkeleton } from '@/components/ui/skeleton'
+import { usePermissions } from '@/lib/hooks/use-permissions'
+import { BtUpdateForm } from './bt-update-form'
 import { formatDate, formatPercent, formatQty, getStatutColor } from '@/lib/utils'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import { useBonTransformations, useClotureBonTransformation } from '@/lib/hooks/use-recyclage'
@@ -54,6 +56,8 @@ export function RecyclageView() {
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
   const router = useRouter()
+  const permissions = usePermissions()
+  const [editingBt, setEditingBt] = useState<BonTransformation | null>(null)
   const { data: locationsData } = useLocations()
   const { mutate: clotureBt, isPending: closing } = useClotureBonTransformation()
 
@@ -212,7 +216,7 @@ export function RecyclageView() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-border">
-                  {['Numéro', 'Date', 'Site', 'Matière brute', 'Machine', 'Prévue', 'Consommée', 'Rendement', 'Statut'].map(
+                  {['Numéro', 'Date', 'Site', 'Matière brute', 'Machine', 'Prévue', 'Consommée', 'Rendement', 'Statut', 'Actions'].map(
                     (h) => (
                       <th
                         key={h}
@@ -250,7 +254,26 @@ export function RecyclageView() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        {['ouvert', 'en_cours'].includes(bt.statut.valeur) && (
+                        {(() => {
+                          const editDecision = permissions.canEditDocument('bon_transformation', bt.statut)
+
+                          if (!editDecision.allowed) return null
+
+                          return (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={<Pencil className="h-3.5 w-3.5" />}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setEditingBt(bt)
+                              }}
+                            >
+                              {editDecision.label}
+                            </Button>
+                          )
+                        })()}
+                        {permissions.can('validate') && ['ouvert', 'en_cours'].includes(bt.statut.valeur) && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -292,6 +315,20 @@ export function RecyclageView() {
         size="lg"
       >
         <BtForm onSuccess={() => setShowCreate(false)} />
+      </Dialog>
+
+      <Dialog
+        open={editingBt !== null}
+        onClose={() => setEditingBt(null)}
+        title={editingBt ? `Modifier ${editingBt.numero}` : 'Modifier OT'}
+        size="lg"
+      >
+        {editingBt && (
+          <BtUpdateForm
+            bt={editingBt}
+            onSuccess={() => setEditingBt(null)}
+          />
+        )}
       </Dialog>
       <ConfirmationDialog
   open={confirmClotureId !== null}

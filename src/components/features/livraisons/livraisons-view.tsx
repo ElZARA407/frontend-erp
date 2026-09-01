@@ -242,8 +242,9 @@ export function LivraisonsView() {
                   livraison.source_type === 'commande' &&
                   !livraison.est_facturee
                 const canFacturer = livraison.statut === 'livre' && !livraison.est_facturee
-                const canModifier = livraison.statut === 'prepare'
-                const canSupprimer = livraison.statut === 'prepare'
+                const editDecision = permissions.canEditDocument('livraison', livraison.statut)
+                const canModifier = editDecision.allowed
+                const canSupprimer = permissions.can('delete') && livraison.statut === 'prepare'
                 const displayNumero = livraison.numero ?? 'Préparation'
 
                 return (
@@ -293,7 +294,7 @@ export function LivraisonsView() {
                               setEditingLivraison(livraison)
                             }}
                           >
-                            Modifier
+                            {editDecision.label}
                           </Button>
                         )}
 
@@ -311,8 +312,7 @@ export function LivraisonsView() {
                             Supprimer
                           </Button>
                         )}
-                        {permissions.can('approve') && (
-                        livraison.statut === 'prepare' && (
+                        {permissions.can('approve') && livraison.statut === 'prepare' && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -325,9 +325,8 @@ export function LivraisonsView() {
                           >
                             Confirmer
                             </Button>
-                        ))}
-                        {permissions.can('pay') && (
-                        canFacturer && (
+                        )}
+                        {permissions.can('pay') && canFacturer && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -338,8 +337,8 @@ export function LivraisonsView() {
                           >
                             Facturer
                           </Button>
-                        ))}
-                        {canAnnuler && (
+                        )}
+                        {permissions.can('cancel') && canAnnuler && (
                           <Button
                             variant="danger"
                             size="sm"
