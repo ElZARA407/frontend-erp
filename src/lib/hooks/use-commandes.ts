@@ -1,16 +1,20 @@
-// src/lib/hooks/use-commandes.ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { commandesApi, type CommandeFilters, type CreateCommandePayload } from '../api/commandes'
+import {
+  commandesApi,
+  type CommandeFilters,
+  type CreateCommandePayload,
+  type UpdateCommandePayload,
+} from '../api/commandes'
 import { notifyApiError } from '../api-error'
-import { Commande } from '../types'
+import { CACHE_KEYS, invalidateCommercialImpact } from './cache-keys'
 
-export const COMMANDES_KEY = ['commandes']
+export const COMMANDES_KEY = CACHE_KEYS.commandes
 
 export function useCommandes(filters: CommandeFilters = {}) {
   return useQuery({
     queryKey: [...COMMANDES_KEY, filters],
-    queryFn:  () => commandesApi.list(filters),
+    queryFn: () => commandesApi.list(filters),
     staleTime: 30 * 1000,
   })
 }
@@ -18,44 +22,46 @@ export function useCommandes(filters: CommandeFilters = {}) {
 export function useCommande(id: number) {
   return useQuery({
     queryKey: [...COMMANDES_KEY, id],
-    queryFn:  () => commandesApi.get(id),
-    enabled:  !!id,
+    queryFn: () => commandesApi.get(id),
+    enabled: !!id,
   })
 }
 
 export function useCreateCommande() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
+
   return useMutation({
     mutationFn: (payload: CreateCommandePayload) => commandesApi.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: COMMANDES_KEY })
+      invalidateCommercialImpact(queryClient)
       toast.success('Commande créée.')
     },
-    onError: (error) => notifyApiError(error, 'Erreur lors de la création.'),
+    onError: (error) => notifyApiError(error, 'Erreur lors de la création de la commande.'),
   })
 }
 
 export function useDuplicateCommande() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
+
   return useMutation({
     mutationFn: (id: number) => commandesApi.duplicate(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: COMMANDES_KEY })
+      invalidateCommercialImpact(queryClient)
       toast.success('Commande dupliquée.')
     },
+    onError: (error) => notifyApiError(error, 'Impossible de dupliquer cette commande.'),
   })
 }
 
 export function useUpdateCommande() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<CreateCommandePayload> }) =>
-      commandesApi.update(id, payload as Partial<Commande>),
+    mutationFn: ({ id, payload }: { id: number; payload: UpdateCommandePayload }) =>
+      commandesApi.update(id, payload),
     onSuccess: (_data, variables) => {
-      qc.invalidateQueries({ queryKey: COMMANDES_KEY })
-      qc.invalidateQueries({ queryKey: [...COMMANDES_KEY, variables.id] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      invalidateCommercialImpact(queryClient)
+      queryClient.invalidateQueries({ queryKey: [...COMMANDES_KEY, variables.id] })
       toast.success('Commande modifiée.')
     },
     onError: (error) => notifyApiError(error, 'Impossible de modifier cette commande.'),

@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, Menu, Search } from 'lucide-react'
+import {  Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/lib/stores/auth.store'
 import { useUiStore } from '@/lib/stores/ui.store'

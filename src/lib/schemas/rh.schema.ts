@@ -1,11 +1,6 @@
 // src/lib/schemas/rh.schema.ts
 import { z } from 'zod'
 
-const optionalText = z.preprocess((value) => {
-  if (typeof value !== 'string') return value
-  const trimmed = value.trim()
-  return trimmed === '' ? undefined : trimmed
-}, z.string().optional())
 
 const optionalNumber = z.preprocess((value) => {
   if (value === '' || value === null || value === undefined) return undefined

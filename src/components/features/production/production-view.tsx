@@ -388,18 +388,18 @@ export function ProductionView() {
       </Dialog>
 
         <Dialog
-  open={editingBp !== null}
-  onClose={() => setEditingBp(null)}
-  title={editingBp ? `Modifier ${editingBp.numero}` : 'Modifier OF'}
-  size="lg"
->
-  {editingBp && (
-    <BpUpdateForm
-      bp={editingBp}
-      onSuccess={() => setEditingBp(null)}
-    />
-  )}
-</Dialog>
+          open={editingBp !== null}
+          onClose={() => setEditingBp(null)}
+          title={editingBp ? `Modifier ${editingBp.numero}` : 'Modifier OF'}
+          size="lg"
+        >
+          {editingBp && (
+            <BpUpdateForm
+              bp={editingBp}
+              onSuccess={() => setEditingBp(null)}
+            />
+          )}
+        </Dialog>
 
       <ConfirmationDialog
   open={confirmAction !== null}

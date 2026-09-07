@@ -2,10 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ventesDirectesApi } from '@/lib/api/ventes-directes'
 import { notifyApiError } from '@/lib/api-error'
-import type { VenteDirecteFilters, VenteDirectePayload } from '@/lib/ventes-directes.types'
+import type {
+  VenteDirecteFilters,
+  VenteDirectePayload,
+} from '@/lib/ventes-directes.types'
+import { CACHE_KEYS, invalidateCommercialImpact } from './cache-keys'
 
 export const VENTES_DIRECTES_KEYS = {
-  ventes: ['ventes-directes'] as const,
+  ventes: CACHE_KEYS.ventesDirectes,
 }
 
 export function useVentesDirectes(filters: VenteDirecteFilters = {}) {
@@ -20,66 +24,85 @@ export function useVenteDirecte(id: number) {
   return useQuery({
     queryKey: [...VENTES_DIRECTES_KEYS.ventes, id],
     queryFn: () => ventesDirectesApi.get(id),
-    enabled: !!id,
+    enabled: id > 0,
     staleTime: 60_000,
   })
 }
 
 export function useCreateVenteDirecte() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (payload: VenteDirectePayload) => ventesDirectesApi.create(payload),
+    mutationFn: ({
+      payload,
+      idempotencyKey,
+    }: {
+      payload: VenteDirectePayload
+      idempotencyKey: string
+    }) => ventesDirectesApi.create(payload, idempotencyKey),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: VENTES_DIRECTES_KEYS.ventes })
+      invalidateCommercialImpact(queryClient)
       toast.success('Vente directe créée.')
     },
-    onError: (error) => notifyApiError(error, 'Impossible de créer cette vente directe.'),
+    onError: (error) =>
+      notifyApiError(error, 'Impossible de créer cette vente directe.'),
   })
 }
 
 export function useValiderVenteDirecte() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: number) => ventesDirectesApi.valider(id),
+    mutationFn: ({
+      id,
+      idempotencyKey,
+    }: {
+      id: number
+      idempotencyKey: string
+    }) => ventesDirectesApi.valider(id, idempotencyKey),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: VENTES_DIRECTES_KEYS.ventes })
-      qc.invalidateQueries({ queryKey: ['stocks'] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      invalidateCommercialImpact(queryClient)
       toast.success('Vente directe validée.')
     },
-    onError: (error) => notifyApiError(error, 'Impossible de valider cette vente directe.'),
+    onError: (error) =>
+      notifyApiError(error, 'Impossible de valider cette vente directe.'),
   })
 }
 
 export function useAnnulerVenteDirecte() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: number) => ventesDirectesApi.annuler(id),
+    mutationFn: ({
+      id,
+      idempotencyKey,
+    }: {
+      id: number
+      idempotencyKey: string
+    }) => ventesDirectesApi.annuler(id, idempotencyKey),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: VENTES_DIRECTES_KEYS.ventes })
-      qc.invalidateQueries({ queryKey: ['stocks'] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      invalidateCommercialImpact(queryClient)
       toast.success('Vente directe annulée.')
     },
-    onError: (error) => notifyApiError(error, 'Impossible d’annuler cette vente directe.'),
+    onError: (error) =>
+      notifyApiError(error, 'Impossible d’annuler cette vente directe.'),
   })
 }
 
 export function useUpdateVenteDirecte() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: Partial<VenteDirectePayload> }) =>
       ventesDirectesApi.update(id, payload),
     onSuccess: (_data, variables) => {
-      qc.invalidateQueries({ queryKey: VENTES_DIRECTES_KEYS.ventes })
-      qc.invalidateQueries({ queryKey: [...VENTES_DIRECTES_KEYS.ventes, variables.id] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      invalidateCommercialImpact(queryClient)
+      queryClient.invalidateQueries({
+        queryKey: [...VENTES_DIRECTES_KEYS.ventes, variables.id],
+      })
       toast.success('Vente directe modifiée.')
     },
-    onError: (error) => notifyApiError(error, 'Impossible de modifier cette vente directe.'),
+    onError: (error) =>
+      notifyApiError(error, 'Impossible de modifier cette vente directe.'),
   })
 }

@@ -2,7 +2,6 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useFieldArray, useForm,type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,7 +10,14 @@ import { Select } from '@/components/ui/select'
 import { useCreateDemandeAchat } from '@/lib/hooks/use-lot3'
 import type { CatalogueMatiere, CatalogueProduct } from '@/lib/catalogue.types'
 import { demandeAchatSchema, type DemandeAchatSchema } from '@/lib/schemas/lot3.schema'
-import { Controller } from 'react-hook-form'
+import {
+  Controller,
+  useFieldArray,
+  useForm,
+  useWatch,
+  type Control,
+  type Resolver,
+} from 'react-hook-form'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 
 interface DemandeAchatFormProps {
@@ -46,7 +52,6 @@ export function DemandeAchatForm({ matieres, produits, onSuccess }: DemandeAchat
     register,
     control,
     handleSubmit,
-    watch,
     setValue,
     formState: { errors },
   } = useForm<DemandeAchatSchema>({
@@ -70,7 +75,6 @@ export function DemandeAchatForm({ matieres, produits, onSuccess }: DemandeAchat
     name: 'lignes',
   })
 
-  const lignes = watch('lignes') ?? []
 
   return (
     <form
@@ -147,26 +151,12 @@ export function DemandeAchatForm({ matieres, produits, onSuccess }: DemandeAchat
                     })
                   }}
                 />
-                <Controller
+                <DemandeAchatLineArticleSelect
                   control={control}
-                  name={`lignes.${index}.entite_id` as const}
-                  render={({ field }) => {
-                    const entiteType = watch(`lignes.${index}.entite_type` as const)
-                    const options = entiteType === 'produit' ? produitOptions : matiereOptions
-
-                    return (
-                      <SearchableSelect
-                        label="Article *"
-                        options={options}
-                        placeholder="Choisir"
-                        searchPlaceholder="Rechercher..."
-                        noOptionsMessage="Aucun article trouvé."
-                        error={errors.lignes?.[index]?.entite_id?.message}
-                        value={field.value}
-                        onValueChange={(value) => field.onChange(Number(value))}
-                      />
-                    )
-                  }}
+                  index={index}
+                  produitOptions={produitOptions}
+                  matiereOptions={matiereOptions}
+                  error={errors.lignes?.[index]?.entite_id?.message}
                 />
                 <Input
                   label="Quantite *"
@@ -208,5 +198,50 @@ export function DemandeAchatForm({ matieres, produits, onSuccess }: DemandeAchat
         </Button>
       </div>
     </form>
+  )
+}
+
+type ArticleOption = {
+  value: number
+  label: string
+}
+
+function DemandeAchatLineArticleSelect({
+  control,
+  index,
+  produitOptions,
+  matiereOptions,
+  error,
+}: {
+  control: Control<DemandeAchatSchema>
+  index: number
+  produitOptions: ArticleOption[]
+  matiereOptions: ArticleOption[]
+  error?: string
+}) {
+  const entiteType = useWatch({
+    control,
+    name: `lignes.${index}.entite_type` as const,
+  })
+
+  const options = entiteType === 'produit' ? produitOptions : matiereOptions
+
+  return (
+    <Controller
+      control={control}
+      name={`lignes.${index}.entite_id` as const}
+      render={({ field }) => (
+        <SearchableSelect
+          label="Article *"
+          options={options}
+          placeholder="Choisir"
+          searchPlaceholder="Rechercher..."
+          noOptionsMessage="Aucun article trouvé."
+          error={error}
+          value={field.value}
+          onValueChange={(value) => field.onChange(Number(value))}
+        />
+      )}
+    />
   )
 }

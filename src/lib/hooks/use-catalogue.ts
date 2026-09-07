@@ -8,7 +8,6 @@ import type {
   CatalogueMatiereUpdatePayload,
   CatalogueProductCreatePayload,
   CatalogueProductFilters,
-  CatalogueProductClassment,
   CatalogueProductUpdatePayload,
 } from '@/lib/catalogue.types'
 import { notifyApiError } from '@/lib/api-error'

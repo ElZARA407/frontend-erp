@@ -27,6 +27,8 @@ import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { useRouter } from 'next/navigation'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { SortControl, type SortDirection } from '@/components/ui/sort-control'
+import { useRef } from 'react'
+import { createIdempotencyKey } from '@/lib/idempotency'
 
 
 type FactureRow = Facture
@@ -44,6 +46,8 @@ export function FacturesView() {
   const [confirmCancelId, setConfirmCancelId] = useState<number | null>(null)
   const [sortBy, setSortBy] = useState('date')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
+  const paymentKeyRef = useRef<string | null>(null)
+  const cancelKeyRef = useRef<string | null>(null)
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 200 })
   const { data, isLoading } = useFactures({
@@ -89,14 +93,22 @@ export function FacturesView() {
   const onPay = (formData: PayerFactureSchema) => {
     if (!payingId) return
 
+    const idempotencyKey =
+      paymentKeyRef.current ??
+      (paymentKeyRef.current = createIdempotencyKey())
+
     payer(
       {
         id: payingId,
-        mode_paiement: formData.mode_paiement,
-        montant_paye: formData.montant_paye,
+        payload: {
+          mode_paiement: formData.mode_paiement,
+          montant_paye: formData.montant_paye,
+        },
+        idempotencyKey,
       },
       {
         onSuccess: () => {
+          paymentKeyRef.current = null
           setPayingId(null)
           reset({
             mode_paiement: 'espece',
@@ -379,7 +391,7 @@ export function FacturesView() {
         title="Enregistrer le paiement"
         size="sm"
       >
-        <form onSubmit={handleSubmit(onPay)} className="space-y-4">
+        <form onSubmit={(event) => { void handleSubmit(onPay)(event) }} className="space-y-4">
           <div className="rounded-md border border-surface-border bg-surface-subtle/50 px-3 py-2 text-sm text-steel-600">
             <p className="text-xs uppercase tracking-wide text-steel-400">Facture</p>
             <p className="mt-1 font-semibold text-steel-900">
@@ -437,12 +449,26 @@ export function FacturesView() {
   variant="danger"
   loading={cancelling}
   onClose={() => setConfirmCancelId(null)}
-  onConfirm={() => {
-    if (!confirmCancelId) return
-    annuler(confirmCancelId, {
-      onSuccess: () => setConfirmCancelId(null),
-    })
-  }}
+    onConfirm={() => {
+      if (!confirmCancelId) return
+
+      const idempotencyKey =
+        cancelKeyRef.current ??
+        (cancelKeyRef.current = createIdempotencyKey())
+
+      annuler(
+        {
+          id: confirmCancelId,
+          idempotencyKey,
+        },
+        {
+          onSuccess: () => {
+            cancelKeyRef.current = null
+            setConfirmCancelId(null)
+          },
+        },
+      )
+    }}
 />
     </div>
   )

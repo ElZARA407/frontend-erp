@@ -1,5 +1,6 @@
 import apiClient from './client'
-import type { ApiResponse, PaginatedResponse } from '../types'
+import { idempotencyHeaders } from '../idempotency'
+import type { ApiResponse } from '../types'
 import type {
   Facture,
   FactureCreatePayload,
@@ -25,28 +26,54 @@ export const facturesApi = {
   preview: async (payload: FacturePreviewPayload) => {
     const { data } = await apiClient.post<ApiResponse<FacturePreview>>(
       '/finance/factures/preview',
-      payload
+      payload,
     )
+
     return data.data
   },
 
-  creerDepuisLivraison: async (payload: FactureCreatePayload) => {
-    const { data } = await apiClient.post<ApiResponse<Facture>>('/finance/factures', payload)
+  creerDepuisLivraison: async (
+    payload: FactureCreatePayload,
+    idempotencyKey: string,
+  ) => {
+    const { data } = await apiClient.post<ApiResponse<Facture>>(
+      '/finance/factures',
+      payload,
+      { headers: idempotencyHeaders(idempotencyKey) },
+    )
+
     return data.data
   },
 
-  payer: async (id: number, payload: FacturePayerPayload) => {
-    const { data } = await apiClient.post<ApiResponse<Facture>>(`/finance/factures/${id}/payer`, payload)
+  payer: async (
+    id: number,
+    payload: FacturePayerPayload,
+    idempotencyKey: string,
+  ) => {
+    const { data } = await apiClient.post<ApiResponse<Facture>>(
+      `/finance/factures/${id}/payer`,
+      payload,
+      { headers: idempotencyHeaders(idempotencyKey) },
+    )
+
     return data.data
   },
 
-  annuler: async (id: number) => {
-    const { data } = await apiClient.post<ApiResponse<null>>(`/finance/factures/${id}/annuler`)
+  annuler: async (id: number, idempotencyKey: string) => {
+    const { data } = await apiClient.post<ApiResponse<null>>(
+      `/finance/factures/${id}/annuler`,
+      undefined,
+      { headers: idempotencyHeaders(idempotencyKey) },
+    )
+
     return data
   },
 
   enRetard: async () => {
-    const { data } = await apiClient.get<ApiResponse<Facture[]>>('/finance/factures/retards')
+    const { data } = await apiClient.get<ApiResponse<Facture[]>>(
+      '/finance/factures/retards',
+    )
+
     return data.data
   },
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,8 +8,6 @@ import { Select } from '@/components/ui/select'
 import {
   organisationUtilisateurCreateSchema,
   organisationUtilisateurEditSchema,
-  type OrganisationUtilisateurCreateSchema,
-  type OrganisationUtilisateurEditSchema,
 } from '@/lib/schemas/organisation.schema'
 import { useCreateUser, useUpdateUser } from '@/lib/hooks/use-organisation'
 import type {
@@ -26,9 +24,14 @@ interface UtilisateurFormProps {
   onSuccess?: () => void
 }
 
-type UtilisateurFormValues =
-  | OrganisationUtilisateurCreateSchema
-  | OrganisationUtilisateurEditSchema
+type UtilisateurFormValues = {
+  nom: string
+  email: string
+  password: string
+  role_id: number
+  location_id: number
+  actif: boolean
+}
 
 export function UtilisateurForm({
   defaultValues,
@@ -36,19 +39,21 @@ export function UtilisateurForm({
   locations,
   onSuccess,
 }: UtilisateurFormProps) {
+  
   const isEditing = Boolean(defaultValues?.id)
   const createUser = useCreateUser()
   const updateUser = useUpdateUser()
   const schema = isEditing
     ? organisationUtilisateurEditSchema
     : organisationUtilisateurCreateSchema
+  const resolver = zodResolver(schema) as Resolver<UtilisateurFormValues>
 
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<UtilisateurFormValues>({
-    resolver: zodResolver(schema) as any,
+    resolver: resolver,
     defaultValues: {
       nom: defaultValues?.nom ?? '',
       email: defaultValues?.email ?? '',

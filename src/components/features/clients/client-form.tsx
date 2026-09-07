@@ -2,7 +2,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useForm, type Resolver } from 'react-hook-form'
+import { useForm, useWatch, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { clientSchema, type ClientSchema } from '@/lib/schemas/client.schema'
 import { useCreateClient, useUpdateClient } from '@/lib/hooks/use-clients'
@@ -47,14 +47,18 @@ export function ClientForm({ defaultValues, onSuccess }: ClientFormProps) {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors },
   } = useForm<ClientSchema>({
     resolver: zodResolver(clientSchema) as unknown as Resolver<ClientSchema>,
     defaultValues: initialValues,
   })
 
-  const estDivers = watch('est_divers')
+  const estDivers = useWatch({
+  control,
+  name: 'est_divers',
+  defaultValue: initialValues.est_divers,
+})
   const isPending = createClient.isPending || updateClient.isPending
 
   const onSubmit = async (values: ClientSchema) => {

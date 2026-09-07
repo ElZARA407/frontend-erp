@@ -1,13 +1,12 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Utilisateur } from '../types'
-import { removeToken } from '../api/client'
 
 interface AuthStore {
   utilisateur: Utilisateur | null
   isAuthenticated: boolean
   hasHydrated: boolean
-  setUtilisateur: (u: Utilisateur) => void
+  setUtilisateur: (utilisateur: Utilisateur) => void
   setHasHydrated: (hydrated: boolean) => void
   logout: () => void
   hasRole: (role: string) => boolean
@@ -30,7 +29,6 @@ export const useAuthStore = create<AuthStore>()(
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
 
       logout: () => {
-        removeToken()
         set({
           utilisateur: null,
           isAuthenticated: false,
@@ -38,8 +36,7 @@ export const useAuthStore = create<AuthStore>()(
         })
       },
 
-      hasRole: (role: string) =>
-        get().utilisateur?.role?.nom === role,
+      hasRole: (role: string) => get().utilisateur?.role?.nom === role,
     }),
     {
       name: 'cmp-auth',
@@ -50,6 +47,6 @@ export const useAuthStore = create<AuthStore>()(
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true)
       },
-    }
-  )
+    },
+  ),
 )

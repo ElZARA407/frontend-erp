@@ -1,26 +1,48 @@
-// src/lib/api/auth.ts
-import apiClient, { setToken, removeToken } from './client'
 import type { ApiResponse, Utilisateur } from '../types'
+import apiClient from './client'
 
-export interface LoginPayload { email: string; password: string }
+export interface LoginPayload {
+  email: string
+  password: string
+}
 
 export interface LoginResponse {
-  token: string
-  token_type: string
-  expires_in: number
   utilisateur: Utilisateur
+}
+
+async function readJson<T>(response: Response): Promise<T> {
+  const payload = (await response.json()) as T
+
+  if (!response.ok) {
+    throw payload
+  }
+
+  return payload
 }
 
 export const authApi = {
   login: async (payload: LoginPayload) => {
-    const { data } = await apiClient.post<ApiResponse<LoginResponse>>('/auth/login', payload)
-    setToken(data.data.token)
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    const data = await readJson<ApiResponse<LoginResponse>>(response)
+
     return data.data
   },
 
   logout: async () => {
-    await apiClient.post('/auth/logout')
-    removeToken()
+    const response = await fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+    })
+
+    await readJson<ApiResponse<null>>(response)
   },
 
   me: async () => {

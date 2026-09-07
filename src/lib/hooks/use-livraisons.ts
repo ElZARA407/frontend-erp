@@ -7,8 +7,9 @@ import {
 } from '../api/livraisons'
 import { notifyApiError } from '../api-error'
 import { COMMERCIAL_DETAIL_KEYS } from './use-commercial-details'
+import { CACHE_KEYS, invalidateCommercialImpact, invalidateStockImpact } from './cache-keys'
 
-export const LIVRAISONS_KEY = ['livraisons'] as const
+export const LIVRAISONS_KEY = CACHE_KEYS.livraisons
 
 export function useLivraisons(filters: Parameters<typeof livraisonsApi.list>[0] = {}) {
   return useQuery({
@@ -19,12 +20,12 @@ export function useLivraisons(filters: Parameters<typeof livraisonsApi.list>[0] 
 }
 
 export function useCreateLivraison() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (payload: LivraisonCreatePayload) => livraisonsApi.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: LIVRAISONS_KEY })
+      invalidateCommercialImpact(queryClient)
       toast.success('Livraison préparée.')
     },
     onError: (error) => notifyApiError(error, 'Impossible de préparer cette livraison.'),
@@ -32,14 +33,15 @@ export function useCreateLivraison() {
 }
 
 export function useUpdateLivraison() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: LivraisonUpdatePayload }) =>
       livraisonsApi.update(id, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: LIVRAISONS_KEY })
-      qc.invalidateQueries({ queryKey: COMMERCIAL_DETAIL_KEYS.livraison })
+    onSuccess: (_data, variables) => {
+      invalidateCommercialImpact(queryClient)
+      queryClient.invalidateQueries({ queryKey: [...LIVRAISONS_KEY, variables.id] })
+      queryClient.invalidateQueries({ queryKey: COMMERCIAL_DETAIL_KEYS.livraison })
       toast.success('Livraison mise à jour.')
     },
     onError: (error) => notifyApiError(error, 'Impossible de modifier cette livraison.'),
@@ -47,13 +49,13 @@ export function useUpdateLivraison() {
 }
 
 export function useDeleteLivraisonPreparee() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (id: number) => livraisonsApi.delete(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: LIVRAISONS_KEY })
-      qc.invalidateQueries({ queryKey: COMMERCIAL_DETAIL_KEYS.livraison })
+      invalidateCommercialImpact(queryClient)
+      queryClient.invalidateQueries({ queryKey: COMMERCIAL_DETAIL_KEYS.livraison })
       toast.success('Livraison préparée supprimée.')
     },
     onError: (error) => notifyApiError(error, 'Impossible de supprimer cette livraison préparée.'),
@@ -61,18 +63,14 @@ export function useDeleteLivraisonPreparee() {
 }
 
 export function useConfirmerLivraison() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (id: number) => livraisonsApi.confirmer(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: LIVRAISONS_KEY })
-      qc.invalidateQueries({ queryKey: ['stocks'] })
-      qc.invalidateQueries({ queryKey: ['commandes'] })
-      qc.invalidateQueries({ queryKey: ['ventes-directes'] })
-      qc.invalidateQueries({ queryKey: ['factures'] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
-      qc.invalidateQueries({ queryKey: COMMERCIAL_DETAIL_KEYS.livraison })
+      invalidateCommercialImpact(queryClient)
+      invalidateStockImpact(queryClient)
+      queryClient.invalidateQueries({ queryKey: COMMERCIAL_DETAIL_KEYS.livraison })
       toast.success('Livraison confirmée.')
     },
     onError: (error) => notifyApiError(error, 'Impossible de confirmer cette livraison.'),
@@ -80,18 +78,14 @@ export function useConfirmerLivraison() {
 }
 
 export function useAnnulerLivraison() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (id: number) => livraisonsApi.annuler(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: LIVRAISONS_KEY })
-      qc.invalidateQueries({ queryKey: ['stocks'] })
-      qc.invalidateQueries({ queryKey: ['commandes'] })
-      qc.invalidateQueries({ queryKey: ['ventes-directes'] })
-      qc.invalidateQueries({ queryKey: ['factures'] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
-      qc.invalidateQueries({ queryKey: COMMERCIAL_DETAIL_KEYS.livraison })
+      invalidateCommercialImpact(queryClient)
+      invalidateStockImpact(queryClient)
+      queryClient.invalidateQueries({ queryKey: COMMERCIAL_DETAIL_KEYS.livraison })
       toast.success('Livraison annulée.')
     },
     onError: (error) => notifyApiError(error, 'Impossible d’annuler cette livraison.'),

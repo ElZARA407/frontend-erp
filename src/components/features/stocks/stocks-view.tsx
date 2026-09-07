@@ -22,6 +22,8 @@ import { StockInitialForm } from './stock-initial-form'
 import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useMatieres, useProducts } from '@/lib/hooks/use-catalogue'
+import { useRef } from 'react'
+import { createIdempotencyKey } from '@/lib/idempotency'
 
 type TabKey = 'stock' | 'mouvements'
 type StockMode = 'inventaire' | 'ruptures'
@@ -60,6 +62,7 @@ function normalizeArray<T>(value: unknown): T[] {
 export function StocksView() {
   const [tab, setTab] = useState<TabKey>('stock')
   const [stockMode, setStockMode] = useState<StockMode>('inventaire')
+  
 
   const [search, setSearch] = useState('')
   const [stockPage, setStockPage] = useState(1)
@@ -128,6 +131,7 @@ export function StocksView() {
   const locations = useMemo(() => normalizeArray<{ id: number; nom: string }>(locationsData), [locationsData])
 
   const importStocks = useImportStocks()
+  const importKeyRef = useRef<string | null>(null)
 
   // Réinitialise toutes les paginations. Appelée directement depuis les
   // event handlers (onChange/onClick) plutôt que depuis un useEffect,
@@ -183,18 +187,27 @@ export function StocksView() {
     file: File
     sheetNames: string[]
   }) => {
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
+    const formData = new FormData()
+    formData.append('file', file)
 
-      sheetNames.forEach((sheetName) => {
-        formData.append('sheet_names[]', sheetName)
+    sheetNames.forEach((sheetName) => {
+      formData.append('sheet_names[]', sheetName)
+    })
+
+    const idempotencyKey =
+      importKeyRef.current ??
+      (importKeyRef.current = createIdempotencyKey())
+
+    try {
+      await importStocks.mutateAsync({
+        formData,
+        idempotencyKey,
       })
 
-      await importStocks.mutateAsync(formData)
+      importKeyRef.current = null
       setImportOpen(false)
     } catch {
-      // toast géré par le hook
+      // La clé est conservée pour éviter un doublon après une panne réseau.
     }
   }
 

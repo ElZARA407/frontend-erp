@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Eye, Plus, RotateCcw, ShoppingCart, Truck, CheckCircle2, Pencil } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { createIdempotencyKey } from '@/lib/idempotency'
+import {  Plus, RotateCcw, ShoppingCart, Truck, CheckCircle2, Pencil } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -49,6 +50,8 @@ export function VentesDirectesView() {
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { mutate: validerVente, isPending: validating } = useValiderVenteDirecte()
   const { mutate: annulerVente, isPending: cancelling } = useAnnulerVenteDirecte()
+  const validationKeyRef = useRef<string | null>(null)
+  const cancellationKeyRef = useRef<string | null>(null)
 
   const { data, isLoading } = useVentesDirectes({
     statut: statut || undefined,
@@ -364,15 +367,42 @@ export function VentesDirectesView() {
     if (!confirmAction) return
 
     if (confirmAction.type === 'valider') {
-      validerVente(confirmAction.id, {
-        onSuccess: () => setConfirmAction(null),
-      })
+      const idempotencyKey =
+        validationKeyRef.current ??
+        (validationKeyRef.current = createIdempotencyKey())
+
+      validerVente(
+        {
+          id: confirmAction.id,
+          idempotencyKey,
+        },
+        {
+          onSuccess: () => {
+            validationKeyRef.current = null
+            setConfirmAction(null)
+          },
+        },
+      )
+
       return
     }
 
-    annulerVente(confirmAction.id, {
-      onSuccess: () => setConfirmAction(null),
-    })
+    const idempotencyKey =
+      cancellationKeyRef.current ??
+      (cancellationKeyRef.current = createIdempotencyKey())
+
+    annulerVente(
+      {
+        id: confirmAction.id,
+        idempotencyKey,
+      },
+      {
+        onSuccess: () => {
+          cancellationKeyRef.current = null
+          setConfirmAction(null)
+        },
+      },
+    )
   }}
 />
     </div>

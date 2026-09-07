@@ -1,6 +1,6 @@
 // src/lib/api/clients.ts
 import apiClient from './client'
-import type { ApiResponse, PaginatedResponse, Client } from '../types'
+import type { ApiResponse, Client } from '../types'
 import { buildQueryString } from '../utils'
 import { extractPaginatedResponse } from './pagination'
 

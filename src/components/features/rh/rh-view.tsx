@@ -52,7 +52,6 @@ function localPage<T>(items: T[], page: number) {
 }
 
 export function RhView() {
-  const [page, setPage] = useState(1)
   const [tab, setTab] = useState<RhTab>('postes')
   const [confirmAction, setConfirmAction] = useState<null | {
   type: 'delete-poste' | 'delete-employe'
@@ -255,11 +254,11 @@ export function RhView() {
               ]}
               onSortByChange={(value) => {
                 setSortBy(value)
-                setPage(1)
+                setEmployeePage(1)
               }}
               onSortDirChange={(value) => {
                 setSortDir(value)
-                setPage(1)
+                setEmployeePage(1)
               }}
             />
             <Button

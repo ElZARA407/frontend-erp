@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { Plus, Trash2, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -35,8 +35,20 @@ interface ExcelImportDialogProps {
   onSubmit?: (payload: ExcelImportDialogSubmitPayload) => void | Promise<void>
 }
 
-export function ExcelImportDialog({
-  open,
+export function ExcelImportDialog(props: ExcelImportDialogProps) {
+  if (!props.open) {
+    return null
+  }
+
+  return (
+    <ExcelImportDialogContent
+      key={props.defaultSheetNames?.join('|') ?? 'default-sheets'}
+      {...props}
+    />
+  )
+}
+
+function ExcelImportDialogContent({
   onClose,
   onOpenChange,
   title,
@@ -64,14 +76,11 @@ export function ExcelImportDialog({
     control,
     handleSubmit,
     register,
-    reset,
     setError,
     clearErrors,
     formState: { errors },
   } = useForm<ExcelImportDialogFormValues>({
-    defaultValues: {
-      sheets: initialSheets,
-    },
+    defaultValues: { sheets: initialSheets },
     mode: 'onSubmit',
   })
 
@@ -79,15 +88,6 @@ export function ExcelImportDialog({
     control,
     name: 'sheets',
   })
-
-  useEffect(() => {
-    if (!open) {
-      setFile(null)
-      reset({
-        sheets: initialSheets,
-      })
-    }
-  }, [open, initialSheets, reset])
 
   const closeDialog = () => {
     onOpenChange?.(false)
@@ -105,26 +105,19 @@ export function ExcelImportDialog({
 
     const sheetNames = values.sheets
       .map((sheet) => sheet.value.trim())
-      .filter((name) => name.length > 0)
+      .filter(Boolean)
 
     clearErrors('root')
 
     const handler = onImport ?? onSubmit
+
     if (!handler) {
       closeDialog()
       return
     }
 
-    await handler({
-      file,
-      sheetNames,
-    })
-
+    await handler({ file, sheetNames })
     closeDialog()
-  }
-
-  if (!open) {
-    return null
   }
 
   return (
@@ -133,21 +126,15 @@ export function ExcelImportDialog({
         <div className="flex items-start justify-between gap-4 border-b border-surface-border px-5 py-4">
           <div className="space-y-1">
             <h2 className="text-base font-semibold text-steel-900">{title}</h2>
-            {description ? <p className="text-sm text-steel-500">{description}</p> : null}
-            {templateFileName ? (
+            {description && <p className="text-sm text-steel-500">{description}</p>}
+            {templateFileName && (
               <p className="text-xs text-steel-400">
                 Modèle attendu : {templateFileName}
               </p>
-            ) : null}
+            )}
           </div>
 
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={closeDialog}
-            aria-label="Fermer"
-            className="shrink-0"
-          >
+          <Button type="button" variant="ghost" onClick={closeDialog} aria-label="Fermer">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -157,6 +144,7 @@ export function ExcelImportDialog({
             <label className="block text-sm font-medium text-steel-700">
               Fichier Excel
             </label>
+
             <input
               type="file"
               accept={accept}
@@ -164,17 +152,22 @@ export function ExcelImportDialog({
               onChange={(event) => {
                 const selected = event.target.files?.[0] ?? null
                 setFile(selected)
+
                 if (selected) {
                   clearErrors('root')
                 }
               }}
             />
-            {file ? (
-              <p className="text-xs text-steel-500">Fichier sélectionné : {file.name}</p>
-            ) : null}
-            {errors.root?.message ? (
+
+            {file && (
+              <p className="text-xs text-steel-500">
+                Fichier sélectionné : {file.name}
+              </p>
+            )}
+
+            {errors.root?.message && (
               <p className="text-sm text-red-600">{errors.root.message}</p>
-            ) : null}
+            )}
           </div>
 
           <div className="space-y-3">
@@ -182,15 +175,11 @@ export function ExcelImportDialog({
               <div>
                 <p className="text-sm font-medium text-steel-700">Feuilles à lire</p>
                 <p className="text-xs text-steel-500">
-                  Saisis les noms exacts des feuilles Excel que le backend doit examiner.
+                  Saisis les noms exacts des feuilles Excel à importer.
                 </p>
               </div>
 
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => append({ value: '' })}
-              >
+              <Button type="button" variant="secondary" onClick={() => append({ value: '' })}>
                 <Plus className="h-4 w-4" />
                 Ajouter une feuille
               </Button>

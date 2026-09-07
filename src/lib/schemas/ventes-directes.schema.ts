@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { hasDuplicateBy, isBefore, todayString } from './schema-utils'
+import { hasDuplicateBy, todayString } from './schema-utils'
 
 export const venteDirecteLineSchema = z.object({
   produit_id: z.coerce.number().int().positive('Le produit est requis'),

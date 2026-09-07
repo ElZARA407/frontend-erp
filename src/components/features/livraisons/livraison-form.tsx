@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { AlertTriangle, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -75,7 +75,23 @@ function getLineMaxQuantity(line: DeliverySourceLine, sourceType: SourceType): n
   return Number.isFinite(remaining) ? remaining : 0
 }
 
-export function LivraisonForm({ sourceType, source, defaultValues, onSuccess }: LivraisonFormProps) {
+export function LivraisonForm(props: LivraisonFormProps) {
+  const formKey = [
+    props.defaultValues?.id ?? 'nouvelle-livraison',
+    props.sourceType ?? props.defaultValues?.source_type ?? 'commande',
+    props.source?.id ?? 'sans-source',
+    props.source?.lignes?.length ?? 0,
+  ].join('-')
+
+  return <LivraisonFormContent key={formKey} {...props} />
+}
+
+function LivraisonFormContent({
+  sourceType,
+  source,
+  defaultValues,
+  onSuccess,
+}: LivraisonFormProps) {
   const isEditing = !!defaultValues?.id
   const createLivraison = useCreateLivraison()
   const updateLivraison = useUpdateLivraison()
@@ -129,43 +145,32 @@ export function LivraisonForm({ sourceType, source, defaultValues, onSuccess }: 
       .filter((row) => row.quantiteMax !== null && row.quantiteMax > 0)
   }, [isEditing, livraisonLines, sourceLines, resolvedSourceType])
 
-  const [selectedRows, setSelectedRows] = useState<Record<number, boolean>>({})
-  const [referenceBc, setReferenceBc] = useState('')
-  const [chauffeur, setChauffeur] = useState('')
-  const [vehicule, setVehicule] = useState('')
-  const [observations, setObservations] = useState('')
-  const [quantites, setQuantites] = useState<Record<number, string>>({})
+  const [selectedRows, setSelectedRows] = useState<Record<number, boolean>>(() =>
+    Object.fromEntries(
+      rows.map((row) => [row.id, isEditing || row.quantiteInitiale > 0]),
+    ) as Record<number, boolean>,
+  )
+
+  const [referenceBc, setReferenceBc] = useState(
+    () => defaultValues?.reference_bc ?? source?.numero ?? '',
+  )
+  const [chauffeur, setChauffeur] = useState(() => defaultValues?.chauffeur ?? '')
+  const [vehicule, setVehicule] = useState(() => defaultValues?.vehicule ?? '')
+  const [observations, setObservations] = useState(
+    () => defaultValues?.observations ?? '',
+  )
+
+  const [quantites, setQuantites] = useState<Record<number, string>>(() =>
+    Object.fromEntries(
+      rows.map((row) => [row.id, String(row.quantiteInitiale)]),
+    ) as Record<number, string>,
+  )
+
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [dateLivraison, setDateLivraison] = useState(() => new Date().toISOString().slice(0, 10))
 
-  useEffect(() => {
-    const nextQuantites = Object.fromEntries(
-      rows.map((row) => [row.id, String(row.quantiteInitiale)])
-    ) as Record<number, string>
-
-    const nextSelected = Object.fromEntries(
-      rows.map((row) => [row.id, isEditing || row.quantiteInitiale > 0])
-    ) as Record<number, boolean>
-
-    setReferenceBc(defaultValues?.reference_bc ?? source?.numero ?? '')
-    setChauffeur(defaultValues?.chauffeur ?? '')
-    setVehicule(defaultValues?.vehicule ?? '')
-    setObservations(defaultValues?.observations ?? '')
-    setQuantites(nextQuantites)
-    setSelectedRows(nextSelected)
-    setSubmitError(null)
-    setDateLivraison(defaultValues?.date_livraison ?? new Date().toISOString().slice(0, 10))
-  }, [
-    rows,
-    source?.numero,
-    isEditing,
-    defaultValues?.id,
-    defaultValues?.reference_bc,
-    defaultValues?.chauffeur,
-    defaultValues?.vehicule,
-    defaultValues?.observations,
-    defaultValues?.date_livraison,
-  ])
+  const [dateLivraison, setDateLivraison] = useState(
+    () => defaultValues?.date_livraison ?? new Date().toISOString().slice(0, 10),
+  )
 
   const selectedCount = rows.filter((row) => selectedRows[row.id]).length
 

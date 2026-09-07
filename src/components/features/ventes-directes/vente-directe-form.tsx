@@ -26,6 +26,7 @@ import { venteDirecteSchema, type VenteDirecteSchema } from '@/lib/schemas/vente
 import type { CatalogueProduct } from '@/lib/catalogue.types'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import type { VenteDirecte } from '@/lib/ventes-directes.types'
+import { createIdempotencyKey } from '@/lib/idempotency'
 
 
 interface VenteDirecteFormProps {
@@ -76,6 +77,7 @@ function createEmptyLine(): VenteDirecteLineFormValues {
 
 export function VenteDirecteForm({ defaultValues, onSuccess }: VenteDirecteFormProps) {
   const createVente = useCreateVenteDirecte()
+  const createKeyRef = useRef<string | null>(null)
   const updateVente = useUpdateVenteDirecte()
   const isEditing = Boolean(defaultValues?.id)
 
@@ -268,11 +270,26 @@ export function VenteDirecteForm({ defaultValues, onSuccess }: VenteDirecteFormP
       return
     }
 
-    createVente.mutate(values, { onSuccess })
+    const idempotencyKey =
+      createKeyRef.current ??
+      (createKeyRef.current = createIdempotencyKey())
+
+    createVente.mutate(
+      {
+        payload: values,
+        idempotencyKey,
+      },
+      {
+        onSuccess: () => {
+          createKeyRef.current = null
+          onSuccess?.()
+        },
+      },
+    )
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={(event) => { void handleSubmit(onSubmit)(event) }} className="space-y-5">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Select
           label="Client *"

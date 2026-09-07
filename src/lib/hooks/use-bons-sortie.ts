@@ -3,9 +3,10 @@ import { toast } from 'sonner'
 import { bonsSortieApi } from '@/lib/api/bons-sortie'
 import { notifyApiError } from '@/lib/api-error'
 import type { BonSortieFilters, BonSortiePayload } from '@/lib/bons-sortie.types'
+import { CACHE_KEYS, invalidateCommercialImpact, invalidateStockImpact } from './cache-keys'
 
 export const BONS_SORTIE_KEYS = {
-  bons: ['bons-sortie'] as const,
+  bons: CACHE_KEYS.bonsSortie,
 }
 
 export function useBonsSortie(filters: BonSortieFilters = {}) {
@@ -27,12 +28,12 @@ export function useBonSortie(id: number) {
 }
 
 export function useCreateBonSortie() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (payload: BonSortiePayload) => bonsSortieApi.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: BONS_SORTIE_KEYS.bons })
+      invalidateCommercialImpact(queryClient)
       toast.success('Bon de sortie créé.')
     },
     onError: (error) => notifyApiError(error, 'Impossible de créer ce bon de sortie.'),
@@ -40,13 +41,14 @@ export function useCreateBonSortie() {
 }
 
 export function useUpdateBonSortie() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: Partial<BonSortiePayload> }) =>
       bonsSortieApi.update(id, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: BONS_SORTIE_KEYS.bons })
+    onSuccess: (_data, variables) => {
+      invalidateCommercialImpact(queryClient)
+      queryClient.invalidateQueries({ queryKey: [...BONS_SORTIE_KEYS.bons, variables.id] })
       toast.success('Bon de sortie mis à jour.')
     },
     onError: (error) => notifyApiError(error, 'Impossible de mettre à jour ce bon de sortie.'),
@@ -54,12 +56,12 @@ export function useUpdateBonSortie() {
 }
 
 export function useDeleteBonSortie() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (id: number) => bonsSortieApi.delete(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: BONS_SORTIE_KEYS.bons })
+      invalidateCommercialImpact(queryClient)
       toast.success('Bon de sortie supprimé.')
     },
     onError: (error) => notifyApiError(error, 'Impossible de supprimer ce bon de sortie.'),
@@ -67,14 +69,13 @@ export function useDeleteBonSortie() {
 }
 
 export function useValiderBonSortie() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (id: number) => bonsSortieApi.valider(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: BONS_SORTIE_KEYS.bons })
-      qc.invalidateQueries({ queryKey: ['stocks'] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      invalidateCommercialImpact(queryClient)
+      invalidateStockImpact(queryClient)
       toast.success('Bon de sortie validé.')
     },
     onError: (error) => notifyApiError(error, 'Impossible de valider ce bon de sortie.'),

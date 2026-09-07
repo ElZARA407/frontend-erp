@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { AlertTriangle, CheckSquare, Search } from 'lucide-react'
+import { useMemo, useRef, useState, type FormEvent } from 'react'
+import { CheckSquare, Search } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +9,7 @@ import { useCreateFacture, useFacturePreview } from '@/lib/hooks/use-factures'
 import { useLivraisons } from '@/lib/hooks/use-livraisons'
 import { formatDate, formatMGA, formatQty } from '@/lib/utils'
 import type { FacturePreviewLine } from '@/lib/factures.types'
+import { createIdempotencyKey } from '@/lib/idempotency'
 
 interface FactureFormProps {
   onSuccess?: () => void
@@ -53,8 +54,21 @@ function parseNumber(value: string): number {
   return Number.isFinite(parsed) ? parsed : Number.NaN
 }
 
-export function FactureForm({ onSuccess, defaultLivraisonId }: FactureFormProps) {
+export function FactureForm(props: FactureFormProps) {
+  return (
+    <FactureFormContent
+      key={props.defaultLivraisonId ?? 'nouvelle-facture'}
+      {...props}
+    />
+  )
+}
+
+function FactureFormContent({
+  onSuccess,
+  defaultLivraisonId,
+}: FactureFormProps) {
   const createFacture = useCreateFacture()
+  const creationKeyRef = useRef<string | null>(null)
 
   const [search, setSearch] = useState('')
   const [dateDebut, setDateDebut] = useState('')
@@ -64,9 +78,6 @@ export function FactureForm({ onSuccess, defaultLivraisonId }: FactureFormProps)
   )
   const [prixOverrides, setPrixOverrides] = useState<Record<number, string>>({})
 
-  useEffect(() => {
-    setSelectedIds(defaultLivraisonId ? [defaultLivraisonId] : [])
-  }, [defaultLivraisonId])
 
   const { data: livraisonsPage, isLoading } = useLivraisons({
     statut: 'livre',
@@ -113,21 +124,6 @@ export function FactureForm({ onSuccess, defaultLivraisonId }: FactureFormProps)
   const previewData = previewQuery.data ?? null
   const previewErrorMessage = previewQuery.error ? getErrorMessage(previewQuery.error) : null
 
-  useEffect(() => {
-    if (!previewData) {
-      return
-    }
-
-    setPrixOverrides((current) => {
-      const next: Record<number, string> = {}
-
-      for (const ligne of previewData.lignes ?? []) {
-        next[ligne.ligne_id] = current[ligne.ligne_id] ?? String(ligne.prix_unitaire)
-      }
-
-      return next
-    })
-  }, [previewData])
 
   const previewLignes = useMemo<PreviewLineComputed[]>(() => {
     if (!previewData) {
@@ -200,26 +196,36 @@ export function FactureForm({ onSuccess, defaultLivraisonId }: FactureFormProps)
     )
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  event.preventDefault()
 
-    if (selectedIdsKey.length === 0) {
-      return
-    }
+  if (selectedIdsKey.length === 0) {
+    return
+  }
 
-    try {
-      await createFacture.mutateAsync({
+  const idempotencyKey =
+    creationKeyRef.current ??
+    (creationKeyRef.current = createIdempotencyKey())
+
+  try {
+    await createFacture.mutateAsync({
+      payload: {
         livraison_ids: selectedIdsKey,
         lignes: previewLignes.map((ligne) => ({
           ligne_id: ligne.ligne_id,
           prix_unitaire: ligne.prix_unitaire_edite,
         })),
-      })
-      onSuccess?.()
-    } catch {
-      // toast géré par le hook
-    }
+      },
+      idempotencyKey,
+    })
+
+    creationKeyRef.current = null
+    onSuccess?.()
+  } catch {
+    // La clé est conservée : un nouvel essai rejouera exactement
+    // la même opération au lieu de créer une deuxième facture.
   }
+}
 
   const canSubmit = selectedIdsKey.length > 0 && !createFacture.isPending && !previewErrorMessage
 

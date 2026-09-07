@@ -71,7 +71,6 @@ export function ClientDetailView({ clientId }: ClientDetailViewProps) {
   const totalFacture = historique?.total_facture ?? 0
   const totalPaye = historique?.total_paye ?? 0
   const resteAPayer = historique?.reste_a_payer ?? 0
-  const pctPaye = totalFacture > 0 ? Math.min(100, Math.round((totalPaye / totalFacture) * 100)) : 0
 
   const tabs = useMemo(
     () =>

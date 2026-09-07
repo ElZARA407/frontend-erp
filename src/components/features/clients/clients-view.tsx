@@ -1,9 +1,8 @@
 // src/components/features/clients/clients-view.tsx
 'use client'
 
-import Link from 'next/link'
 import { useState } from 'react'
-import { Eye, PencilLine, Plus, Search, Trash2, UserX } from 'lucide-react'
+import { PencilLine, Plus, Search, Trash2, UserX } from 'lucide-react'
 import { useClients, useDeleteClient } from '@/lib/hooks/use-clients'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'

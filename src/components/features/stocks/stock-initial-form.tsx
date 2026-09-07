@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { createIdempotencyKey } from '@/lib/idempotency'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, type Resolver,useWatch } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
@@ -35,6 +36,7 @@ function normalizeArray<T>(value: unknown): T[] {
 
 export function StockInitialForm({ onSuccess }: StockInitialFormProps) {
   const createStock = useCreateInitialStock()
+  const idempotencyKeyRef = useRef<string | null>(null)
 
   const { data: locationsData } = useLocations()
   const { data: productsPage } = useProducts({ actif: true, per_page: 200 })
@@ -89,22 +91,36 @@ export function StockInitialForm({ onSuccess }: StockInitialFormProps) {
       location_id: Number(values.location_id),
       entite_type: values.entite_type,
       entite_id: Number(values.entite_id),
-      classement_id: values.entite_type === 'produit' ? values.classement_id : undefined,
+      classement_id:
+        values.entite_type === 'produit'
+          ? values.classement_id
+          : undefined,
       stock_total: Number(values.stock_total),
       cout_unitaire_initial:
-        values.cout_unitaire_initial !== undefined && Number.isFinite(Number(values.cout_unitaire_initial))
+        values.cout_unitaire_initial !== undefined &&
+        Number.isFinite(Number(values.cout_unitaire_initial))
           ? Number(values.cout_unitaire_initial)
           : undefined,
       motif: values.motif?.trim() || 'inventaire',
     }
 
-    await createStock.mutateAsync(payload)
-    reset()
-    onSuccess?.()
+    const idempotencyKey =
+      idempotencyKeyRef.current ??
+      (idempotencyKeyRef.current = createIdempotencyKey())
+
+    try {
+      await createStock.mutateAsync({ payload, idempotencyKey })
+
+      idempotencyKeyRef.current = null
+      reset()
+      onSuccess?.()
+    } catch {
+      // La clé est conservée afin de rejouer la même opération en cas de retry.
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={(event) => { void handleSubmit(onSubmit)(event) }} className="space-y-4">
       <Select
         label="Location *"
         placeholder="Choisir une location"

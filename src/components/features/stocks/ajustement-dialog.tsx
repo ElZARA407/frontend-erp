@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useForm,type Resolver,useWatch } from 'react-hook-form'
+import { createIdempotencyKey } from '@/lib/idempotency'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Dialog } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ interface AjustementDialogProps {
 
 export function AjustementDialog({ open, onClose, stock }: AjustementDialogProps) {
   const ajusterInventaire = useAjusterInventaire()
+  const idempotencyKeyRef = useRef<string | null>(null)
 
   const initialValues = useMemo<AjustementStockValues>(
     () => ({
@@ -53,9 +55,22 @@ export function AjustementDialog({ open, onClose, stock }: AjustementDialogProps
   const ecart = (Number(stockPhysique) || 0) - (stock?.stock_total ?? 0)
 
   const onSubmit = (values: AjustementStockValues) => {
-    ajusterInventaire.mutate(values, {
-      onSuccess: () => onClose(),
-    })
+    const idempotencyKey =
+      idempotencyKeyRef.current ??
+      (idempotencyKeyRef.current = createIdempotencyKey())
+
+    ajusterInventaire.mutate(
+      {
+        payload: values,
+        idempotencyKey,
+      },
+      {
+        onSuccess: () => {
+          idempotencyKeyRef.current = null
+          onClose()
+        },
+      },
+    )
   }
 
   return (
@@ -63,7 +78,7 @@ export function AjustementDialog({ open, onClose, stock }: AjustementDialogProps
       {!stock ? (
         <p className="text-sm text-steel-500">Aucun stock selectionne.</p>
       ) : (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={(event) => { void handleSubmit(onSubmit)(event) }} className="space-y-4">
           <div className="rounded-md border border-surface-border bg-surface-subtle px-4 py-3">
             <p className="text-sm font-semibold text-steel-900">
               {stock.entite?.designation ?? stock.entite?.nom ?? stock.entite?.nomencla ?? `Article #${stock.entite_id}`}

@@ -11,6 +11,8 @@ import { Dialog } from '@/components/ui/dialog'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { StatCard } from '@/components/ui/stat-card'
 import { formatDate, formatDateTime, formatMGA, formatQty, getStatutColor } from '@/lib/utils'
+import { useRef } from 'react'
+import { createIdempotencyKey } from '@/lib/idempotency'
 import {
   useAnnulerVenteDirecte,
   useValiderVenteDirecte,
@@ -29,6 +31,8 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
   const annulerVente = useAnnulerVenteDirecte()
   const [showLivraison, setShowLivraison] = useState(false)
   const router = useRouter()
+  const validateKeyRef = useRef<string | null>(null)
+  const cancelKeyRef = useRef<string | null>(null)
 
   const lignes = Array.isArray(vente?.lignes) ? vente.lignes : []
   const livraisons = Array.isArray(vente?.livraisons) ? vente.livraisons : []
@@ -91,11 +95,20 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
                 Livrer
               </Button>
             )}
-            {vente?.statut === 'brouillon' && (
+                        {vente?.statut === 'brouillon' && (
               <Button
                 icon={<CheckCircle2 className="h-3.5 w-3.5" />}
                 loading={validerVente.isPending}
-                onClick={() => validerVente.mutate(vente.id)}
+                onClick={() => {
+                  const idempotencyKey =
+                    validateKeyRef.current ??
+                    (validateKeyRef.current = createIdempotencyKey())
+
+                  validerVente.mutate(
+                    { id: vente.id, idempotencyKey },
+                    { onSuccess: () => { validateKeyRef.current = null } },
+                  )
+                }}
               >
                 Valider
               </Button>
@@ -105,7 +118,16 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
                 variant="danger"
                 icon={<RotateCcw className="h-3.5 w-3.5" />}
                 loading={annulerVente.isPending}
-                onClick={() => annulerVente.mutate(vente.id)}
+                onClick={() => {
+                  const idempotencyKey =
+                    cancelKeyRef.current ??
+                    (cancelKeyRef.current = createIdempotencyKey())
+
+                  annulerVente.mutate(
+                    { id: vente.id, idempotencyKey },
+                    { onSuccess: () => { cancelKeyRef.current = null } },
+                  )
+                }}
               >
                 Annuler
               </Button>

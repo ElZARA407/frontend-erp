@@ -46,6 +46,7 @@ interface DemandeAchatDetailViewProps {
 }
 
 type DemandeAchatLine = NonNullable<DemandeAchat['lignes']>[number]
+const EMPTY_DEMANDE_LINES: DemandeAchatLine[] = []
 
 const STATUT_LABELS: Record<DemandeAchat['statut'], string> = {
   brouillon: 'Brouillon',
@@ -69,7 +70,10 @@ export function DemandeAchatDetailView({ demandeId }: DemandeAchatDetailViewProp
 
   const matieres = Array.isArray(matieresPage?.data?.data) ? matieresPage.data.data : []
   const produits = Array.isArray(produitsPage?.data?.data) ? produitsPage.data.data : []
-  const lignes = Array.isArray(demande?.lignes) ? demande.lignes : []
+  const lignes = useMemo(
+    () => (Array.isArray(demande?.lignes) ? demande.lignes : EMPTY_DEMANDE_LINES),
+    [demande?.lignes],
+  )
 
   const totalQuantite = useMemo(
     () => lignes.reduce((sum, ligne) => sum + (Number(ligne.quantite) || 0), 0),

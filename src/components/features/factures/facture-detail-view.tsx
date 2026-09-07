@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createIdempotencyKey } from '@/lib/idempotency'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, type Resolver } from 'react-hook-form'
 import { ArrowLeft, CheckCircle2, FileText, Receipt, Truck, XCircle } from 'lucide-react'
@@ -35,6 +36,8 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
   const { data: facture, isLoading } = useFacture(factureId)
   const payerFacture = usePayerFacture()
   const annulerFacture = useAnnulerFacture()
+  const paymentKeyRef = useRef<string | null>(null)
+  const cancelKeyRef = useRef<string | null>(null)
   const { exportPdf, isExporting } = usePdfExport()
 
   const lignes = Array.isArray(facture?.lignes) ? facture.lignes : []
@@ -71,18 +74,26 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
   const onPay = (values: PayerFactureSchema) => {
     if (!facture) return
 
+    const idempotencyKey =
+      paymentKeyRef.current ??
+      (paymentKeyRef.current = createIdempotencyKey())
+
     payerFacture.mutate(
       {
         id: facture.id,
-        mode_paiement: values.mode_paiement,
-        montant_paye: values.montant_paye,
+        payload: {
+          mode_paiement: values.mode_paiement,
+          montant_paye: values.montant_paye,
+        },
+        idempotencyKey,
       },
       {
         onSuccess: () => {
+          paymentKeyRef.current = null
           reset()
           setShowPayDialog(false)
         },
-      }
+      },
     )
   }
 
@@ -390,7 +401,7 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
         title="Enregistrer le paiement"
         size="sm"
       >
-        <form onSubmit={handleSubmit(onPay)} className="space-y-4">
+        <form onSubmit={(event) => { void handleSubmit(onPay)(event) }} className="space-y-4">
           <Input
             label="Montant payé *"
             type="number"
@@ -430,9 +441,21 @@ export function FactureDetailView({ factureId }: FactureDetailViewProps) {
   onClose={() => setConfirmCancelOpen(false)}
   onConfirm={() => {
     if (!facture) return
-    annulerFacture.mutate(facture.id, {
-      onSuccess: () => setConfirmCancelOpen(false),
-    })
+      const idempotencyKey = cancelKeyRef.current ??
+      (cancelKeyRef.current = createIdempotencyKey())
+
+    annulerFacture.mutate(
+      {
+        id: facture.id,
+        idempotencyKey,
+      },
+      {
+        onSuccess: () => {
+          cancelKeyRef.current = null
+          setConfirmCancelOpen(false)
+        },
+      },
+    )
   }}
 />
     </div>
