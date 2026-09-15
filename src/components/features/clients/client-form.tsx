@@ -77,13 +77,18 @@ export function ClientForm({ defaultValues, onSuccess }: ClientFormProps) {
       actif: Boolean(values.actif),
     }
 
-    if (isEditing && defaultValues?.id) {
-      await updateClient.mutateAsync(payload)
-    } else {
-      await createClient.mutateAsync(payload)
-    }
+    try {
+      if (isEditing && defaultValues?.id) {
+        await updateClient.mutateAsync(payload)
+      } else {
+        await createClient.mutateAsync(payload)
+      }
 
-    onSuccess?.()
+      onSuccess?.()
+    } catch {
+      // L’erreur est déjà affichée par useCreateClient/useUpdateClient.
+      // La modale reste ouverte afin que l’utilisateur corrige les champs.
+    }
   }
 
   return (
