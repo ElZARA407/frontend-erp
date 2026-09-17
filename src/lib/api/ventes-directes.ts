@@ -9,6 +9,11 @@ import type {
   VentesDirectesPage,
 } from '@/lib/ventes-directes.types'
 
+export interface VenteDirecteCorrectionAdminPayload
+  extends VenteDirectePayload {
+  motif_correction: string
+}
+
 export const ventesDirectesApi = {
   list: async (filters: VenteDirecteFilters = {}) => {
     const { data } = await apiClient.get<VentesDirectesPage>(
@@ -40,6 +45,20 @@ export const ventesDirectesApi = {
     const { data } = await apiClient.put<ApiResponse<VenteDirecte>>(
       `/commercial/ventes-directes/${id}`,
       payload,
+    )
+
+    return data.data
+  },
+
+  corrigerAdmin: async (
+    id: number,
+    payload: VenteDirecteCorrectionAdminPayload,
+    idempotencyKey: string,
+  ) => {
+    const { data } = await apiClient.put<ApiResponse<VenteDirecte>>(
+      `/admin/corrections/ventes-directes/${id}`,
+      payload,
+      { headers: idempotencyHeaders(idempotencyKey) },
     )
 
     return data.data

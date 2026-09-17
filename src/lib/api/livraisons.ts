@@ -1,4 +1,5 @@
 import apiClient from './client'
+import { idempotencyHeaders } from '../idempotency'
 import type { ApiResponse, Livraison } from '../types'
 import { buildQueryString } from '../utils'
 import { extractPaginatedResponse } from './pagination'
@@ -13,12 +14,13 @@ export interface LivraisonFilters {
   date_fin?: string
   per_page?: number
   page?: number
-  [key: string]: unknown
   sort_by?: string
-sort_dir?: 'asc' | 'desc'
+  sort_dir?: 'asc' | 'desc'
+  [key: string]: unknown
 }
 
 export interface LivraisonLinePayload {
+  id?: number
   ligne_commande_id?: number | null
   ligne_vente_directe_id?: number | null
   produit_id: number
@@ -47,14 +49,25 @@ export interface LivraisonUpdatePayload {
   lignes?: LivraisonLinePayload[]
 }
 
+export interface LivraisonCorrectionPayload extends LivraisonUpdatePayload {
+  motif_correction: string
+  lignes: LivraisonLinePayload[]
+}
+
 export const livraisonsApi = {
   list: async (filters: LivraisonFilters = {}) => {
-    const { data } = await apiClient.get(`/logistique/livraisons${buildQueryString(filters)}`)
+    const { data } = await apiClient.get(
+      `/logistique/livraisons${buildQueryString(filters)}`,
+    )
+
     return extractPaginatedResponse<Livraison>(data)
   },
 
   get: async (id: number) => {
-    const { data } = await apiClient.get<ApiResponse<Livraison>>(`/logistique/livraisons/${id}`)
+    const { data } = await apiClient.get<ApiResponse<Livraison>>(
+      `/logistique/livraisons/${id}`,
+    )
+
     return data.data
   },
 
@@ -63,6 +76,7 @@ export const livraisonsApi = {
       '/logistique/livraisons',
       payload,
     )
+
     return data.data
   },
 
@@ -71,11 +85,29 @@ export const livraisonsApi = {
       `/logistique/livraisons/${id}`,
       payload,
     )
+
+    return data.data
+  },
+
+  corrigerAdmin: async (
+    id: number,
+    payload: LivraisonCorrectionPayload,
+    idempotencyKey: string,
+  ) => {
+    const { data } = await apiClient.post<ApiResponse<Livraison>>(
+      `/admin/corrections/livraisons/${id}`,
+      payload,
+      { headers: idempotencyHeaders(idempotencyKey) },
+    )
+
     return data.data
   },
 
   delete: async (id: number) => {
-    const { data } = await apiClient.delete<ApiResponse<null>>(`/logistique/livraisons/${id}`)
+    const { data } = await apiClient.delete<ApiResponse<null>>(
+      `/logistique/livraisons/${id}`,
+    )
+
     return data
   },
 
@@ -83,6 +115,7 @@ export const livraisonsApi = {
     const { data } = await apiClient.post<ApiResponse<Livraison>>(
       `/logistique/livraisons/${id}/confirmer`,
     )
+
     return data.data
   },
 
@@ -90,6 +123,7 @@ export const livraisonsApi = {
     const { data } = await apiClient.post<ApiResponse<Livraison>>(
       `/logistique/livraisons/${id}/annuler`,
     )
+
     return data.data
   },
 }

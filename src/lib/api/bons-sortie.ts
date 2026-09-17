@@ -7,6 +7,11 @@ import type {
   BonSortiePayload,
 } from '@/lib/bons-sortie.types'
 import { extractPaginatedResponse } from './pagination'
+import { idempotencyHeaders } from '@/lib/idempotency'
+
+export interface BonSortieCorrectionPayload extends BonSortiePayload {
+  motif_correction: string
+}
 
 export const bonsSortieApi = {
   list: async (filters: BonSortieFilters = {}) => {
@@ -50,6 +55,19 @@ export const bonsSortieApi = {
       `/logistique/bons-sortie/${id}`,
     )
     return data
+  },
+  corrigerAdmin: async (
+    id: number,
+    payload: BonSortieCorrectionPayload,
+    idempotencyKey: string,
+  ) => {
+    const { data } = await apiClient.put<ApiResponse<BonSortie>>(
+      `/admin/corrections/bons-sortie/${id}`,
+      payload,
+      { headers: idempotencyHeaders(idempotencyKey) },
+    )
+
+    return data.data
   },
 
   valider: async (id: number) => {

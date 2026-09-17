@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Controller,
   useFieldArray,
@@ -21,15 +21,26 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import { useClients } from '@/lib/hooks/use-clients'
 import { useStocks } from '@/lib/hooks/use-stocks'
-import { useCreateBonSortie, useUpdateBonSortie } from '@/lib/hooks/use-bons-sortie'
+import { useUpdateBonSortie } from '@/lib/hooks/use-bons-sortie'
+import {
+  useCreateBrouillon,
+  useUpdateBrouillon,
+} from '@/lib/hooks/use-brouillons'
+import type { BrouillonDocument } from '@/lib/brouillons.types'
 import { MOTIFS_SORTIE } from '@/lib/constants'
 import { formatQty } from '@/lib/utils'
 import { bonSortieSchema, type BonSortieSchema } from '@/lib/schemas/bons-sortie.schema'
 import type { BonSortie, BonSortieMotif } from '@/lib/bons-sortie.types'
 import type { Stock } from '@/lib/types'
+import { useCorrectBonSortieAdmin } from '@/lib/hooks/use-bons-sortie'
+import { createIdempotencyKey } from '@/lib/idempotency'
+import { ShieldCheck } from 'lucide-react'
 
 interface BonSortieFormProps {
   defaultValues?: BonSortie
+  brouillonInitial?: BrouillonDocument<BonSortieSchema> | null
+  correctionAdmin?: boolean
+  onSaved?: (brouillon: BrouillonDocument<BonSortieSchema>) => void
   onSuccess?: () => void
 }
 
@@ -133,10 +144,28 @@ function detailLabelForMotif(motif: BonSortieMotif): string {
   return 'Détail'
 }
 
-export function BonSortieForm({ defaultValues, onSuccess }: BonSortieFormProps) {
-  const createBonSortie = useCreateBonSortie()
+export function BonSortieForm({
+  defaultValues,
+  brouillonInitial = null,
+  correctionAdmin = false,
+  onSaved,
+  onSuccess,
+}: BonSortieFormProps) {
   const updateBonSortie = useUpdateBonSortie()
+
+  const createBrouillon = useCreateBrouillon<BonSortieSchema>()
+  const updateBrouillon = useUpdateBrouillon<BonSortieSchema>()
+
+  const [brouillon, setBrouillon] = useState<
+    BrouillonDocument<BonSortieSchema> | null
+  >(brouillonInitial)
+
+  const [draftError, setDraftError] = useState<string | null>(null)
+
+  const draftPayload = brouillonInitial?.payload
   const isEditing = Boolean(defaultValues?.id)
+  const correctBonSortieAdmin = useCorrectBonSortieAdmin()
+  const [motifCorrection, setMotifCorrection] = useState('')
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
   const { data: locationsData } = useLocations()
@@ -158,21 +187,38 @@ export function BonSortieForm({ defaultValues, onSuccess }: BonSortieFormProps) 
   } = useForm<BonSortieFormValues>({
     resolver: zodResolver(bonSortieSchema) as unknown as Resolver<BonSortieFormValues>,
     defaultValues: {
-    location_id: defaultValues?.location?.id ?? 0,
-    destination_location_id: defaultValues?.destination_location?.id,
-    date: defaultValues?.date ?? new Date().toISOString().slice(0, 10),
-    motif: defaultValues?.motif ?? 'consommation_interne',
-    client_id: defaultValues?.client?.id,
-    motif_detail: defaultValues?.motif_detail ?? '',
-    observations: defaultValues?.observations ?? '',
-    lignes: Array.isArray(defaultValues?.lignes) && defaultValues.lignes.length > 0
-      ? defaultValues.lignes.map((ligne) => ({
-          produit_id: Number(ligne.produit_id),
-          classement_id: Number(ligne.classement_id),
-          quantite: Number(ligne.quantite),
-        }))
-      : [createEmptyLine()],
-  },
+      location_id: draftPayload?.location_id ?? defaultValues?.location?.id ?? 0,
+      destination_location_id:
+        draftPayload?.destination_location_id ??
+        defaultValues?.destination_location?.id,
+      date:
+        draftPayload?.date ??
+        defaultValues?.date ??
+        new Date().toISOString().slice(0, 10),
+      motif:
+        draftPayload?.motif ??
+        defaultValues?.motif ??
+        'consommation_interne',
+      client_id: draftPayload?.client_id ?? defaultValues?.client?.id,
+      motif_detail:
+        draftPayload?.motif_detail ??
+        defaultValues?.motif_detail ??
+        '',
+      observations:
+        draftPayload?.observations ??
+        defaultValues?.observations ??
+        '',
+      lignes:
+        Array.isArray(draftPayload?.lignes) && draftPayload.lignes.length > 0
+          ? draftPayload.lignes
+          : Array.isArray(defaultValues?.lignes) && defaultValues.lignes.length > 0
+            ? defaultValues.lignes.map((ligne) => ({
+                produit_id: Number(ligne.produit_id),
+                classement_id: Number(ligne.classement_id),
+                quantite: Number(ligne.quantite),
+              }))
+            : [createEmptyLine()],
+    },
     mode: 'onSubmit',
     reValidateMode: 'onChange',
   })
@@ -258,7 +304,7 @@ export function BonSortieForm({ defaultValues, onSuccess }: BonSortieFormProps) 
 
   const totalQuantite = lignes.reduce((sum, ligne) => sum + (Number(ligne.quantite) || 0), 0)
 
-  const onSubmit = (values: BonSortieFormValues) => {
+  const onSubmit = async (values: BonSortieFormValues) => {
     let hasStockError = false
 
     values.lignes.forEach((ligne, index) => {
@@ -299,16 +345,105 @@ export function BonSortieForm({ defaultValues, onSuccess }: BonSortieFormProps) 
       })),
     }
 
-    if (isEditing && defaultValues?.id) {
-      updateBonSortie.mutate({ id: defaultValues.id, payload }, { onSuccess })
+  if (isEditing && defaultValues) {
+    if (correctionAdmin) {
+      if (motifCorrection.trim().length < 5) {
+        setError('root', {
+          type: 'manual',
+          message: 'Le motif de correction doit contenir au moins 5 caractères.',
+        })
+        return
+      }
+
+      correctBonSortieAdmin.mutate(
+        {
+          id: defaultValues.id,
+          idempotencyKey: createIdempotencyKey(),
+          payload: {
+            ...payload,
+            motif_correction: motifCorrection.trim(),
+          },
+        },
+        { onSuccess },
+      )
+
       return
     }
 
-    createBonSortie.mutate(payload, { onSuccess })
+    updateBonSortie.mutate(
+      { id: defaultValues.id, payload },
+      { onSuccess },
+    )
+
+    return
+  }
+
+    try {
+      setDraftError(null)
+
+      const brouillonEnregistre = brouillon
+        ? await updateBrouillon.mutateAsync({
+            uuid: brouillon.uuid,
+            payload,
+            version: brouillon.version,
+            idempotencyKey: createIdempotencyKey(),
+          })
+        : await createBrouillon.mutateAsync({
+            module: 'bon_sortie',
+            payload,
+            idempotencyKey: createIdempotencyKey(),
+          })
+
+      setBrouillon(brouillonEnregistre)
+      onSaved?.(brouillonEnregistre)
+    } catch (error) {
+      setDraftError(
+        error instanceof Error
+          ? error.message
+          : 'Impossible d’enregistrer le brouillon BS.',
+      )
+    }
   }
 
   return (
+    
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      {correctionAdmin && (
+        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+            <ShieldCheck className="h-4 w-4" />
+            Correction administrateur tracée
+          </div>
+
+          <textarea
+            value={motifCorrection}
+            onChange={(event) => setMotifCorrection(event.target.value)}
+            minLength={5}
+            required
+            placeholder="Motif obligatoire de la correction"
+            className="min-h-20 w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm text-steel-900 outline-none focus:border-steel-500"
+          />
+        </div>
+        
+      )}
+      {errors.root?.message && (
+        <p className="text-sm text-red-600">{errors.root.message}</p>
+      )}
+
+      {!isEditing && brouillon && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          Brouillon partagé — dernière modification :
+          {' '}
+          {brouillon.modificateur?.nom ?? '—'}.
+        </div>
+      )}
+
+      {draftError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {draftError}
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Select
           label="Localisation source *"
@@ -387,9 +522,15 @@ export function BonSortieForm({ defaultValues, onSuccess }: BonSortieFormProps) 
               Les produits affichés dépendent du stock disponible dans la localisation source.
             </p>
           </div>
-        <Button type="submit" loading={createBonSortie.isPending || updateBonSortie.isPending}>
-          {isEditing ? 'Modifier le bon de sortie' : 'Créer le bon de sortie'}
-        </Button>
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            icon={<Plus className="h-3.5 w-3.5" />}
+            onClick={() => append(createEmptyLine())}
+          >
+            Ajouter lignes
+          </Button>
         </div>
 
         <div className="space-y-4 p-4">
@@ -420,19 +561,30 @@ export function BonSortieForm({ defaultValues, onSuccess }: BonSortieFormProps) 
         <p className="mt-1 text-lg font-semibold text-steel-900">{formatQty(totalQuantite)}</p>
       </div>
 
-      <div className="flex justify-end border-t border-surface-border pt-4">
-        <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            icon={<Plus className="h-3.5 w-3.5" />}
-            onClick={() => append(createEmptyLine())}
+      <div className="flex flex-wrap justify-end gap-2 border-t border-surface-border pt-4">
+        {isEditing ? (
+          <Button
+            type="submit"
+            loading={
+              updateBonSortie.isPending ||
+              correctBonSortieAdmin.isPending
+            }
           >
-            Ajouter lignes
+            {correctionAdmin
+              ? 'Enregistrer la correction'
+              : 'Modifier le bon de sortie'}
           </Button>
-        <Button type="submit" loading={createBonSortie.isPending}>
-          Créer le bon de sortie
-        </Button>
+        ) : (
+            <Button
+              type="submit"
+              loading={
+                createBrouillon.isPending ||
+                updateBrouillon.isPending
+              }
+            >
+              Enregistrer le brouillon
+            </Button>
+        )}
       </div>
     </form>
   )

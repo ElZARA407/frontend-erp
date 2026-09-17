@@ -81,3 +81,32 @@ export function useValiderBonSortie() {
     onError: (error) => notifyApiError(error, 'Impossible de valider ce bon de sortie.'),
   })
 }
+
+export function useCorrectBonSortieAdmin() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+      idempotencyKey,
+    }: {
+      id: number
+      payload: import('@/lib/api/bons-sortie').BonSortieCorrectionPayload
+      idempotencyKey: string
+    }) => bonsSortieApi.corrigerAdmin(id, payload, idempotencyKey),
+
+    onSuccess: (_data, variables) => {
+      invalidateCommercialImpact(queryClient)
+      invalidateStockImpact(queryClient)
+      queryClient.invalidateQueries({ queryKey: BONS_SORTIE_KEYS.bons })
+      queryClient.invalidateQueries({
+        queryKey: [...BONS_SORTIE_KEYS.bons, variables.id],
+      })
+      toast.success('Correction administrateur du bon de sortie enregistrée.')
+    },
+
+    onError: (error) =>
+      notifyApiError(error, 'Impossible de corriger ce bon de sortie.'),
+  })
+}

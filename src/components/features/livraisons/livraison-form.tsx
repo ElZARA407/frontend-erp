@@ -9,6 +9,9 @@ import { useCreateLivraison, useUpdateLivraison } from '@/lib/hooks/use-livraiso
 import { formatDate, formatQty } from '@/lib/utils'
 import type { LivraisonCreatePayload, LivraisonLinePayload } from '@/lib/api/livraisons'
 import type { Livraison } from '@/lib/types'
+import { ShieldCheck } from 'lucide-react'
+import { useCorrectLivraisonAdmin } from '@/lib/hooks/use-livraisons'
+import { createIdempotencyKey } from '@/lib/idempotency'
 
 type SourceType = 'commande' | 'vente_directe'
 
@@ -41,6 +44,7 @@ interface LivraisonFormProps {
   sourceType?: SourceType
   source?: DeliverySource
   defaultValues?: Livraison
+  correctionAdmin?: boolean
   onSuccess?: () => void
 }
 
@@ -90,11 +94,15 @@ function LivraisonFormContent({
   sourceType,
   source,
   defaultValues,
+  correctionAdmin = false,
   onSuccess,
 }: LivraisonFormProps) {
   const isEditing = !!defaultValues?.id
   const createLivraison = useCreateLivraison()
   const updateLivraison = useUpdateLivraison()
+  const correctLivraisonAdmin = useCorrectLivraisonAdmin()
+  const [motifCorrection, setMotifCorrection] = useState('')
+  
 
   const resolvedSourceType = sourceType ?? defaultValues?.source_type ?? 'commande'
   const sourceLines = Array.isArray(source?.lignes) ? source.lignes : EMPTY_LINES
@@ -185,7 +193,10 @@ function LivraisonFormContent({
     [quantites, rows, selectedRows]
   )
 
-  const isPending = createLivraison.isPending || updateLivraison.isPending
+  const isPending =
+    createLivraison.isPending ||
+    updateLivraison.isPending ||
+    correctLivraisonAdmin.isPending
   const canSubmit = selectedCount > 0 && !isPending
 
   const buildLines = (): LivraisonLinePayload[] => {
@@ -208,13 +219,14 @@ function LivraisonFormContent({
         )
       }
 
-      return {
-        ligne_commande_id: row.ligne_commande_id,
-        ligne_vente_directe_id: row.ligne_vente_directe_id,
-        produit_id: row.produit_id,
-        classement_id: row.classement_id,
-        quantite_livree: quantity,
-      }
+    return {
+      id: isEditing ? row.id : undefined,
+      ligne_commande_id: row.ligne_commande_id,
+      ligne_vente_directe_id: row.ligne_vente_directe_id,
+      produit_id: row.produit_id,
+      classement_id: row.classement_id,
+      quantite_livree: quantity,
+    }
     })
   }
 
@@ -226,21 +238,43 @@ function LivraisonFormContent({
 
       setSubmitError(null)
 
-      if (isEditing && defaultValues) {
-        await updateLivraison.mutateAsync({
+    if (isEditing && defaultValues) {
+      const payload = {
+        reference_bc: referenceBc.trim() || null,
+        chauffeur: chauffeur.trim() || null,
+        vehicule: vehicule.trim() || null,
+        observations: observations.trim() || null,
+        date_livraison: dateLivraison || null,
+        lignes,
+      }
+
+      if (correctionAdmin) {
+        if (motifCorrection.trim().length < 5) {
+          setSubmitError('Le motif de correction doit contenir au moins 5 caractères.')
+          return
+        }
+
+        await correctLivraisonAdmin.mutateAsync({
           id: defaultValues.id,
+          idempotencyKey: createIdempotencyKey(),
           payload: {
-            reference_bc: referenceBc.trim() || null,
-            chauffeur: chauffeur.trim() || null,
-            vehicule: vehicule.trim() || null,
-            observations: observations.trim() || null,
-            date_livraison: dateLivraison || null,
-            lignes,
+            ...payload,
+            motif_correction: motifCorrection.trim(),
           },
         })
+
         onSuccess?.()
         return
       }
+
+      await updateLivraison.mutateAsync({
+        id: defaultValues.id,
+        payload,
+      })
+
+      onSuccess?.()
+      return
+    }
 
       if (!source || !sourceType || !source.client?.id) {
         setSubmitError('Source ou client introuvable pour cette livraison.')
@@ -344,10 +378,27 @@ function LivraisonFormContent({
             {selectedCount} / {rows.length}
           </Badge>
         </div>
+        {correctionAdmin && (
+          <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+              <ShieldCheck className="h-4 w-4" />
+              Correction administrateur tracée
+            </div>
 
+            <textarea
+              value={motifCorrection}
+              onChange={(event) => setMotifCorrection(event.target.value)}
+              minLength={5}
+              required
+              placeholder="Motif obligatoire de la correction"
+              className="min-h-20 w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm text-steel-900 outline-none focus:border-steel-500"
+            />
+          </div>
+        )}
         {rows.length === 0 ? (
           <div className="px-4 py-10 text-center text-sm text-steel-500">Aucune ligne livrable.</div>
         ) : (
+          
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -417,7 +468,11 @@ function LivraisonFormContent({
 
       <div className="flex items-center justify-end gap-2 border-t border-surface-border pt-4">
         <Button type="submit" loading={isPending} disabled={!canSubmit}>
-          {isEditing ? 'Mettre à jour' : 'Créer le BL'}
+          {isEditing
+            ? correctionAdmin
+              ? 'Enregistrer la correction'
+              : 'Mettre à jour'
+            : 'Créer le BL'}
         </Button>
       </div>
     </form>

@@ -106,3 +106,39 @@ export function useUpdateVenteDirecte() {
       notifyApiError(error, 'Impossible de modifier cette vente directe.'),
   })
 }
+
+export function useCorrectVenteDirecteAdmin() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+      idempotencyKey,
+    }: {
+      id: number
+      payload: import('@/lib/api/ventes-directes').VenteDirecteCorrectionAdminPayload
+      idempotencyKey: string
+    }) => ventesDirectesApi.corrigerAdmin(id, payload, idempotencyKey),
+
+    onSuccess: (_data, variables) => {
+      invalidateCommercialImpact(queryClient)
+      queryClient.invalidateQueries({
+        queryKey: VENTES_DIRECTES_KEYS.ventes,
+      })
+      queryClient.invalidateQueries({
+        queryKey: [...VENTES_DIRECTES_KEYS.ventes, variables.id],
+      })
+      queryClient.invalidateQueries({
+        queryKey: CACHE_KEYS.livraisons,
+      })
+
+      toast.success(
+        'Correction administrateur de la vente directe enregistrée.',
+      )
+    },
+
+    onError: (error) =>
+      notifyApiError(error, 'Impossible de corriger cette vente directe.'),
+  })
+}

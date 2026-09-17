@@ -49,3 +49,31 @@ export function useValiderAchat() {
     onError: (error) => notifyApiError(error, 'Impossible de valider ce bon de réception.'),
   })
 }
+
+export function useCorrectAchatAdmin() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+      idempotencyKey,
+    }: {
+      id: number
+      payload: import('../api/achats').AchatCorrectionPayload
+      idempotencyKey: string
+    }) => achatsApi.corrigerAdmin(id, payload, idempotencyKey),
+
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ACHATS_KEY })
+      queryClient.invalidateQueries({ queryKey: ['stocks'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['mouvements-stock'] })
+      queryClient.invalidateQueries({ queryKey: [...ACHATS_KEY, variables.id] })
+      toast.success('Correction administrateur du BR enregistrée.')
+    },
+
+    onError: (error) =>
+      notifyApiError(error, 'Impossible de corriger ce bon de réception.'),
+  })
+}

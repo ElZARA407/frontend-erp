@@ -244,44 +244,70 @@ export function VenteDirecteDetailView({ venteId }: VenteDirecteDetailViewProps)
         <Card>
           <CardHeader>
             <div>
-              <h2 className="text-sm font-semibold text-steel-900">Livraisons liees</h2>
+              <h2 className="text-sm font-semibold text-steel-900">Bons de livraison rattachés</h2>
               <p className="text-xs text-steel-500">
-                Les livraisons liees bloquent l annulation de la vente.
+                Ces BL sont issus de cette vente directe et bloquent son annulation.
               </p>
             </div>
+
             <Badge variant="info" dot>
               {livraisons.length} BL
             </Badge>
           </CardHeader>
+
           <CardBody>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-surface-border">
-                    {['Numero', 'Date', 'Statut', 'Facturee'].map((h) => (
+                    {['BL', 'Date livraison', 'Statut', 'Facturé', ''].map((header) => (
                       <th
-                        key={h}
+                        key={header}
                         className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
                       >
-                        {h}
+                        {header}
                       </th>
                     ))}
                   </tr>
                 </thead>
+
                 <tbody className="divide-y divide-surface-border">
                   {livraisons.map((livraison) => (
-                    <tr key={livraison.id} className="hover:bg-surface-muted/60 transition-colors">
-                      <td className="px-4 py-3 font-medium text-steel-900">{livraison.numero}</td>
-                      <td className="px-4 py-3 text-steel-600">{formatDate(livraison.date_livraison)}</td>
+                    <tr
+                      key={livraison.id}
+                      className="transition-colors hover:bg-surface-muted/60"
+                    >
+                      <td className="px-4 py-3 font-medium text-steel-900">
+                        {livraison.statut === 'livre'
+                        ? 'Confirmé'
+                        : livraison.statut === 'prepare'
+                          ? 'Préparé'
+                          : 'Retourné'}
+                      </td>
+
+                      <td className="px-4 py-3 text-steel-600">
+                        {formatDate(livraison.date_livraison)}
+                      </td>
+
                       <td className="px-4 py-3">
                         <Badge variant={getStatutColor(livraison.statut)} dot>
                           {livraison.statut}
                         </Badge>
                       </td>
+
                       <td className="px-4 py-3">
                         <Badge variant={livraison.est_facturee ? 'success' : 'muted'} dot>
                           {livraison.est_facturee ? 'Oui' : 'Non'}
                         </Badge>
+                      </td>
+
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          href={`/livraisons/${livraison.id}`}
+                          className="text-xs font-medium text-steel-700 hover:underline"
+                        >
+                          Voir le BL
+                        </Link>
                       </td>
                     </tr>
                   ))}

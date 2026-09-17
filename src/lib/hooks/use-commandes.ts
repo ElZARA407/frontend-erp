@@ -67,3 +67,56 @@ export function useUpdateCommande() {
     onError: (error) => notifyApiError(error, 'Impossible de modifier cette commande.'),
   })
 }
+
+export function useCorrectCommandeAdmin() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+      idempotencyKey,
+    }: {
+      id: number
+      payload: import('../api/commandes').CommandeCorrectionAdminPayload
+      idempotencyKey: string
+    }) => commandesApi.corrigerAdmin(id, payload, idempotencyKey),
+
+    onSuccess: (_data, variables) => {
+      invalidateCommercialImpact(queryClient)
+      queryClient.invalidateQueries({ queryKey: COMMANDES_KEY })
+      queryClient.invalidateQueries({
+        queryKey: [...COMMANDES_KEY, variables.id],
+      })
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.livraisons })
+
+      toast.success('Correction administrateur de la commande enregistrée.')
+    },
+
+    onError: (error) =>
+      notifyApiError(error, 'Impossible de corriger cette commande.'),
+  })
+}
+
+export function useDeleteCommande() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: number) => commandesApi.delete(id),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: COMMANDES_KEY,
+      })
+
+      queryClient.invalidateQueries({
+        queryKey: ['dashboard'],
+      })
+
+      toast.success('Commande supprimée.')
+    },
+
+    onError: (error) =>
+      notifyApiError(error, 'Impossible de supprimer cette commande.'),
+  })
+}

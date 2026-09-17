@@ -16,6 +16,9 @@ import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { usePermissions } from '@/lib/hooks/use-permissions'
 import { formatDate, formatDateTime, formatMGA, formatQty, getStatutColor } from '@/lib/utils'
 import type { JournalAchat } from '@/lib/types'
+import { PencilLine } from 'lucide-react'
+import { Dialog } from '@/components/ui/dialog'
+import { AchatCorrectionForm } from './achat-correction-form'
 
 interface AchatDetailViewProps {
   achatId: number
@@ -58,6 +61,7 @@ function resolveClassement(line: AchatLine) {
 
 export function AchatDetailView({ achatId }: AchatDetailViewProps) {
   const { data: achat, isLoading } = useAchat(achatId)
+  const [showCorrection, setShowCorrection] = useState(false)
   const validerAchat = useValiderAchat()
   const { exportPdf, isExporting } = usePdfExport()
   const router = useRouter()
@@ -119,6 +123,17 @@ export function AchatDetailView({ achatId }: AchatDetailViewProps) {
                 Valider le BR
               </Button>
             )}
+            {achat &&
+              achat.statut === 'valide' &&
+              permissions.canEditDocument('bon_reception', achat.statut).mode === 'admin_correction' && (
+                <Button
+                  variant="outline"
+                  icon={<PencilLine className="h-3.5 w-3.5" />}
+                  onClick={() => setShowCorrection(true)}
+                >
+                  Correction admin
+                </Button>
+              )}
 
             {achat && (
               <Button
@@ -310,6 +325,20 @@ export function AchatDetailView({ achatId }: AchatDetailViewProps) {
           })
         }}
       />
+
+      <Dialog
+        open={showCorrection}
+        onClose={() => setShowCorrection(false)}
+        title={`Correction administrateur — ${achat?.numero ?? 'BR'}`}
+        size="xl"
+      >
+        {achat && (
+          <AchatCorrectionForm
+            achat={achat}
+            onSuccess={() => setShowCorrection(false)}
+          />
+        )}
+      </Dialog>
     </div>
   )
 }

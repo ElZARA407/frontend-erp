@@ -9,7 +9,12 @@ import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Select } from '@/components/ui/select'
-import { useCreateAchat } from '@/lib/hooks/use-achats'
+import {
+  useCreateBrouillon,
+  useUpdateBrouillon,
+} from '@/lib/hooks/use-brouillons'
+import type { BrouillonDocument } from '@/lib/brouillons.types'
+import { createIdempotencyKey } from '@/lib/idempotency'
 import { useCreateProduct, useCategories, useMatieres, useProducts, useClassments } from '@/lib/hooks/use-catalogue'
 import { useFournisseurs } from '@/lib/hooks/use-lot3'
 import { useLocations } from '@/lib/hooks/use-organisation'
@@ -30,9 +35,27 @@ function createEmptyLine(): AchatLine {
   }
 }
 
-export function AchatForm({ onSuccess }: { onSuccess?: () => void }) {
-  const createAchat = useCreateAchat()
+interface AchatFormProps {
+  brouillonInitial?: BrouillonDocument<AchatSchema> | null
+  onSaved?: (brouillon: BrouillonDocument<AchatSchema>) => void
+}
+
+export function AchatForm({
+  brouillonInitial = null,
+  onSaved,
+}: AchatFormProps) {
+  const createBrouillon = useCreateBrouillon<AchatSchema>()
+  const updateBrouillon = useUpdateBrouillon<AchatSchema>()
   const createProduct = useCreateProduct()
+
+  const [brouillon, setBrouillon] = useState<
+    BrouillonDocument<AchatSchema> | null
+  >(brouillonInitial)
+
+  const [draftError, setDraftError] = useState<string | null>(null)
+
+  const draftPayload = brouillonInitial?.payload
+
 
   const [showProductDialog, setShowProductDialog] = useState(false)
   const [quickProduct, setQuickProduct] = useState({
@@ -97,17 +120,19 @@ export function AchatForm({ onSuccess }: { onSuccess?: () => void }) {
     control,
     handleSubmit,
     setValue,
-    reset,
     formState: { errors },
   } = useForm<AchatSchema>({
     resolver: zodResolver(achatSchema) as unknown as Resolver<AchatSchema>,
     defaultValues: {
-      date: new Date().toISOString().slice(0, 10),
-      fournisseur_id: fournisseurs[0]?.id ?? 0,
-      location_id: locations[0]?.id ?? 0,
-      vehicule: '',
-      observations: '',
-      lignes: [createEmptyLine()],
+      date: draftPayload?.date ?? new Date().toISOString().slice(0, 10),
+      fournisseur_id: draftPayload?.fournisseur_id ?? fournisseurs[0]?.id ?? 0,
+      location_id: draftPayload?.location_id ?? locations[0]?.id ?? 0,
+      vehicule: draftPayload?.vehicule ?? '',
+      observations: draftPayload?.observations ?? '',
+      lignes:
+        Array.isArray(draftPayload?.lignes) && draftPayload.lignes.length > 0
+          ? draftPayload.lignes
+          : [createEmptyLine()],
     },
     mode: 'onSubmit',
     reValidateMode: 'onChange',
@@ -124,13 +149,44 @@ export function AchatForm({ onSuccess }: { onSuccess?: () => void }) {
     0,
   )
 
-  const onSubmit = (values: AchatSchema) => {
-    createAchat.mutate(values, {
-      onSuccess: () => {
-        reset()
-        onSuccess?.()
-      },
-    })
+  const onSubmit = async (values: AchatSchema) => {
+    try {
+      setDraftError(null)
+
+      const payload: AchatSchema = {
+        ...values,
+        vehicule: values.vehicule?.trim() ?? '',
+        observations: values.observations?.trim() ?? '',
+        lignes: values.lignes.map((ligne) => ({
+          ...ligne,
+          quantite: Number(ligne.quantite),
+          prix_unitaire: Number(ligne.prix_unitaire),
+          observations_ligne: ligne.observations_ligne?.trim() ?? '',
+        })),
+      }
+
+      const brouillonEnregistre = brouillon
+        ? await updateBrouillon.mutateAsync({
+            uuid: brouillon.uuid,
+            payload,
+            version: brouillon.version,
+            idempotencyKey: createIdempotencyKey(),
+          })
+        : await createBrouillon.mutateAsync({
+            module: 'bon_reception',
+            payload,
+            idempotencyKey: createIdempotencyKey(),
+          })
+
+      setBrouillon(brouillonEnregistre)
+      onSaved?.(brouillonEnregistre)
+    } catch (error) {
+      setDraftError(
+        error instanceof Error
+          ? error.message
+          : 'Impossible d’enregistrer le brouillon BR.',
+      )
+    }
   }
 
   const handleCreateMchProduct = async () => {
@@ -161,6 +217,19 @@ export function AchatForm({ onSuccess }: { onSuccess?: () => void }) {
   return (
     <>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          {brouillon && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+              Brouillon partagé — dernière modification :
+              {' '}
+              {brouillon.modificateur?.nom ?? '—'}.
+            </div>
+          )}
+
+          {draftError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {draftError}
+            </div>
+          )}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Select
             label="Fournisseur *"
@@ -170,7 +239,7 @@ export function AchatForm({ onSuccess }: { onSuccess?: () => void }) {
           />
 
           <Select
-            label="Location *"
+            label="Localisation *"
             options={locations.map((location) => ({ value: location.id, label: location.nom }))}
             error={errors.location_id?.message}
             {...register('location_id', { valueAsNumber: true })}
@@ -198,9 +267,6 @@ export function AchatForm({ onSuccess }: { onSuccess?: () => void }) {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowProductDialog(true)}>
-                NOUVEAU PRODUIT MCH
-              </Button>
               <Button
                 type="button"
                 variant="ghost"
@@ -208,7 +274,7 @@ export function AchatForm({ onSuccess }: { onSuccess?: () => void }) {
                 icon={<Plus className="h-3.5 w-3.5" />}
                 onClick={() => append(createEmptyLine())}
               >
-                Ajouter
+                Ajouter lignes
               </Button>
             </div>
           </div>
@@ -359,9 +425,17 @@ export function AchatForm({ onSuccess }: { onSuccess?: () => void }) {
               >
                 Ajouter lignes
               </Button>
-          <Button type="submit" loading={createAchat.isPending}>
-            Créer le BR
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              type="submit"
+              loading={
+                createBrouillon.isPending ||
+                updateBrouillon.isPending
+              }
+            >
+              Enregistrer
+            </Button>
+          </div>
         </div>
       </form>
 
@@ -379,11 +453,6 @@ export function AchatForm({ onSuccess }: { onSuccess?: () => void }) {
           )}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {/* <Input
-              label="Nomenclature *"
-              value={quickProduct.nomencla}
-              onChange={(event) => setQuickProduct((current) => ({ ...current, nomencla: event.target.value }))}
-            /> */}
             <Input
               label="Désignation *"
               value={quickProduct.designation}

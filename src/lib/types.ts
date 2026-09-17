@@ -141,12 +141,24 @@ export interface StatutCommande {
   couleur: string
 }
 
+export interface CommandeLivraisonRef {
+  id: number
+  numero: string | null
+  source_type: 'commande' | 'vente_directe'
+  source_id: number
+  date_livraison: string | null
+  statut: 'prepare' | 'livre' | 'retourne'
+  est_facturee: boolean
+  created_at?: string | null
+}
+
 export interface Commande {
   id: number
   numero: string
   date: string
   date_livraison_prevue: string | null
   statut: StatutCommande
+  livraisons?: CommandeLivraisonRef[]
   echeance: number
   total: number
   en_retard: boolean

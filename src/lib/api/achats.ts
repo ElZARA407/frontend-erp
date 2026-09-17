@@ -3,6 +3,7 @@ import apiClient from './client'
 import type { ApiResponse, JournalAchat } from '../types'
 import { buildQueryString } from '../utils'
 import { extractPaginatedResponse } from './pagination'
+import { idempotencyHeaders } from '../idempotency'
 
 export interface AchatFilters {
   search?: string
@@ -16,6 +17,15 @@ export interface AchatFilters {
   [key: string]: unknown
   sort_by?: string
   sort_dir?: 'asc' | 'desc'
+}
+
+export interface AchatCorrectionPayload {
+  motif_correction: string
+  lignes: Array<{
+    id: number
+    quantite: number
+    prix_unitaire: number
+  }>
 }
 
 export const achatsApi = {
@@ -51,6 +61,19 @@ export const achatsApi = {
 
   valider: async (id: number) => {
     const { data } = await apiClient.post<ApiResponse<JournalAchat>>(`/achats/bons-reception/${id}/valider`)
+    return data.data
+  },
+  corrigerAdmin: async (
+    id: number,
+    payload: AchatCorrectionPayload,
+    idempotencyKey: string,
+  ) => {
+    const { data } = await apiClient.put<ApiResponse<JournalAchat>>(
+      `/admin/corrections/bons-reception/${id}`,
+      payload,
+      { headers: idempotencyHeaders(idempotencyKey) },
+    )
+
     return data.data
   },
 }

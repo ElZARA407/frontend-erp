@@ -420,6 +420,9 @@ export function LivraisonsView() {
         {editingLivraison && (
           <LivraisonForm
             defaultValues={editingLivraison}
+            correctionAdmin={
+              permissions.canEditDocument('livraison', editingLivraison.statut).mode === 'admin_correction'
+            }
             onSuccess={() => setEditingLivraison(null)}
           />
         )}

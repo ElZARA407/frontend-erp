@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo,useState } from 'react'
 import {
   Controller,
   useFieldArray,
@@ -13,7 +13,7 @@ import {
   type UseFormSetValue,
 } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, ShieldCheck, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -21,7 +21,12 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useClients } from '@/lib/hooks/use-clients'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import { useProducts } from '@/lib/hooks/use-catalogue'
-import { useCreateCommande, useUpdateCommande } from '@/lib/hooks/use-commandes'
+import {
+  useCorrectCommandeAdmin,
+  useCreateCommande,
+  useUpdateCommande,
+} from '@/lib/hooks/use-commandes'
+import { createIdempotencyKey } from '@/lib/idempotency'
 import { formatMGA, formatQty } from '@/lib/utils'
 import {
   commandeSchema,
@@ -35,6 +40,7 @@ import { Commande } from '@/lib/types'
 
 interface CommandeFormProps {
   defaultValues?: Commande
+  correctionAdmin?: boolean
   onSuccess?: () => void
 }
 
@@ -83,9 +89,15 @@ function createEmptyLine(): CommandeLineFormValues {
 }
 
 
-export function CommandeForm({ defaultValues, onSuccess }: CommandeFormProps) {
+export function CommandeForm({
+  defaultValues,
+  correctionAdmin = false,
+  onSuccess,
+}: CommandeFormProps) {
   const createCommande = useCreateCommande()
   const updateCommande = useUpdateCommande()
+  const correctCommandeAdmin = useCorrectCommandeAdmin()
+  const [motifCorrection, setMotifCorrection] = useState('')
   const isEditing = Boolean(defaultValues?.id)
 
   const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
@@ -172,6 +184,7 @@ export function CommandeForm({ defaultValues, onSuccess }: CommandeFormProps) {
 
 
   useEffect(() => {
+    if (isEditing) return
     if (!eligibleProducts.length) return
 
     const currentLines = getValues('lignes') ?? []
@@ -204,7 +217,7 @@ export function CommandeForm({ defaultValues, onSuccess }: CommandeFormProps) {
         })
       }
     })
-  }, [eligibleProducts, getValues, setValue])
+  }, [eligibleProducts, getValues, setValue,isEditing])
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -212,6 +225,7 @@ export function CommandeForm({ defaultValues, onSuccess }: CommandeFormProps) {
   })
 
   useEffect(() => {
+    if (isEditing) return
     if (clients.length > 0 && Number(getValues('client_id') || 0) <= 0) {
       setValue('client_id', clients[0].id, { shouldValidate: true, shouldDirty: false })
     }
@@ -231,7 +245,7 @@ export function CommandeForm({ defaultValues, onSuccess }: CommandeFormProps) {
         shouldDirty: false,
       })
     }
-  }, [clients, defaultLine, getValues, locations, setValue])
+  }, [clients, defaultLine, getValues, locations, setValue,isEditing])
 
       const watchedLignes = useWatch({ control, name: 'lignes' })
       const total = useMemo(
@@ -244,10 +258,21 @@ export function CommandeForm({ defaultValues, onSuccess }: CommandeFormProps) {
       )
 
   const onSubmit = (values: CommandeFormValues) => {
+    if (correctionAdmin && motifCorrection.trim().length < 5) {
+      setError('root', {
+        type: 'manual',
+        message: 'Le motif de correction doit contenir au moins 5 caractères.',
+      })
+      return
+    }
+
     let hasStockError = false
 
     values.lignes.forEach((ligne, index) => {
-      const product = eligibleProducts.find((item) => item.id === Number(ligne.produit_id))
+      const product = eligibleProducts.find(
+        (item) => item.id === Number(ligne.produit_id),
+      )
+
       const classement = getAvailableClassements(product).find(
         (item) => item.value === Number(ligne.classement_id),
       )
@@ -255,11 +280,18 @@ export function CommandeForm({ defaultValues, onSuccess }: CommandeFormProps) {
       const available = Number(classement?.stock_total ?? 0)
       const quantity = Number(ligne.quantite ?? 0)
 
-      if (quantity > available) {
+      /*
+      * Pour une commande livrée, le serveur compare uniquement
+      * le supplément par rapport à la quantité déjà livrée.
+      * Le contrôle frontend ne doit donc pas bloquer aveuglément
+      * les lignes historiques absentes du stock disponible.
+      */
+      if (!correctionAdmin && quantity > available) {
         hasStockError = true
+
         setError(`lignes.${index}.quantite`, {
           type: 'manual',
-          message: `Stock disponible insuffisant. Disponible fictif : ${formatQty(available)}. Une partie du stock est déjà réservée par des commandes, ventes directes ou bons de sortie non livrés.`,
+          message: `Stock disponible insuffisant. Disponible fictif : ${formatQty(available)}.`,
         })
       }
     })
@@ -271,7 +303,9 @@ export function CommandeForm({ defaultValues, onSuccess }: CommandeFormProps) {
     const payload: CreateCommandePayload = {
       client_id: Number(values.client_id),
       date: values.date,
-      date_livraison_prevue: values.date_livraison_prevue?.trim() ? values.date_livraison_prevue : undefined,
+      date_livraison_prevue: values.date_livraison_prevue?.trim()
+        ? values.date_livraison_prevue
+        : undefined,
       location_id: Number(values.location_id),
       echeance: Number(values.echeance),
       lignes: values.lignes.map((ligne) => ({
@@ -284,7 +318,27 @@ export function CommandeForm({ defaultValues, onSuccess }: CommandeFormProps) {
     }
 
     if (isEditing && defaultValues?.id) {
-      updateCommande.mutate({ id: defaultValues.id, payload }, { onSuccess })
+      if (correctionAdmin) {
+        correctCommandeAdmin.mutate(
+          {
+            id: defaultValues.id,
+            idempotencyKey: createIdempotencyKey(),
+            payload: {
+              ...payload,
+              motif_correction: motifCorrection.trim(),
+            },
+          },
+          { onSuccess },
+        )
+
+        return
+      }
+
+      updateCommande.mutate(
+        { id: defaultValues.id, payload },
+        { onSuccess },
+      )
+
       return
     }
 
@@ -293,6 +347,27 @@ export function CommandeForm({ defaultValues, onSuccess }: CommandeFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      {correctionAdmin && (
+        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+            <ShieldCheck className="h-4 w-4" />
+            Correction administrateur tracée
+          </div>
+
+          <textarea
+            value={motifCorrection}
+            onChange={(event) => setMotifCorrection(event.target.value)}
+            minLength={5}
+            required
+            placeholder="Motif obligatoire de la correction"
+            className="min-h-20 w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm text-steel-900 outline-none focus:border-steel-500"
+          />
+
+          {errors.root?.message && (
+            <p className="text-sm text-red-700">{errors.root.message}</p>
+          )}
+        </div>
+      )}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Select
           label="Client *"
@@ -390,8 +465,16 @@ export function CommandeForm({ defaultValues, onSuccess }: CommandeFormProps) {
           >
             Ajouter lignes
           </Button>
-        <Button type="submit" loading={createCommande.isPending || updateCommande.isPending}>
-          {isEditing ? 'Modifier la commande' : 'Créer la commande'}
+        <Button type="submit" loading={
+          createCommande.isPending ||
+          updateCommande.isPending ||
+          correctCommandeAdmin.isPending
+        }>
+          {isEditing
+          ? correctionAdmin
+            ? 'Enregistrer la correction'
+            : 'Modifier la commande'
+          : 'Créer la commande'}
         </Button>
       </div>
     </form>

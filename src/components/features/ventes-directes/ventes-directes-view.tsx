@@ -1,116 +1,209 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import { createIdempotencyKey } from '@/lib/idempotency'
-import {  Plus, RotateCcw, ShoppingCart, Truck, CheckCircle2, Pencil } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardBody } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { Pagination } from '@/components/ui/pagination'
-import { TableSkeleton } from '@/components/ui/skeleton'
-import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
-import { useClients } from '@/lib/hooks/use-clients'
-import {
-  useAnnulerVenteDirecte,
-  useValiderVenteDirecte,
-  useVentesDirectes,
-} from '@/lib/hooks/use-ventes-directes'
-import type { VenteDirecte } from '@/lib/ventes-directes.types'
-import { VenteDirecteForm } from './vente-directe-form'
-import { LivraisonForm } from '../livraisons/livraison-form'
-import { useRouter } from 'next/navigation'
-import { usePermissions } from '@/lib/hooks/use-permissions'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { SortControl, type SortDirection } from '@/components/ui/sort-control'
+import { createIdempotencyKey } from '@/lib/idempotency'
+import { useClients } from '@/lib/hooks/use-clients'
+import { useLocations } from '@/lib/hooks/use-organisation'
+import { useAnnulerVenteDirecte, useVentesDirectes } from '@/lib/hooks/use-ventes-directes'
+import {
+  useBrouillons,
+  useCreateBrouillon,
+  useDeleteBrouillon,
+  useFinaliserBrouillon,
+  useUpdateBrouillon,
+} from '@/lib/hooks/use-brouillons'
+import { usePermissions } from '@/lib/hooks/use-permissions'
+import type { BrouillonDocument } from '@/lib/brouillons.types'
+import type { VenteDirecte, VenteDirectePayload } from '@/lib/ventes-directes.types'
+import { VenteDirecteForm } from './vente-directe-form'
+import { LivraisonForm } from '../livraisons/livraison-form'
+import { VentesDirectesTable } from './ventes-directes-table'
+import { VentesDirectesBrouillonsTable } from './ventes-directes-brouillons-table'
+import { paginateLocally, type ConfirmAction, type ViewStatus } from '@/lib/ventes-directes.types'
 
+const DRAFT_FORM_ID = 'vente-directe-brouillon-form'
+const DRAFT_PAGE_SIZE = 10
+
+const AFFICHAGE_OPTIONS: Array<{ value: ViewStatus; label: string }> = [
+  { value: 'validees', label: 'Validées' },
+  { value: 'livrees', label: 'Livrées' },
+  { value: 'annulees', label: 'Annulées' },
+  { value: 'brouillons', label: 'Brouillons' },
+]
 
 export function VentesDirectesView() {
+  const permissions = usePermissions()
+
   const [page, setPage] = useState(1)
-  const [statut, setStatut] = useState<string>('')
-  const [editingVente, setEditingVente] = useState<VenteDirecte | null>(null)
-  const [clientId, setClientId] = useState<string>('')
+  const [draftPage, setDraftPage] = useState(1)
+  const [statut, setStatut] = useState<ViewStatus>('validees')
+
+  const [clientId, setClientId] = useState('')
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
-  const [showCreate, setShowCreate] = useState(false)
-  const [showLivraison, setShowLivraison] = useState(false)
-  const [selectedVente, setSelectedVente] = useState<VenteDirecte | null>(null)
-  const router = useRouter();
-  const permissions = usePermissions()
-  const [confirmAction, setConfirmAction] = useState<null | {
-    type: 'valider' | 'annuler'
-    id: number
-  }>(null)
   const [sortBy, setSortBy] = useState('date')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
-  const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
-  const { mutate: validerVente, isPending: validating } = useValiderVenteDirecte()
-  const { mutate: annulerVente, isPending: cancelling } = useAnnulerVenteDirecte()
-  const validationKeyRef = useRef<string | null>(null)
+  const [showDraftEditor, setShowDraftEditor] = useState(false)
+  const [selectedDraft, setSelectedDraft] = useState<BrouillonDocument<VenteDirectePayload> | null>(null)
+  const [editingVente, setEditingVente] = useState<VenteDirecte | null>(null)
+  const [showLivraison, setShowLivraison] = useState(false)
+  const [selectedVente, setSelectedVente] = useState<VenteDirecte | null>(null)
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
+
   const cancellationKeyRef = useRef<string | null>(null)
 
-  const { data, isLoading } = useVentesDirectes({
-    statut: statut || undefined,
-    client_id: clientId ? Number(clientId) : undefined,
-    date_debut: dateDebut || undefined,
-    date_fin: dateFin || undefined,
+  const estModeBrouillons = statut === 'brouillons'
+
+  const { data: clientsPage } = useClients({ actif: true, per_page: 100 })
+  const { data: locationsData } = useLocations()
+
+  const clients = Array.isArray(clientsPage?.data?.data) ? clientsPage.data.data : []
+  const locations = Array.isArray(locationsData) ? locationsData : []
+
+  const { data: ventesData, isLoading: isLoadingVentes } = useVentesDirectes({
+    statut: estModeBrouillons
+      ? undefined
+      : statut === 'validees'
+        ? 'validee'
+        : statut === 'livrees'
+          ? 'livree'
+          : 'annulee',
+    client_id: estModeBrouillons ? undefined : clientId ? Number(clientId) : undefined,
+    date_debut: estModeBrouillons ? undefined : dateDebut || undefined,
+    date_fin: estModeBrouillons ? undefined : dateFin || undefined,
     page,
     per_page: 20,
     sort_by: sortBy,
     sort_dir: sortDir,
   })
 
-  const clients = Array.isArray(clientsPage?.data.data) ? clientsPage.data.data : []
-  const pagination = data?.data
+  const { data: allBrouillons = [], isLoading: isLoadingBrouillons } = useBrouillons<VenteDirectePayload>(
+    'vente_directe',
+    estModeBrouillons,
+  )
+
+  const brouillonsPagination = useMemo(
+    () => paginateLocally(allBrouillons, draftPage, DRAFT_PAGE_SIZE),
+    [allBrouillons, draftPage],
+  )
+
+  const brouillons = brouillonsPagination.data
+
+  const createBrouillon = useCreateBrouillon<VenteDirectePayload>()
+  const updateBrouillon = useUpdateBrouillon<VenteDirectePayload>()
+  const deleteBrouillon = useDeleteBrouillon()
+  const finaliserBrouillon = useFinaliserBrouillon<VenteDirecte>()
+  const { mutate: annulerVente, isPending: cancelling } = useAnnulerVenteDirecte()
+
+  const pagination = ventesData?.data
   const ventes = Array.isArray(pagination?.data) ? pagination.data : []
 
-  const statutOptions = [
-    { value: '', label: 'Toutes' },
-    { value: 'brouillon', label: 'Brouillons' },
-    { value: 'validee', label: 'Validees' },
-    { value: 'annulee', label: 'Annulees' },
-  ]
+  const enregistrerBrouillon = async (payload: VenteDirectePayload): Promise<void> => {
+    if (selectedDraft) {
+      await updateBrouillon.mutateAsync({
+        uuid: selectedDraft.uuid,
+        payload,
+        version: selectedDraft.version,
+        idempotencyKey: createIdempotencyKey(),
+      })
+    } else {
+      await createBrouillon.mutateAsync({
+        module: 'vente_directe',
+        payload,
+        idempotencyKey: createIdempotencyKey(),
+      })
+    }
 
-  const getLabel = (statutVente: VenteDirecte['statut']) => {
-    if (statutVente === 'brouillon') return 'Brouillon'
-    if (statutVente === 'validee') return 'Validee'
-    if (statutVente === 'annulee') return 'Annulee'
-    if (statutVente === 'livree') return 'Livree'
-    return statutVente
+    setShowDraftEditor(false)
+    setSelectedDraft(null)
+    setStatut('brouillons')
+    setDraftPage(1)
   }
 
-  const canDeliver = (vente: VenteDirecte) =>
-    vente.statut === 'validee' &&
-    Array.isArray(vente.lignes) &&
-    vente.lignes.some((ligne) => (ligne.quantite_restante ?? ligne.quantite) > 0)
+  const handleConfirm = () => {
+    if (!confirmAction) return
+
+    if (confirmAction.type === 'finaliser') {
+      finaliserBrouillon.mutate(
+        { uuid: confirmAction.brouillon.uuid, idempotencyKey: createIdempotencyKey() },
+        {
+          onSuccess: () => {
+            setConfirmAction(null)
+            setStatut('validees')
+            setPage(1)
+          },
+        },
+      )
+      return
+    }
+
+    if (confirmAction.type === 'supprimer') {
+      deleteBrouillon.mutate(confirmAction.brouillon.uuid, {
+        onSuccess: () => setConfirmAction(null),
+      })
+      return
+    }
+
+    const idempotencyKey = cancellationKeyRef.current ?? (cancellationKeyRef.current = createIdempotencyKey())
+
+    annulerVente(
+      { id: confirmAction.vente.id, idempotencyKey },
+      {
+        onSuccess: () => {
+          cancellationKeyRef.current = null
+          setConfirmAction(null)
+        },
+      },
+    )
+  }
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Ventes directes"
-        subtitle={`${pagination?.total ?? 0} vente(s) directe(s)`}
+        subtitle={
+          estModeBrouillons
+            ? `${brouillonsPagination.total} brouillon(s) partagé(s)`
+            : `${pagination?.total ?? 0} vente(s) directe(s)`
+        }
         actions={
-          <Button icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setShowCreate(true)}>
-            Nouvelle vente
+          <Button
+            icon={<Plus className="h-3.5 w-3.5" />}
+            onClick={() => {
+              setSelectedDraft(null)
+              setShowDraftEditor(true)
+            }}
+          >
+            Nouveau brouillon
           </Button>
         }
       />
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
         <div className="rounded-lg border border-surface-border bg-white p-3">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-steel-400">Statut</div>
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-steel-400">
+            Affichage
+          </div>
+
           <div className="flex flex-wrap gap-1.5">
-            {statutOptions.map((option) => (
+            {AFFICHAGE_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => {
                   setStatut(option.value)
                   setPage(1)
+                  setDraftPage(1)
                 }}
                 className={
                   statut === option.value
@@ -127,11 +220,12 @@ export function VentesDirectesView() {
         <Select
           label="Client"
           placeholder="Tous les clients"
+          disabled={estModeBrouillons}
           className="bg-white"
           options={clients.map((client) => ({ value: client.id, label: client.nom }))}
           value={clientId}
-          onChange={(e) => {
-            setClientId(e.target.value)
+          onChange={(event) => {
+            setClientId(event.target.value)
             setPage(1)
           }}
         />
@@ -139,9 +233,10 @@ export function VentesDirectesView() {
         <Input
           label="Du"
           type="date"
+          disabled={estModeBrouillons}
           value={dateDebut}
-          onChange={(e) => {
-            setDateDebut(e.target.value)
+          onChange={(event) => {
+            setDateDebut(event.target.value)
             setPage(1)
           }}
         />
@@ -149,171 +244,96 @@ export function VentesDirectesView() {
         <Input
           label="Au"
           type="date"
+          disabled={estModeBrouillons}
           value={dateFin}
-          onChange={(e) => {
-            setDateFin(e.target.value)
+          onChange={(event) => {
+            setDateFin(event.target.value)
             setPage(1)
           }}
         />
 
-        <SortControl
-          sortBy={sortBy}
-          sortDir={sortDir}
-          options={[
-            { value: 'date', label: 'Date vente' },
-            { value: 'nom', label: 'Référence VD' },
-          ]}
-          onSortByChange={(value) => {
-            setSortBy(value)
-            setPage(1)
-          }}
-          onSortDirChange={(value) => {
-            setSortDir(value)
-            setPage(1)
-          }}
-        />
+        {!estModeBrouillons && (
+          <SortControl
+            sortBy={sortBy}
+            sortDir={sortDir}
+            options={[
+              { value: 'date', label: 'Date vente' },
+              { value: 'nom', label: 'Référence VD' },
+            ]}
+            onSortByChange={(value) => {
+              setSortBy(value)
+              setPage(1)
+            }}
+            onSortDirChange={(value) => {
+              setSortDir(value)
+              setPage(1)
+            }}
+          />
+        )}
       </div>
 
       <Card>
-        {isLoading ? (
-          <TableSkeleton rows={10} cols={7} />
-        ) : ventes.length === 0 ? (
-          <CardBody>
-            <div className="flex flex-col items-center justify-center py-16 text-steel-400">
-              <ShoppingCart className="mb-2 h-8 w-8" />
-              <p className="text-sm font-medium">Aucune vente directe trouvee</p>
-            </div>
-          </CardBody>
+        {estModeBrouillons ? (
+          <VentesDirectesBrouillonsTable
+            brouillons={brouillons}
+            pagination={brouillonsPagination}
+            isLoading={isLoadingBrouillons}
+            clients={clients}
+            locations={locations}
+            page={draftPage}
+            onPageChange={setDraftPage}
+            onEdit={(brouillon) => {
+              setSelectedDraft(brouillon)
+              setShowDraftEditor(true)
+            }}
+            onFinaliser={(brouillon) => setConfirmAction({ type: 'finaliser', brouillon })}
+            onSupprimer={(brouillon) => setConfirmAction({ type: 'supprimer', brouillon })}
+          />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-surface-border">
-                  {['Numero', 'Client', 'Localisation', 'Date', 'Total', 'Statut', ''].map((h) => (
-                    <th
-                      key={h}
-                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-surface-border">
-                {ventes.map((vente: VenteDirecte) => (
-                  <tr key={vente.id} className="cursor-pointer hover:bg-surface-muted/60 transition-colors"
-                    onClick={() => router.push(`/ventes-directes/${vente.id}`)}
-                  >
-                    <td className="px-4 py-3">
-                      <span className="ref-code">{vente.numero}</span>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-steel-800">
-                      {vente.client?.nom ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-steel-600">
-                      {vente.location?.nom ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-steel-600">{formatDate(vente.date)}</td>
-                    <td className="px-4 py-3">
-                      <span className="amount">{formatMGA(vente.total)}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={getStatutColor(vente.statut)} dot>
-                        {getLabel(vente.statut)}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {(() => {
-                          const editDecision = permissions.canEditDocument('vente_directe', vente.statut)
-
-                          if (!editDecision.allowed) return null
-
-                          return (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              icon={<Pencil className="h-3.5 w-3.5" />}
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                setEditingVente(vente)
-                              }}
-                            >
-                              {editDecision.label}
-                            </Button>
-                          )
-                        })()}
-                        {canDeliver(vente) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            icon={<Truck className="h-3.5 w-3.5" />}
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              setSelectedVente(vente)
-                              setShowLivraison(true)
-                            }}
-                          >
-                            Livrer
-                          </Button>
-                        )}
-                        {permissions.can('validate') && (
-                        vente.statut === 'brouillon' && (
-                          <Button
-                              variant="ghost"
-                              size="sm"
-                              icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
-                              loading={validating}
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                setConfirmAction({ type: 'valider', id: vente.id })
-                              }}
-                            >
-                              Valider
-                            </Button>
-                        ))}
-                        {vente.statut === 'validee' && (
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            icon={<RotateCcw className="h-3.5 w-3.5" />}
-                            loading={cancelling}
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              setConfirmAction({ type: 'annuler', id: vente.id })
-                            }}
-                          >
-                            Annuler
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {pagination && (
-          <Pagination
-            currentPage={pagination.current_page}
-            lastPage={pagination.last_page}
-            total={pagination.total}
-            from={pagination.from ?? 0}
-            to={pagination.to ?? 0}
+          <VentesDirectesTable
+            ventes={ventes}
+            isLoading={isLoadingVentes}
+            pagination={pagination}
+            page={page}
             onPageChange={setPage}
+            permissions={permissions}
+            cancelling={cancelling}
+            onEdit={setEditingVente}
+            onDeliver={(vente) => {
+              setSelectedVente(vente)
+              setShowLivraison(true)
+            }}
+            onAnnuler={(vente) => setConfirmAction({ type: 'annuler', vente })}
           />
         )}
       </Card>
 
       <Dialog
-        open={showCreate}
-        onClose={() => setShowCreate(false)}
-        title="Nouvelle vente directe"
+        open={showDraftEditor}
+        onClose={() => {
+          setShowDraftEditor(false)
+          setSelectedDraft(null)
+        }}
+        title={selectedDraft ? 'Modifier le brouillon de vente' : 'Nouveau brouillon de vente'}
         size="wide"
       >
-        <VenteDirecteForm onSuccess={() => setShowCreate(false)} />
+        <VenteDirecteForm
+          key={selectedDraft?.uuid ?? 'nouvelle-vente-directe'}
+          formId={DRAFT_FORM_ID}
+          draftValues={selectedDraft?.payload ?? null}
+          hideActions
+          onSaveDraft={enregistrerBrouillon}
+        />
+
+        <div className="mt-5 flex justify-end border-t border-surface-border pt-4">
+          <Button
+            type="submit"
+            form={DRAFT_FORM_ID}
+            loading={createBrouillon.isPending || updateBrouillon.isPending}
+          >
+            Enregistrer le brouillon
+          </Button>
+        </div>
       </Dialog>
 
       <Dialog
@@ -346,65 +366,43 @@ export function VentesDirectesView() {
         {editingVente && (
           <VenteDirecteForm
             defaultValues={editingVente}
+            correctionAdmin={
+              permissions.canEditDocument('vente_directe', editingVente.statut).mode === 'admin_correction'
+            }
             onSuccess={() => setEditingVente(null)}
           />
         )}
       </Dialog>
+
       <ConfirmationDialog
-  open={confirmAction !== null}
-  title={confirmAction?.type === 'valider' ? 'Validation' : 'Annulation'}
-  description={
-    confirmAction?.type === 'valider'
-      ? 'Voulez vous vraiment valider cette vente directe ?'
-      : 'Voulez vous vraiment annuler cette vente directe ?'
-  }
-  confirmLabel="Oui"
-  cancelLabel="Non"
-  variant={confirmAction?.type === 'annuler' ? 'danger' : 'primary'}
-  loading={validating || cancelling}
-  onClose={() => setConfirmAction(null)}
-  onConfirm={() => {
-    if (!confirmAction) return
-
-    if (confirmAction.type === 'valider') {
-      const idempotencyKey =
-        validationKeyRef.current ??
-        (validationKeyRef.current = createIdempotencyKey())
-
-      validerVente(
-        {
-          id: confirmAction.id,
-          idempotencyKey,
-        },
-        {
-          onSuccess: () => {
-            validationKeyRef.current = null
-            setConfirmAction(null)
-          },
-        },
-      )
-
-      return
-    }
-
-    const idempotencyKey =
-      cancellationKeyRef.current ??
-      (cancellationKeyRef.current = createIdempotencyKey())
-
-    annulerVente(
-      {
-        id: confirmAction.id,
-        idempotencyKey,
-      },
-      {
-        onSuccess: () => {
-          cancellationKeyRef.current = null
-          setConfirmAction(null)
-        },
-      },
-    )
-  }}
-/>
+        open={confirmAction !== null}
+        title={
+          confirmAction?.type === 'finaliser'
+            ? 'Créer et valider la vente'
+            : confirmAction?.type === 'supprimer'
+              ? 'Supprimer le brouillon'
+              : 'Annuler la vente directe'
+        }
+        description={
+          confirmAction?.type === 'finaliser'
+            ? 'La vente sera créée définitivement, recevra une référence et sera immédiatement validée.'
+            : confirmAction?.type === 'supprimer'
+              ? 'Ce brouillon partagé sera supprimé définitivement.'
+              : 'Cette vente directe validée sera annulée.'
+        }
+        confirmLabel={
+          confirmAction?.type === 'finaliser'
+            ? 'Créer et valider'
+            : confirmAction?.type === 'supprimer'
+              ? 'Supprimer'
+              : 'Annuler la vente'
+        }
+        cancelLabel="Retour"
+        variant={confirmAction?.type === 'finaliser' ? 'primary' : 'danger'}
+        loading={finaliserBrouillon.isPending || deleteBrouillon.isPending || cancelling}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={handleConfirm}
+      />
     </div>
   )
 }

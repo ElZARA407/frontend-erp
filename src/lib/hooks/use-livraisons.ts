@@ -91,3 +91,30 @@ export function useAnnulerLivraison() {
     onError: (error) => notifyApiError(error, 'Impossible d’annuler cette livraison.'),
   })
 }
+
+export function useCorrectLivraisonAdmin() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+      idempotencyKey,
+    }: {
+      id: number
+      payload: import('../api/livraisons').LivraisonCorrectionPayload
+      idempotencyKey: string
+    }) => livraisonsApi.corrigerAdmin(id, payload, idempotencyKey),
+
+    onSuccess: (_data, variables) => {
+      invalidateCommercialImpact(queryClient)
+      invalidateStockImpact(queryClient)
+      queryClient.invalidateQueries({ queryKey: [...LIVRAISONS_KEY, variables.id] })
+      queryClient.invalidateQueries({ queryKey: COMMERCIAL_DETAIL_KEYS.livraison })
+      toast.success('Correction administrateur de la livraison enregistrée.')
+    },
+
+    onError: (error) =>
+      notifyApiError(error, 'Impossible de corriger cette livraison.'),
+  })
+}

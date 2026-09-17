@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { hasDuplicateBy, todayString } from './schema-utils'
 
 export const venteDirecteLineSchema = z.object({
+  id: z.number().optional(),
   produit_id: z.coerce.number().int().positive('Le produit est requis'),
   classement_id: z.coerce.number().int().positive('Le classement est requis'),
   quantite: z.coerce.number().positive('La quantité doit être supérieure à 0'),

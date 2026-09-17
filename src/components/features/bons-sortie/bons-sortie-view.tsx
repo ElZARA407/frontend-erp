@@ -15,12 +15,18 @@ import { TableSkeleton } from '@/components/ui/skeleton'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import {
   useBonsSortie,
-  useDeleteBonSortie,
-  useValiderBonSortie,
 } from '@/lib/hooks/use-bons-sortie'
+import {
+  useBrouillons,
+  useDeleteBrouillon,
+  useFinaliserBrouillon,
+} from '@/lib/hooks/use-brouillons'
+import type { BrouillonDocument } from '@/lib/brouillons.types'
+import type { BonSortieSchema } from '@/lib/schemas/bons-sortie.schema'
+import { createIdempotencyKey } from '@/lib/idempotency'
 import { usePdfExport } from '@/lib/hooks/use-pdf-export'
 import { MOTIFS_SORTIE } from '@/lib/constants'
-import { formatDate, getStatutColor } from '@/lib/utils'
+import { formatDate, formatQty, getStatutColor } from '@/lib/utils'
 import type { BonSortie } from '@/lib/bons-sortie.types'
 import { BonSortieForm } from './bon-sortie-form'
 import { usePermissions } from '@/lib/hooks/use-permissions'
@@ -31,9 +37,8 @@ import { SortControl, type SortDirection } from '@/components/ui/sort-control'
 const PAGE_SIZE = 10
 
 const statutOptions = [
-  { value: '', label: 'Tous' },
-  { value: 'brouillon', label: 'Brouillons' },
-  { value: 'valide', label: 'Validés' },
+  { value: 'valides', label: 'BS validés' },
+  { value: 'brouillons', label: 'Brouillons' },
 ]
 
 export function BonsSortieView() {
@@ -49,10 +54,19 @@ export function BonsSortieView() {
   const [sortBy, setSortBy] = useState('date')
   const [editingBon, setEditingBon] = useState<BonSortie | null>(null)
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
-  const [confirmAction, setConfirmAction] = useState<null | {
-  type: 'valider' | 'supprimer'
-  id: number
-}>(null)
+  const [brouillonSelectionne, setBrouillonSelectionne] = useState<
+    BrouillonDocument<BonSortieSchema> | null
+  >(null)
+
+  const [confirmBrouillonAction, setConfirmBrouillonAction] = useState<
+    | {
+        type: 'finaliser' | 'supprimer'
+        brouillon: BrouillonDocument<BonSortieSchema>
+      }
+    | null
+  >(null)
+
+  const estModeBrouillons = statut === 'brouillons'
 
   const { data: locationsData } = useLocations()
   const locations = Array.isArray(locationsData) ? locationsData : []
@@ -61,7 +75,7 @@ export function BonsSortieView() {
   const filters = useMemo(
     () => ({
       search: search || undefined,
-      statut: statut || undefined,
+      statut: estModeBrouillons ? undefined : 'valide',
       location_id: locationId ? Number(locationId) : undefined,
       motif: motif || undefined,
       date_debut: dateDebut || undefined,
@@ -71,16 +85,24 @@ export function BonsSortieView() {
       sort_by: sortBy,
       sort_dir: sortDir,
     }),
-    [dateDebut, dateFin, locationId, motif, page, search, statut, sortBy, sortDir],
+    [dateDebut, dateFin, locationId, motif, page, search, sortBy, sortDir, estModeBrouillons],
   )
 
   const { data: bonsPage, isLoading } = useBonsSortie(filters)
-  const { mutate: validerBonSortie, isPending: validating } = useValiderBonSortie()
-  const deleteBonSortie = useDeleteBonSortie()
+  const {
+    data: brouillons = [],
+    isLoading: isLoadingBrouillons,
+  } = useBrouillons<BonSortieSchema>('bon_sortie', estModeBrouillons)
+
+  const deleteBrouillon = useDeleteBrouillon()
+  const finaliserBrouillon = useFinaliserBrouillon<BonSortie>()
   const { exportPdf, isExporting } = usePdfExport()
 
   const bons = Array.isArray(bonsPage?.data?.data) ? bonsPage.data.data : []
   const pagination = bonsPage?.data
+  const isLoadingPage = estModeBrouillons
+    ? isLoadingBrouillons
+    : isLoading
 
   return (
     <div className="space-y-5">
@@ -94,7 +116,7 @@ export function BonsSortieView() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-7 2xl:grid-cols-8">
         <Input
           label="Recherche"
           placeholder="Référence, produit, client, motif..."
@@ -109,7 +131,7 @@ export function BonsSortieView() {
 
         <Select
           label="Statut"
-          placeholder="Tous"
+          placeholder=""
           options={statutOptions}
           value={statut}
           onChange={(event) => {
@@ -179,8 +201,121 @@ export function BonsSortieView() {
       </div>
 
       <Card>
-        {isLoading ? (
+        {isLoadingPage ? (
           <TableSkeleton rows={10} cols={8} />
+          ) : estModeBrouillons ? (
+            brouillons.length === 0 ? (
+              <CardBody>
+                <div className="flex flex-col items-center justify-center py-16 text-steel-400">
+                  <Package className="mb-2 h-8 w-8" />
+                  <p className="text-sm font-medium">Aucun brouillon de BS</p>
+                </div>
+              </CardBody>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-surface-border">
+                      {['Brouillon', 'Source', 'Raison', 'Date', 'Qté', 'Modifié par', ''].map((label) => (
+                        <th
+                          key={label}
+                          className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
+                        >
+                          {label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-surface-border">
+                    {brouillons.map((brouillon) => {
+                      const payload = brouillon.payload
+                      const total = payload.lignes.reduce(
+                        (sum, ligne) => sum + Number(ligne.quantite || 0),
+                        0,
+                      )
+
+                      return (
+                        <tr key={brouillon.uuid} className="hover:bg-surface-muted/60">
+                          <td className="px-4 py-3">
+                            <Badge variant="warning" dot>Brouillon</Badge>
+                          </td>
+
+                          <td className="px-4 py-3 text-steel-600">
+                            {locations.find(
+                              (location) =>
+                                location.id === Number(payload.location_id),
+                            )?.nom ?? '—'}
+                          </td>
+
+                          <td className="px-4 py-3 text-steel-600">
+                            {MOTIFS_SORTIE.find(
+                              (item) => item.value === payload.motif,
+                            )?.label ?? payload.motif}
+                          </td>
+
+                          <td className="px-4 py-3 text-steel-600">
+                            {formatDate(payload.date)}
+                          </td>
+
+                          <td className="px-4 py-3 text-steel-600">
+                            {formatQty(total)}
+                          </td>
+
+                          <td className="px-4 py-3 text-steel-600">
+                            {brouillon.modificateur?.nom ?? '—'}
+                          </td>
+
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                icon={<Pencil className="h-3.5 w-3.5" />}
+                                onClick={() => {
+                                  setBrouillonSelectionne(brouillon)
+                                  setShowCreate(true)
+                                }}
+                              >
+                                Modifier
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
+                                onClick={() =>
+                                  setConfirmBrouillonAction({
+                                    type: 'finaliser',
+                                    brouillon,
+                                  })
+                                }
+                              >
+                                Créer et valider
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                icon={<Trash2 className="h-3.5 w-3.5 text-red-600" />}
+                                onClick={() =>
+                                  setConfirmBrouillonAction({
+                                    type: 'supprimer',
+                                    brouillon,
+                                  })
+                                }
+                              >
+                                Supprimer
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
         ) : bons.length === 0 ? (
           <CardBody>
             <div className="flex flex-col items-center justify-center py-16 text-steel-400">
@@ -254,34 +389,6 @@ export function BonsSortieView() {
                             </Button>
                           )
                         })()}
-                        
-                        {permissions.can('validate') && (
-                          bon.statut === 'brouillon' && (
-                          <>
-                            <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
-                                      loading={validating}
-                                      onClick={(event) => {
-                                        event.stopPropagation()
-                                        setConfirmAction({ type: 'valider', id: bon.id })
-                                      }}
-                                    >
-                                      Valider
-                                    </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              icon={<Trash2 className="h-3.5 w-3.5 text-red-600" />}
-                              loading={deleteBonSortie.isPending}
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                setConfirmAction({ type: 'supprimer', id: bon.id })
-                              }}
-                            />
-                          </>
-                        ))}
 
                         <Button
                           variant="ghost"
@@ -322,50 +429,90 @@ export function BonsSortieView() {
         title="Nouveau bon de sortie"
         size="xl"
       >
-        <BonSortieForm onSuccess={() => setShowCreate(false)} />
+        <BonSortieForm
+          key={brouillonSelectionne?.uuid ?? 'nouveau-bs'}
+          brouillonInitial={brouillonSelectionne}
+          onSaved={() => {
+            setShowCreate(false)
+            setBrouillonSelectionne(null)
+            setStatut('brouillons')
+            setPage(1)
+          }}
+        />
       </Dialog>
         <Dialog
-  open={editingBon !== null}
-  onClose={() => setEditingBon(null)}
-  title={editingBon ? `Modifier ${editingBon.numero}` : 'Modifier le bon de sortie'}
-  size="xl"
->
-  {editingBon && (
-    <BonSortieForm
-      defaultValues={editingBon}
-      onSuccess={() => setEditingBon(null)}
-    />
-  )}
-</Dialog>
+          open={editingBon !== null}
+          onClose={() => setEditingBon(null)}
+          title={editingBon ? `Modifier ${editingBon.numero}` : 'Modifier le bon de sortie'}
+          size="xl"
+        >
+          {editingBon && (
+            <BonSortieForm
+              defaultValues={editingBon}
+              correctionAdmin={
+                permissions.canEditDocument('bon_sortie', editingBon.statut).mode ===
+                'admin_correction'
+              }
+              onSuccess={() => setEditingBon(null)}
+            />
+          )}
+        </Dialog>
 
-      <ConfirmationDialog
-  open={confirmAction !== null}
-  title={confirmAction?.type === 'valider' ? 'Validation' : 'Suppression'}
-  description={
-    confirmAction?.type === 'valider'
-      ? 'Voulez vous vraiment valider ce bon de sortie ?'
-      : 'Voulez vous vraiment supprimer ce bon de sortie ?'
-  }
-  confirmLabel="Oui"
-  cancelLabel="Non"
-  variant={confirmAction?.type === 'supprimer' ? 'danger' : 'primary'}
-  loading={validating || deleteBonSortie.isPending}
-  onClose={() => setConfirmAction(null)}
-  onConfirm={() => {
-    if (!confirmAction) return
+        <ConfirmationDialog
+          open={confirmBrouillonAction !== null}
+          title={
+            confirmBrouillonAction?.type === 'finaliser'
+              ? 'Créer et valider le BS'
+              : 'Supprimer le brouillon'
+          }
+          description={
+            confirmBrouillonAction?.type === 'finaliser'
+              ? 'Le bon de sortie sera créé définitivement, recevra une référence et les mouvements de stock seront enregistrés.'
+              : 'Ce brouillon partagé sera supprimé définitivement.'
+          }
+          confirmLabel={
+            confirmBrouillonAction?.type === 'finaliser'
+              ? 'Créer et valider'
+              : 'Supprimer'
+          }
+          cancelLabel="Annuler"
+          variant={
+            confirmBrouillonAction?.type === 'supprimer'
+              ? 'danger'
+              : 'primary'
+          }
+          loading={
+            finaliserBrouillon.isPending ||
+            deleteBrouillon.isPending
+          }
+          onClose={() => setConfirmBrouillonAction(null)}
+          onConfirm={() => {
+            if (!confirmBrouillonAction) return
 
-    if (confirmAction.type === 'valider') {
-      validerBonSortie(confirmAction.id, {
-        onSuccess: () => setConfirmAction(null),
-      })
-      return
-    }
+            if (confirmBrouillonAction.type === 'finaliser') {
+              finaliserBrouillon.mutate(
+                {
+                  uuid: confirmBrouillonAction.brouillon.uuid,
+                  idempotencyKey: createIdempotencyKey(),
+                },
+                {
+                  onSuccess: () => {
+                    setConfirmBrouillonAction(null)
+                    setStatut('valides')
+                  },
+                },
+              )
+              return
+            }
 
-    deleteBonSortie.mutate(confirmAction.id, {
-      onSuccess: () => setConfirmAction(null),
-    })
-  }}
-/>
+            deleteBrouillon.mutate(
+              confirmBrouillonAction.brouillon.uuid,
+              {
+                onSuccess: () => setConfirmBrouillonAction(null),
+              },
+            )
+          }}
+        />
     </div>
   )
 }

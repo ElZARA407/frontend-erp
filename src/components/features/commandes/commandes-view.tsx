@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, Copy, Pencil, Plus, ShoppingCart, Truck } from 'lucide-react'
+import { AlertTriangle, Copy, Pencil, Plus,Trash2, ShoppingCart, Truck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
@@ -14,7 +14,7 @@ import { Select } from '@/components/ui/select'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { formatDate, formatMGA, getStatutColor } from '@/lib/utils'
-import { useCommandes, useDuplicateCommande } from '@/lib/hooks/use-commandes'
+import { useCommandes, useDuplicateCommande,useDeleteCommande } from '@/lib/hooks/use-commandes'
 import { useClients } from '@/lib/hooks/use-clients'
 import { useLocations } from '@/lib/hooks/use-organisation'
 import type { Client, Commande, Location } from '@/lib/types'
@@ -61,9 +61,17 @@ export function CommandesView() {
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
 
   const permissions = usePermissions()
-const [editingCommande, setEditingCommande] = useState<Commande | null>(null)
+  const [editingCommande, setEditingCommande] = useState<Commande | null>(null)
   const { data: clientsPage } = useClients({ actif: true, per_page: 200 })
   const { data: locationsData } = useLocations()
+  const deleteCommande = useDeleteCommande()
+
+  const [confirmDeleteCommande, setConfirmDeleteCommande] = useState<
+    Commande | null
+  >(null)
+
+  const canDeleteCommande = (commande: Commande) =>
+    !commande.livraisons?.length
 
   const clients = normalizeArray<Client>(clientsPage)
   const locations = normalizeArray<Location>(locationsData)
@@ -235,7 +243,7 @@ const [editingCommande, setEditingCommande] = useState<Commande | null>(null)
             <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-surface-border">
-                {['Numéro', 'Client', 'Date', 'Livraison prévue', 'Montant', 'Statut', ''].map((h) => (
+                {['Numéro', 'Client', 'Date', 'Livraison prévue', 'BL','Montant', 'Statut', ''].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
@@ -261,6 +269,37 @@ const [editingCommande, setEditingCommande] = useState<Commande | null>(null)
                     <td className="px-4 py-3 font-medium text-steel-800">{cmd.client?.nom ?? '—'}</td>
                     <td className="px-4 py-3 text-steel-600">{formatDate(cmd.date)}</td>
                     <td className="px-4 py-3 text-steel-600">{formatDate(cmd.date_livraison_prevue)}</td>
+                    <td className="px-4 py-3">
+                      {!cmd.livraisons?.length ? (
+                        <span className="text-xs text-steel-400">Aucun BL</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {cmd.livraisons.slice(0, 2).map((livraison) => (
+                            <Button
+                              key={livraison.id}
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                router.push(`/livraisons/${livraison.id}`)
+                              }}
+                            >
+                              {livraison.numero ?? `BL #${livraison.id}`} :{' '}
+                              {livraison.statut === 'livre'
+                                ? 'Confirmé'
+                                : livraison.statut === 'prepare'
+                                  ? 'Préparé'
+                                  : 'Retourné'}
+                            </Button>
+                          ))}
+
+                          {cmd.livraisons.length > 2 && (
+                            <Badge variant="muted">+{cmd.livraisons.length - 2}</Badge>
+                          )}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <span className="amount">{formatMGA(cmd.total)}</span>
                     </td>
@@ -302,6 +341,20 @@ const [editingCommande, setEditingCommande] = useState<Commande | null>(null)
                             }}
                           >
                             Livrer
+                          </Button>
+                        )}
+                        {canDeleteCommande(cmd) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<Trash2 className="h-3.5 w-3.5 text-red-600" />}
+                            loading={deleteCommande.isPending}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              setConfirmDeleteCommande(cmd)
+                            }}
+                          >
+                            Supprimer
                           </Button>
                         )}
                         <Button
@@ -361,35 +414,62 @@ const [editingCommande, setEditingCommande] = useState<Commande | null>(null)
       </Dialog>
 
       <Dialog
-  open={editingCommande !== null}
-  onClose={() => setEditingCommande(null)}
-  title={
-    editingCommande
-      ? `Modifier ${editingCommande.numero}`
-      : 'Modifier la commande'
-  }
-  size="wide"
->
-  {editingCommande && (
-    <CommandeForm
-      defaultValues={editingCommande}
-      onSuccess={() => setEditingCommande(null)}
-    />
-  )}
-</Dialog>
+        open={editingCommande !== null}
+        onClose={() => setEditingCommande(null)}
+        title={
+          editingCommande
+            ? `Modifier ${editingCommande.numero}`
+            : 'Modifier la commande'
+        }
+        size="wide"
+      >
+        {editingCommande && (
+          <CommandeForm
+            defaultValues={editingCommande}
+            correctionAdmin={
+              permissions.canEditDocument(
+                'commande',
+                editingCommande.statut,
+              ).mode === 'admin_correction'
+            }
+            onSuccess={() => setEditingCommande(null)}
+          />
+        )}
+      </Dialog>
       <ConfirmationDialog
-  open={confirmDuplicateId !== null}
-  title="Duplication"
-  description="Voulez vous vraiment dupliquer cette commande ?"
-  confirmLabel="Oui"
-  cancelLabel="Non"
-  onClose={() => setConfirmDuplicateId(null)}
-  onConfirm={() => {
-    if (!confirmDuplicateId) return
-    duplicate(confirmDuplicateId)
-    setConfirmDuplicateId(null)
-  }}
-/>
+        open={confirmDuplicateId !== null}
+        title="Duplication"
+        description="Voulez vous vraiment dupliquer cette commande ?"
+        confirmLabel="Oui"
+        cancelLabel="Non"
+        onClose={() => setConfirmDuplicateId(null)}
+        onConfirm={() => {
+          if (!confirmDuplicateId) return
+          duplicate(confirmDuplicateId)
+          setConfirmDuplicateId(null)
+        }}
+      />
+      <ConfirmationDialog
+        open={confirmDeleteCommande !== null}
+        title="Supprimer la commande"
+        description={
+          confirmDeleteCommande
+            ? `Supprimer définitivement ${confirmDeleteCommande.numero} ? Cette action est possible uniquement car aucun BL n’y est rattaché.`
+            : ''
+        }
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        variant="danger"
+        loading={deleteCommande.isPending}
+        onClose={() => setConfirmDeleteCommande(null)}
+        onConfirm={() => {
+          if (!confirmDeleteCommande) return
+
+          deleteCommande.mutate(confirmDeleteCommande.id, {
+            onSuccess: () => setConfirmDeleteCommande(null),
+          })
+        }}
+      />
     </div>
   )
 }

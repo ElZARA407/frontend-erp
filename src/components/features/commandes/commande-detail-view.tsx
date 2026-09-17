@@ -26,6 +26,9 @@ export function CommandeDetailView({ commandeId }: CommandeDetailViewProps) {
   const [confirmDuplicateOpen, setConfirmDuplicateOpen] = useState(false)
 
   const lignes = Array.isArray(commande?.lignes) ? commande.lignes : []
+  const livraisons = Array.isArray(commande?.livraisons)
+  ? commande.livraisons
+  : []
 
   if (!isLoading && !commande) {
     return (
@@ -179,6 +182,83 @@ export function CommandeDetailView({ commandeId }: CommandeDetailViewProps) {
           ) : null}
         </CardBody>
       </Card>
+      {livraisons.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div>
+              <h2 className="text-sm font-semibold text-steel-900">Bons de livraison rattachés</h2>
+              <p className="text-xs text-steel-500">
+                Historique des BL créés à partir de cette commande.
+              </p>
+            </div>
+
+            <Badge variant="info" dot>
+              {livraisons.length} BL
+            </Badge>
+          </CardHeader>
+
+          <CardBody>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-surface-border">
+                    {['BL', 'Date livraison', 'Statut', 'Facturé', ''].map((header) => (
+                      <th
+                        key={header}
+                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-steel-400"
+                      >
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-surface-border">
+                  {livraisons.map((livraison) => (
+                    <tr
+                      key={livraison.id}
+                      className="transition-colors hover:bg-surface-muted/60"
+                    >
+                      <td className="px-4 py-3 font-medium text-steel-900">
+                        {livraison.statut === 'livre'
+                          ? 'Confirmé'
+                          : livraison.statut === 'prepare'
+                            ? 'Préparé'
+                            : 'Retourné'}
+                      </td>
+
+                      <td className="px-4 py-3 text-steel-600">
+                        {formatDate(livraison.date_livraison)}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <Badge variant={getStatutColor(livraison.statut)} dot>
+                          {livraison.statut}
+                        </Badge>
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <Badge variant={livraison.est_facturee ? 'success' : 'muted'} dot>
+                          {livraison.est_facturee ? 'Oui' : 'Non'}
+                        </Badge>
+                      </td>
+
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          href={`/livraisons/${livraison.id}`}
+                          className="text-xs font-medium text-steel-700 hover:underline"
+                        >
+                          Voir le BL
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

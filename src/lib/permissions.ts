@@ -295,6 +295,7 @@ export type BusinessDocumentType =
   | 'vente_directe'
   | 'livraison'
   | 'bon_sortie'
+  | 'bon_reception'
   | 'bon_production'
   | 'bp_session'
   | 'bon_transformation'
@@ -323,6 +324,49 @@ function readStatusValue(status: unknown): string {
   return ''
 }
 
+function isCorrectableByAdmin(
+  type: BusinessDocumentType,
+  status: string,
+): boolean {
+  if (type === 'commande') {
+    return status === 'partielle' || status === 'livree'
+  }
+
+  if (type === 'vente_directe') {
+    return status === 'validee'
+  }
+
+  if (type === 'livraison') {
+    return status === 'livre'
+  }
+
+  if (type === 'bon_sortie') {
+    return status === 'valide'
+  }
+
+  if (type === 'bon_reception') {
+    return status === 'valide'
+  }
+
+  if (type === 'bon_production') {
+    return status === 'cloture'
+  }
+
+  if (type === 'bp_session') {
+    return status === 'validee'
+  }
+
+  if (type === 'bon_transformation') {
+    return status === 'cloture'
+  }
+
+  if (type === 'bt_session') {
+    return status === 'validee'
+  }
+
+  return false
+}
+
 function isAdminRole(role: string | null | undefined) {
   return normalizeRole(role) === 'admin'
 }
@@ -336,6 +380,7 @@ function isEditableBeforeValidation(type: BusinessDocumentType, status: string):
   if (type === 'bp_session') return status === 'ouverte'
   if (type === 'bon_transformation') return status === 'ouvert'
   if (type === 'bt_session') return status === 'ouverte'
+  if (type === 'bon_reception') return status === 'brouillon'
 
   return false
 }
@@ -365,7 +410,7 @@ export function canEditBusinessDocument(
     }
   }
 
-  if (isAdminRole(role)) {
+  if (isAdminRole(role) && isCorrectableByAdmin(type, normalizedStatus)) {
     return {
       allowed: true,
       mode: 'admin_correction',
